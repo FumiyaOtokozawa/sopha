@@ -6,6 +6,7 @@ const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const router = useRouter(); // ログインのリダイレクト処理
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -13,7 +14,11 @@ const LoginPage = () => {
       email,
       password,
     });
-    if (error) setError(error.message);
+    if (error) {
+      setError(error.message);
+    } else {
+      router.push("/"); // ログイン成功時にindexページへリダイレクト
+    }
   };
 
   return (
