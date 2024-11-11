@@ -17,7 +17,32 @@ const LoginPage = () => {
     if (error) {
       setError(error.message);
     } else {
-      router.push("/"); // ログイン成功時にindexページへリダイレクト
+      // ログイン成功時にUSER_ROLEテーブルからroleを取得してリダイレクト
+      const {
+        data: { user },
+      } = await supabase.auth.getUser(); // ログインユーザー情報の取得
+
+      if (user) {
+        const { data, error: roleError } = await supabase
+          .from("USER_ROLE")
+          .select("role")
+          .eq("user_id", user.id)
+          .single(); // USER_ROLEテーブルからroleを取得
+
+        if (roleError) {
+          console.error("Role retrieval error:", roleError);
+          setError("権限の取得に失敗しました");
+        } else {
+          // 権限に基づくリダイレクト
+          if (data.role === 0) {
+            router.push("/employeeMenuPage");
+          } else if (data.role === 1) {
+            router.push("/adminMenuPage");
+          }
+        }
+      } else {
+        setError("ユーザー情報の取得に失敗しました");
+      }
     }
   };
 
