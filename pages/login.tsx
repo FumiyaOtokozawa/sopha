@@ -10,17 +10,21 @@ const LoginPage = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("ログイン処理開始");
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     if (error) {
       setError(error.message);
+      console.error("ログインエラー：", error.message);
     } else {
       // ログイン成功時にUSER_ROLEテーブルからroleを取得してリダイレクト
       const {
         data: { user },
       } = await supabase.auth.getUser(); // ログインユーザー情報の取得
+      console.log("ユーザーID:", user?.id);
 
       if (user) {
         const { data, error: roleError } = await supabase
@@ -28,6 +32,8 @@ const LoginPage = () => {
           .select("role")
           .eq("user_id", user.id)
           .single(); // USER_ROLEテーブルからroleを取得
+
+        console.log("取得したrole：", data?.role);
 
         if (roleError) {
           console.error("Role retrieval error:", roleError);

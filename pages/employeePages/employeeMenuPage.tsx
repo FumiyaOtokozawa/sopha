@@ -1,4 +1,4 @@
-// pages/employeeMenu.tsx
+// pages/employeePages/employeeMenuPage.tsx
 const EmployeeMenu = () => {
   return <h1>Employee menu page</h1>;
 };
