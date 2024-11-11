@@ -35,9 +35,9 @@ const LoginPage = () => {
         } else {
           // 権限に基づくリダイレクト
           if (data.role === 0) {
-            router.push("/employeeMenuPage");
+            router.push("/employeePages/employeeMenuPage");
           } else if (data.role === 1) {
-            router.push("/adminMenuPage");
+            router.push("/adminPages/adminMenuPage");
           }
         }
       } else {

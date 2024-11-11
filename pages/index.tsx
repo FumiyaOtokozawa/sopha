@@ -29,9 +29,9 @@ const IndexPage = () => {
 
         // roleに基づくリダイレクト
         if (data.role === 0) {
-          router.push("/employeeMenuPage"); // employeeのリダイレクト先
+          router.push("/employeePages/employeeMenuPage"); // employeeのリダイレクト先
         } else if (data.role === 1) {
-          router.push("/adminMenuPage"); // adminのリダイレクト先
+          router.push("/adminPages/adminMenuPage"); // adminのリダイレクト先
         }
       } else {
         // ミドグインの場合はログインページへリダイレクト
