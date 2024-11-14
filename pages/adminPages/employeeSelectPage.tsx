@@ -1,6 +1,7 @@
 // pages/adminPages/employeeSelectPage.tsx
 
 import { useState } from "react";
+import { useRouter } from "next/router";
 import LogoutButton from "../../components/LogoutButton";
 import supabase from "../../supabaseClient";
 
@@ -15,6 +16,7 @@ type Employee = {
 };
 
 const EmployeeSelect = () => {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState(""); // 検索ワード
   const [employees, setEmployees] = useState<Employee[]>([]); // 検索結果の社員リスト
 
@@ -36,6 +38,11 @@ const EmployeeSelect = () => {
       console.log("データが取得されました:", data);
       setEmployees(data as Employee[]);
     }
+  };
+
+  // 社員名をクリックした際の処理
+  const handleEmployeeClick = (employeeId: number) => {
+    router.push(`/employeePages/${employeeId}`);
   };
 
   // 検索ボタンが押された時の処理
@@ -61,7 +68,20 @@ const EmployeeSelect = () => {
       <ul>
         {employees.map((employee) => (
           <li key={employee.employee_number}>
-            {`${employee.last_nm} ${employee.first_nm} (${employee.email})`}
+            <button
+              onClick={() => handleEmployeeClick(employee.employee_number)}
+              style={{
+                cursor: "pointer",
+                color: "blue",
+                background: "none",
+                border: "none",
+                padding: "0",
+                textDecoration: "underline",
+              }}
+              aria-label={`社員${employee.last_nm} ${employee.first_nm}のマイページへ`}
+            >
+              {`${employee.last_nm} ${employee.first_nm} (${employee.email})`}
+            </button>
           </li>
         ))}
       </ul>
