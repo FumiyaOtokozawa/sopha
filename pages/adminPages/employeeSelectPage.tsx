@@ -26,7 +26,9 @@ const EmployeeSelect = () => {
       .select(
         "employee_number, last_nm, first_nm, last_nm_alp, first_nm_alp, gender, email"
       )
-      .ilike("last_nm", `%${searchTerm}%`); // 姓の部分一致検索
+      .or(
+        `last_nm.ilike.%${searchTerm}%,first_nm.ilike.%${searchTerm}%,last_nm_alp.ilike.%${searchTerm}%,first_nm_alp.ilike.%${searchTerm}%`
+      ); // 氏名の部分一致検索
 
     if (error) {
       console.error("エラーが発生しました：", error.message);
