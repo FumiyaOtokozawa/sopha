@@ -1,4 +1,4 @@
-// pages/employeePages/[employeeId].tsx
+// pages/employeePages/employee[employeeNumber]Page.tsx
 
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -9,20 +9,21 @@ type Employee = {
   first_nm: string;
 };
 
-const EmployeePage = () => {
+const EmployeeSelfPage = () => {
   const router = useRouter();
-  const { employeeId } = router.query;
+  const { employeeNumber } = router.query;
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [points, setPoints] = useState<number | null>(null);
 
   useEffect(() => {
+    console.log("取得したemployeeId:", employeeNumber);
     //社員データを取得
     const fetchEmployee = async () => {
-      if (employeeId) {
+      if (employeeNumber) {
         const { data, error } = await supabase
           .from("EMPLOYEE_LIST")
           .select("last_nm, first_nm")
-          .eq("employee_number", employeeId)
+          .eq("employee_number", employeeNumber)
           .single();
 
         if (error) {
@@ -37,11 +38,11 @@ const EmployeePage = () => {
 
     // 社員の保有ポイントを取得
     const fetchPoints = async () => {
-      if (employeeId) {
+      if (employeeNumber) {
         const { data, error } = await supabase
           .from("EMPLOYEE_POINTS")
           .select("total_points")
-          .eq("employee_number", employeeId)
+          .eq("employee_number", employeeNumber)
           .single();
 
         if (error) {
@@ -53,7 +54,7 @@ const EmployeePage = () => {
     };
 
     fetchPoints();
-  }, [employeeId]);
+  }, [employeeNumber]);
 
   if (!employee) {
     return <p>社員情報を読み込んでいます…</p>;
@@ -67,4 +68,4 @@ const EmployeePage = () => {
   );
 };
 
-export default EmployeePage;
+export default EmployeeSelfPage;

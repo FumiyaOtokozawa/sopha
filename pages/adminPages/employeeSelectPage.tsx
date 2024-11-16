@@ -41,8 +41,10 @@ const EmployeeSelect = () => {
   };
 
   // 社員名をクリックした際の処理
-  const handleEmployeeClick = (employeeId: number) => {
-    router.push(`/employeePages/${employeeId}`);
+  const handleEmployeeClick = (employeeNumber: number) => {
+    router.push(
+      `/adminPages/admin[employeeNumber]Page?employeeNumber=${employeeNumber}`
+    );
   };
 
   // 検索ボタンが押された時の処理
