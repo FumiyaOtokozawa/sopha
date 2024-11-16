@@ -13,6 +13,7 @@ const EmployeePage = () => {
   const router = useRouter();
   const { employeeId } = router.query;
   const [employee, setEmployee] = useState<Employee | null>(null);
+  const [points, setPoints] = useState<number | null>(null);
 
   useEffect(() => {
     //社員データを取得
@@ -33,6 +34,25 @@ const EmployeePage = () => {
     };
 
     fetchEmployee();
+
+    // 社員の保有ポイントを取得
+    const fetchPoints = async () => {
+      if (employeeId) {
+        const { data, error } = await supabase
+          .from("EMPLOYEE_POINTS")
+          .select("total_points")
+          .eq("employee_number", employeeId)
+          .single();
+
+        if (error) {
+          console.error("ポイントデータの取得エラー：", error.message);
+        } else {
+          setPoints(data?.total_points ?? 0);
+        }
+      }
+    };
+
+    fetchPoints();
   }, [employeeId]);
 
   if (!employee) {
@@ -42,6 +62,7 @@ const EmployeePage = () => {
   return (
     <div>
       <h1>{`${employee.last_nm} ${employee.first_nm} さんのページ`}</h1>
+      <p>保有ポイント： {points !== null ? `${points} ciz` : "読み込み中…"}</p>
     </div>
   );
 };
