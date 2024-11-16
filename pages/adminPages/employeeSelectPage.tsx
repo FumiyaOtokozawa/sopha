@@ -24,7 +24,7 @@ const EmployeeSelect = () => {
   const fetchEmployees = async () => {
     console.log("fetchEmployees関数が実行されました");
     const { data, error } = await supabase
-      .from("EMPLOYEES_LIST")
+      .from("EMPLOYEE_LIST")
       .select(
         "employee_number, last_nm, first_nm, last_nm_alp, first_nm_alp, gender, email"
       )

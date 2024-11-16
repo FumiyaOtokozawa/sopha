@@ -19,7 +19,7 @@ const EmployeePage = () => {
     const fetchEmployee = async () => {
       if (employeeId) {
         const { data, error } = await supabase
-          .from("EMPLOYEES_LIST")
+          .from("EMPLOYEE_LIST")
           .select("last_nm, first_nm")
           .eq("employee_number", employeeId)
           .single();
