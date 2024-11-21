@@ -10,10 +10,15 @@ const AdminMenu = () => {
     router.push("/adminPages/employeeSelectPage");
   };
 
+  const navigateToEmployeeAddPage = () => {
+    router.push("/adminPages/employeeAddPage");
+  };
+
   return (
     <div>
       <h1>Admin menu page</h1>
       <button onClick={navigateToEmployeeSelectPage}>社員一覧</button>
+      <button onClick={navigateToEmployeeAddPage}>社員追加</button>
       <LogoutButton />
     </div>
   );
