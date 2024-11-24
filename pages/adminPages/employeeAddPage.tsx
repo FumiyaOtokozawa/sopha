@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import supabase from "../../supabaseClient";
-import Papa from "papaparse";
+import Papa, { ParseResult } from "papaparse";
 import jschardet from "jschardet";
 import Encoding from "encoding-japanese";
 
@@ -207,45 +207,85 @@ const EmployeeAddPage = () => {
             .replace(/^\ufeff/, "")
             .replace(/[−–—]/g, "-")
             .trim(),
-        complete: async (results) => {
-          console.log("Parsed Headers:", results.meta.fields);
-          console.log("Parsed Data:", results.data);
+        complete: (results: ParseResult<EmployeeCSVRow>) => {
+          void (async () => {
+            console.log("Parsed Headers:", results.meta.fields);
+            console.log("Parsed Data:", results.data);
 
-          const { data, errors } = results;
+            const { data, errors } = results;
 
-          if (errors.length > 0) {
-            setErrorMessage(`CSV解析エラー: ${errors[0].message}`);
-            setIsLoading(false);
-            return;
-          }
-
-          const employees: Employee[] = [];
-
-          for (let i = 0; i < data.length; i++) {
-            const row = data[i];
-            const validatedRow = validateRow(row, i + 2);
-            if (validatedRow) {
-              employees.push(validatedRow);
-            } else {
+            if (errors.length > 0) {
+              setErrorMessage(`CSV解析エラー: ${errors[0].message}`);
               setIsLoading(false);
               return;
             }
-          }
 
-          // supabaseにデータを挿入
-          const { error } = await supabase
-            .from("EMPLOYEE_LIST")
-            .insert(employees);
+            const employees: Employee[] = [];
 
-          if (error) {
-            setErrorMessage(`データベース挿入エラー: ${error.message}`);
-          } else {
-            setSuccessMessage("社員を正常に追加しました。");
-            setFile(null);
-          }
-          setIsLoading(false);
+            for (let i = 0; i < data.length; i++) {
+              const row = data[i];
+              const validatedRow = validateRow(row, i + 2);
+              if (validatedRow) {
+                employees.push(validatedRow);
+              }
+            }
+
+            if (employees.length === 0) {
+              setErrorMessage("有効なデータがありません。");
+              setIsLoading(false);
+              return;
+            }
+
+            // 既存のemployee_numberを取得
+            const { data: existingEmployees, error: fetchError } =
+              await supabase.from("EMPLOYEE_LIST").select("employee_number");
+
+            if (fetchError) {
+              setErrorMessage(
+                `既存の社員情報の取得エラー: ${fetchError.message}`
+              );
+              setIsLoading(false);
+              return;
+            }
+
+            const existingEmployeeNumbers = new Set(
+              existingEmployees?.map((emp) => emp.employee_number)
+            );
+
+            // 重複をスキップするためにフィルタリング
+            const uniqueEmployees = employees.filter((emp) => {
+              if (existingEmployeeNumbers.has(emp.employee_number)) {
+                console.warn(
+                  `社員番号 ${emp.employee_number} は既に存在するためスキップします。`
+                );
+                return false;
+              }
+              return true;
+            });
+
+            if (uniqueEmployees.length === 0) {
+              setSuccessMessage(
+                "すべての社員番号が既に存在しているため、追加するデータがありません。"
+              );
+              setIsLoading(false);
+              return;
+            }
+
+            // フィルタリングされたデータを挿入
+            const { error: insertError } = await supabase
+              .from("EMPLOYEE_LIST")
+              .insert(uniqueEmployees);
+
+            if (insertError) {
+              setErrorMessage(`データベース挿入エラー: ${insertError.message}`);
+            } else {
+              setSuccessMessage("社員を正常に追加しました。");
+              setFile(null);
+            }
+            setIsLoading(false);
+          })();
         },
-        error: (error: { message: unknown }) => {
+        error: (error: Error) => {
           setErrorMessage(`CSV解析エラー: ${error.message}`);
           setIsLoading(false);
         },
