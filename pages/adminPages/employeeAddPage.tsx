@@ -9,6 +9,7 @@ import Encoding from "encoding-japanese";
 
 type Employee = {
   employee_number: number;
+  auth_uid?: string;
   last_nm: string;
   first_nm: string;
   last_nm_alp: string;
@@ -271,13 +272,70 @@ const EmployeeAddPage = () => {
               return;
             }
 
-            // フィルタリングされたデータを挿入
+            // Supabase Authenticationにユーザーを追加
+            for (const employee of uniqueEmployees) {
+              const response = await fetch("/api/create-user", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  email: employee.email,
+                  password: "0000", // 一律のパスワード
+                }),
+              });
+
+              const result = await response.json();
+              if (!response.ok) {
+                console.error(
+                  `Authenticationにユーザーを追加する際にエラーが発生しました: ${result.error}`
+                );
+                continue;
+              }
+
+              console.log(
+                `ユーザー ${employee.email} をAuthenticationに登録しました:`,
+                result
+              );
+
+              // AuthenticationのUUIDを取得してauth_uidに設定
+              employee.auth_uid = result.data.user?.id;
+
+              // USER_ROLE用データを準備
+              const userRoleEntry = {
+                employee_number: employee.employee_number,
+                user_id: result.data.user?.id, // AuthenticationのUUID
+                role: 0, // 全員社員として登録
+                last_name: employee.last_nm,
+                first_name: employee.first_nm,
+              };
+
+              // USER_ROLEにデータを追加
+              const { error: userRoleError } = await supabase
+                .from("USER_ROLE")
+                .insert(userRoleEntry);
+
+              if (userRoleError) {
+                console.error(
+                  `USER_ROLEテーブルへのデータ挿入時にエラーが発生しました: ${userRoleError.message}`
+                );
+                continue;
+              }
+
+              console.log(
+                `USER_ROLEにデータを追加しました: ${userRoleEntry.last_name} ${userRoleEntry.first_name}`
+              );
+            }
+
+            // EMPLOYEE_LISTにデータを挿入
             const { error: insertError } = await supabase
               .from("EMPLOYEE_LIST")
               .insert(uniqueEmployees);
 
             if (insertError) {
-              setErrorMessage(`データベース挿入エラー: ${insertError.message}`);
+              setErrorMessage(
+                `EMPLOYEE_LISTへのデータ挿入エラー: ${insertError.message}`
+              );
             } else {
               setSuccessMessage("社員を正常に追加しました。");
               setFile(null);
@@ -286,7 +344,7 @@ const EmployeeAddPage = () => {
           })();
         },
         error: (error: Error) => {
-          setErrorMessage(`CSV解析エラー: ${error.message}`);
+          setErrorMessage(`CSV解析エラー： ${error.message}`);
           setIsLoading(false);
         },
       });
