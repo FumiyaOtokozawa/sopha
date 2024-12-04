@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import supabase from "../../supabaseClient";
 
 type Employee = {
-  last_nm: string;
-  first_nm: string;
+  last_name: string;
+  first_name: string;
   email?: string;
 };
 
@@ -26,7 +26,7 @@ const AdminEmployeePage = () => {
         const [employeeResponse, pointsResponse] = await Promise.all([
           supabase
             .from("EMPLOYEE_LIST")
-            .select("last_nm, first_nm")
+            .select("last_name, first_name")
             .eq("employee_number", employeeNumber)
             .single(),
           supabase
@@ -124,7 +124,7 @@ const AdminEmployeePage = () => {
 
   return (
     <div>
-      <h1>{`${employee.last_nm} ${employee.first_nm} さんのページ`}</h1>
+      <h1>{`${employee.last_name} ${employee.first_name} さんのページ`}</h1>
       <p>保有ポイント： {points !== null ? `${points} ciz` : "読み込み中…"}</p>
 
       <h2>ポイント調整</h2>

@@ -27,24 +27,44 @@ const LoginPage = () => {
       console.log("ユーザーID:", user?.id);
 
       if (user) {
-        const { data, error: roleError } = await supabase
+        const { data: linkData, error: linkError } = await supabase
+          .from("USER_LINK_EMPLOYEE")
+          .select("employee_number")
+          .eq("uid", user.id)
+          .single();
+
+        console.log(linkData);
+
+        if (linkError || !linkData) {
+          console.error("関連データ取得エラー：", linkError);
+          setError("関連権限の取得に失敗しました");
+          return;
+        }
+
+        const employeeNumber = (linkData as { employee_number: number })
+          .employee_number;
+
+        // USER_ROLEテーブルからroleを取得
+        const { data: roleData, error: roleError } = await supabase
           .from("USER_ROLE")
           .select("role")
-          .eq("user_id", user.id)
-          .single(); // USER_ROLEテーブルからroleを取得
+          .eq("employee_number", employeeNumber)
+          .single();
 
-        console.log("取得したrole：", data?.role);
-
-        if (roleError) {
-          console.error("Role retrieval error:", roleError);
+        if (roleError || !roleData) {
+          console.error("Role取得エラー：", roleError);
           setError("権限の取得に失敗しました");
-        } else {
-          // 権限に基づくリダイレクト
-          if (data.role === 0) {
-            router.push("/employeePages/employeeMenuPage");
-          } else if (data.role === 1) {
-            router.push("/adminPages/adminMenuPage");
-          }
+          return;
+        }
+
+        const role = roleData.role;
+        console.log("取得したrole：", role);
+
+        // 権限に基づくリダイレクト
+        if (role === 0) {
+          router.push("/employeePages/employeeMenuPage");
+        } else if (role === 1) {
+          router.push("/adminPages/adminMenuPage");
         }
       } else {
         setError("ユーザー情報の取得に失敗しました");

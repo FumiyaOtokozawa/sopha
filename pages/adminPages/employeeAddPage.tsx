@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/router";
-import supabase from "../../supabaseClient";
 import Papa, { ParseResult } from "papaparse";
 import jschardet from "jschardet";
 import Encoding from "encoding-japanese";
@@ -10,10 +9,10 @@ import Encoding from "encoding-japanese";
 type Employee = {
   employee_number: number;
   auth_uid?: string;
-  last_nm: string;
-  first_nm: string;
-  last_nm_alp: string;
-  first_nm_alp: string;
+  last_name: string;
+  first_name: string;
+  last_name_alp: string;
+  first_name_alp: string;
   gender: number;
   email: string;
 };
@@ -48,14 +47,12 @@ const EmployeeAddPage = () => {
       setFile(selectedFile);
     }
   };
-
   const requiredFields: (keyof EmployeeCSVRow)[] = [
     "メンバ属性 - 社員番号",
     "メンバ属性 - 氏名",
     "メンバ属性 - 性別",
     "メンバ属性 - メールアドレス",
   ];
-
   const validateRow = (
     row: EmployeeCSVRow,
     rowNumber: number
@@ -101,17 +98,17 @@ const EmployeeAddPage = () => {
     const fullName = row["メンバ属性 - 氏名"].trim();
     const nameParts = fullName.split(" ");
 
-    let last_nm: string;
-    let first_nm: string;
+    let last_name: string;
+    let first_name: string;
 
     if (nameParts.length >= 2) {
       // 半角スペースで分割できた場合
-      last_nm = nameParts[0];
-      first_nm = nameParts.slice(1).join(" "); // 名前が複数単語の場合に対応
+      last_name = nameParts[0];
+      first_name = nameParts.slice(1).join(" "); // 名前が複数単語の場合に対応
     } else {
       // 半角スペースで分割できなかった場合
-      last_nm = fullName;
-      first_nm = "";
+      last_name = fullName;
+      first_name = "";
     }
 
     // メールアドレスから名字英字と名前英字を抽出
@@ -119,13 +116,13 @@ const EmployeeAddPage = () => {
       .split("@")[0]
       .trim();
     const emailNameParts = emailLocalPart.split(".");
-    let last_nm_alp: string;
-    let first_nm_alp: string = "";
+    let last_name_alp: string;
+    let first_name_alp: string = "";
     if (emailNameParts.length === 2) {
-      first_nm_alp = capitalize(emailNameParts[0]);
-      last_nm_alp = capitalize(emailNameParts[1]);
+      first_name_alp = capitalize(emailNameParts[0]);
+      last_name_alp = capitalize(emailNameParts[1]);
     } else if (emailNameParts.length === 1) {
-      last_nm_alp = capitalize(emailNameParts[0]);
+      last_name_alp = capitalize(emailNameParts[0]);
     } else {
       setErrorMessage(
         `行${rowNumber}: メールアドレスの形式が正しくありません。`
@@ -135,10 +132,10 @@ const EmployeeAddPage = () => {
 
     return {
       employee_number: employeeNumber,
-      last_nm: last_nm,
-      first_nm: first_nm,
-      last_nm_alp: last_nm_alp,
-      first_nm_alp: first_nm_alp,
+      last_name: last_name,
+      first_name: first_name,
+      last_name_alp: last_name_alp,
+      first_name_alp: first_name_alp,
       gender: gender,
       email: row["メンバ属性 - メールアドレス"].trim(),
     };
@@ -171,34 +168,23 @@ const EmployeeAddPage = () => {
         return;
       }
 
-      // ArrayBufferをUint8Arrayに変換
       const uint8Array = new Uint8Array(arrayBuffer as ArrayBuffer);
-
-      // Uint8Arrayをバイナリ文字列に変換
       const binaryString = Array.from(uint8Array)
         .map((byte) => String.fromCharCode(byte))
         .join("");
 
-      // 文字エンコーディングを検出
       const detection = jschardet.detect(binaryString);
-      console.log("Detected Encoding:", detection);
-
       let decodedText: string;
 
       if (detection.encoding === "SHIFT_JIS" || detection.encoding === "SJIS") {
-        // Shift-JISの場合
         decodedText = Encoding.convert(uint8Array, {
           to: "UNICODE",
           from: "SJIS",
           type: "string",
         });
       } else {
-        // デフォルトはUTF-8として扱う
         decodedText = new TextDecoder("utf-8").decode(uint8Array);
       }
-
-      // デバッグ用にデコード後のテキストをログ出力
-      console.log("Decoded Text:", decodedText);
 
       Papa.parse<EmployeeCSVRow>(decodedText, {
         header: true,
@@ -208,140 +194,64 @@ const EmployeeAddPage = () => {
             .replace(/^\ufeff/, "")
             .replace(/[−–—]/g, "-")
             .trim(),
-        complete: (results: ParseResult<EmployeeCSVRow>) => {
-          void (async () => {
-            console.log("Parsed Headers:", results.meta.fields);
-            console.log("Parsed Data:", results.data);
+        complete: async (results: ParseResult<EmployeeCSVRow>) => {
+          const { data, errors } = results;
 
-            const { data, errors } = results;
+          if (errors.length > 0) {
+            setErrorMessage(`CSV解析エラー： ${errors[0].message}`);
+            setIsLoading(false);
+            return;
+          }
 
-            if (errors.length > 0) {
-              setErrorMessage(`CSV解析エラー: ${errors[0].message}`);
-              setIsLoading(false);
-              return;
+          const employees: Employee[] = [];
+
+          for (let i = 0; i < data.length; i++) {
+            const row = data[i];
+            const validatedRow = validateRow(row, i + 2);
+            if (validatedRow) {
+              employees.push(validatedRow);
             }
+          }
 
-            const employees: Employee[] = [];
+          if (employees.length === 0) {
+            setErrorMessage("有効なデータが有りません");
+            setIsLoading(false);
+            return;
+          }
 
-            for (let i = 0; i < data.length; i++) {
-              const row = data[i];
-              const validatedRow = validateRow(row, i + 2);
-              if (validatedRow) {
-                employees.push(validatedRow);
-              }
-            }
+          // APIルートを呼び出して社員を追加
+          try {
+            const adjustedEmployees = employees.map((employee) => ({
+              employee_number: employee.employee_number,
+              last_name: employee.last_name,
+              first_name: employee.first_name,
+              last_name_alp: employee.last_name_alp,
+              first_name_alp: employee.first_name_alp,
+              gender: employee.gender,
+              email: employee.email,
+              role: 0,
+            }));
 
-            if (employees.length === 0) {
-              setErrorMessage("有効なデータがありません。");
-              setIsLoading(false);
-              return;
-            }
-
-            // 既存のemployee_numberを取得
-            const { data: existingEmployees, error: fetchError } =
-              await supabase.from("EMPLOYEE_LIST").select("employee_number");
-
-            if (fetchError) {
-              setErrorMessage(
-                `既存の社員情報の取得エラー: ${fetchError.message}`
-              );
-              setIsLoading(false);
-              return;
-            }
-
-            const existingEmployeeNumbers = new Set(
-              existingEmployees?.map((emp) => emp.employee_number)
-            );
-
-            // 重複をスキップするためにフィルタリング
-            const uniqueEmployees = employees.filter((emp) => {
-              if (existingEmployeeNumbers.has(emp.employee_number)) {
-                console.warn(
-                  `社員番号 ${emp.employee_number} は既に存在するためスキップします。`
-                );
-                return false;
-              }
-              return true;
+            const response = await fetch("/api/add-employee", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ employees: adjustedEmployees }),
             });
 
-            if (uniqueEmployees.length === 0) {
-              setSuccessMessage(
-                "すべての社員番号が既に存在しているため、追加するデータがありません。"
-              );
-              setIsLoading(false);
-              return;
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error);
             }
 
-            // Supabase Authenticationにユーザーを追加
-            for (const employee of uniqueEmployees) {
-              const response = await fetch("/api/create-user", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  email: employee.email,
-                  password: "0000", // 一律のパスワード
-                }),
-              });
-
-              const result = await response.json();
-              if (!response.ok) {
-                console.error(
-                  `Authenticationにユーザーを追加する際にエラーが発生しました: ${result.error}`
-                );
-                continue;
-              }
-
-              console.log(
-                `ユーザー ${employee.email} をAuthenticationに登録しました:`,
-                result
-              );
-
-              // AuthenticationのUUIDを取得してauth_uidに設定
-              employee.auth_uid = result.data.user?.id;
-
-              // USER_ROLE用データを準備
-              const userRoleEntry = {
-                employee_number: employee.employee_number,
-                user_id: result.data.user?.id, // AuthenticationのUUID
-                role: 0, // 全員社員として登録
-                last_name: employee.last_nm,
-                first_name: employee.first_nm,
-              };
-
-              // USER_ROLEにデータを追加
-              const { error: userRoleError } = await supabase
-                .from("USER_ROLE")
-                .insert(userRoleEntry);
-
-              if (userRoleError) {
-                console.error(
-                  `USER_ROLEテーブルへのデータ挿入時にエラーが発生しました: ${userRoleError.message}`
-                );
-                continue;
-              }
-
-              console.log(
-                `USER_ROLEにデータを追加しました: ${userRoleEntry.last_name} ${userRoleEntry.first_name}`
-              );
-            }
-
-            // EMPLOYEE_LISTにデータを挿入
-            const { error: insertError } = await supabase
-              .from("EMPLOYEE_LIST")
-              .insert(uniqueEmployees);
-
-            if (insertError) {
-              setErrorMessage(
-                `EMPLOYEE_LISTへのデータ挿入エラー: ${insertError.message}`
-              );
-            } else {
-              setSuccessMessage("社員を正常に追加しました。");
-              setFile(null);
-            }
+            setSuccessMessage("全ての社員が正常に追加されました。");
+          } catch (error) {
+            const typedError = error as Error;
+            setErrorMessage(typedError.message);
+          } finally {
             setIsLoading(false);
-          })();
+          }
         },
         error: (error: Error) => {
           setErrorMessage(`CSV解析エラー： ${error.message}`);

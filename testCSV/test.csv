@@ -1,4 +1,4 @@
-employee_number,last_nm,first_nm,last_nm_alp,first_nm_alp,gender,email
+employee_number,last_name,first_name,last_name_alp,first_name_alp,gender,email
 001,山田,太郎,Yamada,Taro,男性,taro.yamada@example.com
 002,鈴木,花子,Suzuki,Hanako,女性,hanako.suzuki@example.com
 003,佐藤,次郎,Sato,Jiro,男性,jiro.sato@example.com

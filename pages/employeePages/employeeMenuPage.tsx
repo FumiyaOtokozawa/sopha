@@ -19,9 +19,9 @@ const EmployeeMenuPage = () => {
       if (user) {
         // USER_ROLEからemployee_numberを取得
         const { data, error } = await supabase
-          .from("USER_ROLE")
+          .from("USER_LINK_EMPLOYEE")
           .select("employee_number")
-          .eq("user_id", user.id)
+          .eq("uid", user.id)
           .single();
 
         if (error) {

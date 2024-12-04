@@ -7,10 +7,10 @@ import supabase from "../../supabaseClient";
 
 type Employee = {
   employee_number: number;
-  last_nm: string;
-  first_nm: string;
-  last_nm_alp: string;
-  first_nm_alp: string;
+  last_name: string;
+  first_name: string;
+  last_name_alp: string;
+  first_name_alp: string;
   gender: number;
   email: string;
 };
@@ -26,10 +26,10 @@ const EmployeeSelect = () => {
     const { data, error } = await supabase
       .from("EMPLOYEE_LIST")
       .select(
-        "employee_number, last_nm, first_nm, last_nm_alp, first_nm_alp, gender, email"
+        "employee_number, last_name, first_name, last_name_alp, first_name_alp, gender, email"
       )
       .or(
-        `last_nm.ilike.%${searchTerm}%,first_nm.ilike.%${searchTerm}%,last_nm_alp.ilike.%${searchTerm}%,first_nm_alp.ilike.%${searchTerm}%`
+        `last_name.ilike.%${searchTerm}%,first_name.ilike.%${searchTerm}%,last_name_alp.ilike.%${searchTerm}%,first_name_alp.ilike.%${searchTerm}%`
       ); // 氏名の部分一致検索
 
     if (error) {
@@ -80,9 +80,9 @@ const EmployeeSelect = () => {
                 padding: "0",
                 textDecoration: "underline",
               }}
-              aria-label={`社員${employee.last_nm} ${employee.first_nm}のマイページへ`}
+              aria-label={`社員${employee.last_name} ${employee.first_name}のマイページへ`}
             >
-              {`${employee.last_nm} ${employee.first_nm} (${employee.email})`}
+              {`${employee.last_name} ${employee.first_name} (${employee.email})`}
             </button>
           </li>
         ))}
