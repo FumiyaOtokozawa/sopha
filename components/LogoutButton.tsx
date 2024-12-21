@@ -9,7 +9,7 @@ const LogoutButton = () => {
     if (error) {
       console.error("ログアウトエラー：", error.message);
     } else {
-      router.push("/login");
+      router.push("/loginPage");
     }
   };
 

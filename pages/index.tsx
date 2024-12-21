@@ -23,19 +23,19 @@ const IndexPage = () => {
 
         if (error || !data) {
           console.error("Role retrieval error:", error);
-          router.push("/login"); // エラー時はログイン画面に戻す
+          router.push("/loginPage"); // エラー時はログイン画面に戻す
           return;
         }
 
         // roleに基づくリダイレクト
         if (data.role === 0) {
-          router.push("/employeePages/employeeMenuPage"); // employeeのリダイレクト先
+          router.push("/employeePages/empMainPage"); // employeeのリダイレクト先
         } else if (data.role === 1) {
-          router.push("/adminPages/adminMenuPage"); // adminのリダイレクト先
+          router.push("/adminPages/admMainPage"); // adminのリダイレクト先
         }
       } else {
         // ミドグインの場合はログインページへリダイレクト
-        router.push("/login");
+        router.push("/loginPage");
       }
     };
 

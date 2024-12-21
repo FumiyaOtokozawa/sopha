@@ -62,9 +62,9 @@ const LoginPage = () => {
 
         // 権限に基づくリダイレクト
         if (role === 0) {
-          router.push("/employeePages/employeeMenuPage");
+          router.push("/employeePages/empMainPage");
         } else if (role === 1) {
-          router.push("/adminPages/adminMenuPage");
+          router.push("/adminPages/admMainPage");
         }
       } else {
         setError("ユーザー情報の取得に失敗しました");

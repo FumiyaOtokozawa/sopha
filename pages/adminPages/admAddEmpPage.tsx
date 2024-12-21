@@ -1,4 +1,4 @@
-// pages/adminPages/employeeAddPage.tsx
+// pages/adminPages/admAddEmpPage.tsx
 
 import { useState } from "react";
 import { useRouter } from "next/router";
