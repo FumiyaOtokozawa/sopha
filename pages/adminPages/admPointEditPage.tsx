@@ -1,3 +1,5 @@
+// pages/adminPages/admPointEditPage.tsx
+
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import supabase from "../../supabaseClient";

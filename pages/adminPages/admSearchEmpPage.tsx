@@ -43,7 +43,7 @@ const EmployeeSelect = () => {
   // 社員名をクリックした際の処理
   const handleEmployeeClick = (employeeNumber: number) => {
     router.push(
-      `/adminPages/admin[employeeNumber]Page?employeeNumber=${employeeNumber}`
+      `/adminPages/admPointEditPage?employeeNumber=${employeeNumber}`
     );
   };
 
@@ -80,7 +80,7 @@ const EmployeeSelect = () => {
                 padding: "0",
                 textDecoration: "underline",
               }}
-              aria-label={`社員${employee.last_name} ${employee.first_name}のマイページへ`}
+              aria-label={`社員${employee.last_name} ${employee.first_name}のポイント管理ページへ`}
             >
               {`${employee.last_name} ${employee.first_name} (${employee.email})`}
             </button>
