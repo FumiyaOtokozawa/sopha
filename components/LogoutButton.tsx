@@ -1,5 +1,6 @@
 import { useRouter } from "next/router";
 import supabase from "../supabaseClient";
+import LogoutIcon from "@mui/icons-material/Logout";
 
 const LogoutButton = () => {
   const router = useRouter();
@@ -13,7 +14,14 @@ const LogoutButton = () => {
     }
   };
 
-  return <button onClick={handleLogout}>ログアウト</button>;
+  return (
+    <button
+      className="flex items-center gap-2 text-white"
+      onClick={handleLogout}
+    >
+      <LogoutIcon />
+    </button>
+  );
 };
 
 export default LogoutButton;
