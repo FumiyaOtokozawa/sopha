@@ -73,24 +73,53 @@ const LoginPage = () => {
   };
 
   return (
-    <div>
-      <h1>Login</h1>
-      <form onSubmit={handleLogin}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <button type="submit">Log In</button>
-      </form>
-      {error && <p>{error}</p>}
+    // 画面中央揃え
+    <div className="flex items-center justify-center min-h-screen">
+      {/* カード風コンテナ*/}
+      <div className="bg-[#FCFCFC19] rounded-lg shadow-md p-8 w-[300px]">
+        <h1 className="text-xl font-bold mb-6 text-center text-[#FCFCFC]">
+          Welcome to SOPHA
+        </h1>
+
+        {/* ログインフォーム */}
+        <form onSubmit={handleLogin} className="flex flex-col space-y-4">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="
+              w-full p-2 rounded-md
+              bg-[#CFD8DC80] text-[#37373F] placeholder-[#37373F]
+              focus:outline-none focus:ring-2 focus:ring-blue-500
+              "
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="
+              w-full p-2 rounded-md
+              bg-[#CFD8DC80] text-[#37373F] placeholder-[#37373F]
+              focus:outline-none focus:ring-2 focus:ring-blue-500
+              "
+          />
+          <button
+            type="submit"
+            className="
+              w-full py-2 rounded-md
+              bg-[#8E93DA] text-black font-semibold
+              hover:bg-opacity-90 transition-colors
+              "
+          >
+            LOGIN
+          </button>
+        </form>
+
+        {/* エラーがある場合のみ表示 */}
+        {error && <p className="mt-4 text-red-500 text-center">{error}</p>}
+      </div>
     </div>
   );
 };

@@ -1,0 +1,9 @@
+/* styles/global.css */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-[#242529] text-white min-h-screen;
+}
