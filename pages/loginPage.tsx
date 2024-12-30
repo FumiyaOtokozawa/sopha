@@ -12,63 +12,68 @@ const LoginPage = () => {
     e.preventDefault();
     console.log("ログイン処理開始");
 
-    const { error } = await supabase.auth.signInWithPassword({
+    // 1.Supabaseでメール・パスワードによる認証
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    if (error) {
-      setError(error.message);
-      console.error("ログインエラー：", error.message);
+
+    if (signInError) {
+      setError(signInError.message);
+      console.error("ログインエラー：", signInError.message);
+    }
+
+    // 2. ログインに成功したら、認証されたユーザー情報を取得
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setError("ユーザー情報の取得に失敗しました");
+      return;
+    }
+
+    // 3.USER_INFOテーブルからemp_noを取得
+    const { data: userInfo, error: userInfoError } = await supabase
+      .from("USER_INFO")
+      .select("emp_no")
+      .eq("UID", user.id)
+      .single();
+
+    if (userInfoError || !userInfo) {
+      console.error("USER_INFO取得エラー：", userInfoError);
+      setError("ユーザーの権限情報が見つかりませんでした");
+      return;
+    }
+
+    const empNo = userInfo.emp_no;
+    console.log("取得したempNo：", empNo);
+
+    // 4.USER_ROLEテーブルからroleを取得
+    const { data: userRole, error: userRoleError } = await supabase
+      .from("USER_ROLE")
+      .select("role")
+      .eq("UID", user.id)
+      .single();
+
+    if (userRoleError || !userRole) {
+      console.error("USER_ROLE取得エラー：", userRoleError);
+      setError("ユーザーの権限情報が見つかりませんでした");
+      return;
+    }
+
+    const role = userRole.role;
+    console.log("取得したrole：", role);
+
+    // 5.roleに応じてページを振り分ける。
+    //   0の場合employee,1の場合admin
+    if (role === "0") {
+      router.push("/employeePages/empMainPage");
+    } else if (role === "1") {
+      router.push("/adminPages/admMainPage");
     } else {
-      // ログイン成功時にUSER_ROLEテーブルからroleを取得してリダイレクト
-      const {
-        data: { user },
-      } = await supabase.auth.getUser(); // ログインユーザー情報の取得
-      console.log("ユーザーID:", user?.id);
-
-      if (user) {
-        const { data: linkData, error: linkError } = await supabase
-          .from("USER_LINK_EMPLOYEE")
-          .select("employee_number")
-          .eq("uid", user.id)
-          .single();
-
-        console.log(linkData);
-
-        if (linkError || !linkData) {
-          console.error("関連データ取得エラー：", linkError);
-          setError("関連権限の取得に失敗しました");
-          return;
-        }
-
-        const employeeNumber = (linkData as { employee_number: number })
-          .employee_number;
-
-        // USER_ROLEテーブルからroleを取得
-        const { data: roleData, error: roleError } = await supabase
-          .from("USER_ROLE")
-          .select("role")
-          .eq("employee_number", employeeNumber)
-          .single();
-
-        if (roleError || !roleData) {
-          console.error("Role取得エラー：", roleError);
-          setError("権限の取得に失敗しました");
-          return;
-        }
-
-        const role = roleData.role;
-        console.log("取得したrole：", role);
-
-        // 権限に基づくリダイレクト
-        if (role === 0) {
-          router.push("/employeePages/empMainPage");
-        } else if (role === 1) {
-          router.push("/adminPages/admMainPage");
-        }
-      } else {
-        setError("ユーザー情報の取得に失敗しました");
-      }
+      setError("不明な権限です");
+      console.warn("想定外のrole：", role);
     }
   };
 

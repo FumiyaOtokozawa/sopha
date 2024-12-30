@@ -6,12 +6,12 @@ import LogoutButton from "../../components/LogoutButton";
 import supabase from "../../supabaseClient";
 
 type Employee = {
-  employee_number: number;
-  last_name: string;
-  first_name: string;
-  last_name_alp: string;
-  first_name_alp: string;
-  gender: number;
+  emp_no: number;
+  myoji: string;
+  namae: string;
+  last_nm: string;
+  first_nm: string;
+  gender: string;
   email: string;
 };
 
@@ -24,27 +24,27 @@ const EmployeeSelect = () => {
   const fetchEmployees = async () => {
     console.log("fetchEmployees関数が実行されました");
     const { data, error } = await supabase
-      .from("EMPLOYEE_LIST")
-      .select(
-        "employee_number, last_name, first_name, last_name_alp, first_name_alp, gender, email"
-      )
+      .from("USER_INFO")
+      .select("emp_no, myoji, namae, last_nm, first_nm, gender, email")
+      // 部分一致検索: myoji, namae, last_nm, first_nmのいずれかに含まれる
       .or(
-        `last_name.ilike.%${searchTerm}%,first_name.ilike.%${searchTerm}%,last_name_alp.ilike.%${searchTerm}%,first_name_alp.ilike.%${searchTerm}%`
-      ); // 氏名の部分一致検索
+        `myoji.ilike.%${searchTerm}%,namae.ilike.%${searchTerm}%,last_nm.ilike.%${searchTerm}%,first_nm.ilike.%${searchTerm}%`
+      )
+      .eq("act_kbn", true);
 
     if (error) {
       console.error("エラーが発生しました：", error.message);
     } else {
       console.log("データが取得されました:", data);
+      // 取得データを状態に格納
       setEmployees(data as Employee[]);
     }
   };
 
   // 社員名をクリックした際の処理
-  const handleEmployeeClick = (employeeNumber: number) => {
-    router.push(
-      `/adminPages/admPointEditPage?employeeNumber=${employeeNumber}`
-    );
+  const handleEmployeeClick = (empNo: number) => {
+    // ポイント編集ページに遷移
+    router.push(`/adminPages/admPointEditPage?empNo=${empNo}`);
   };
 
   // 検索ボタンが押された時の処理
@@ -69,9 +69,9 @@ const EmployeeSelect = () => {
 
       <ul>
         {employees.map((employee) => (
-          <li key={employee.employee_number}>
+          <li key={employee.emp_no}>
             <button
-              onClick={() => handleEmployeeClick(employee.employee_number)}
+              onClick={() => handleEmployeeClick(employee.emp_no)}
               style={{
                 cursor: "pointer",
                 color: "blue",
@@ -80,9 +80,9 @@ const EmployeeSelect = () => {
                 padding: "0",
                 textDecoration: "underline",
               }}
-              aria-label={`社員${employee.last_name} ${employee.first_name}のポイント管理ページへ`}
+              aria-label={`社員${employee.myoji} ${employee.namae}のポイント管理ページへ`}
             >
-              {`${employee.last_name} ${employee.first_name} (${employee.email})`}
+              {`${employee.myoji} ${employee.namae} (${employee.email})`}
             </button>
           </li>
         ))}
