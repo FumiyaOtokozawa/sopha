@@ -1,7 +1,7 @@
 // pages/adminPages/admPointEditPage.tsx
 
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import supabase from "../../supabaseClient";
 import AdminHeader from "../../components/AdminHeader";
 
@@ -17,6 +17,8 @@ const AdminEmployeePage = () => {
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [points, setPoints] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // 各種UI・状態管理用
   const [changePoints, setChangePoints] = useState<number>(0);
   const [changeType, setChangeType] = useState<"add" | "subtract">("add");
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -24,6 +26,7 @@ const AdminEmployeePage = () => {
     null
   );
 
+  // 社員情報＆ポイントをまとめてフェッチ
   useEffect(() => {
     const fetchEmployeeData = async () => {
       try {
@@ -70,21 +73,34 @@ const AdminEmployeePage = () => {
   }, [empNo]);
 
   const handleAddPoints = () => {
-    console.log("ポイント加算ボタンがクリックされました");
     setActiveButton("add");
-    // TODO: ポイント加算処理を実装
+    setChangeType("add");
+    setChangePoints(0);
   };
 
   const handleSubtractPoints = () => {
-    console.log("ポイント減算ボタンがクリックされました");
     setActiveButton("subtract");
-    // TODO: ポイント減算処理を実装
+    setChangeType("subtract");
+    setChangePoints(0);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!empNo) return;
+  // 実行前に加算/減算後の数値をプレビュー
+  const previewPoints = (): number => {
+    if (!points) return 0;
+    if (activeButton === "add") {
+      return points + changePoints;
+    } else if (activeButton === "subtract") {
+      return points - changePoints;
+    }
+    return points; // どちらも未選択なら現状
+  };
 
+  // 実行
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!empNo || points === null) return;
+
+    // DBに送るときはadd/subtractを判断して +/- を決定
     const adjustedPoints = changeType === "add" ? changePoints : -changePoints;
 
     try {
@@ -92,7 +108,7 @@ const AdminEmployeePage = () => {
       const { error: updateError } = await supabase
         .from("EMP_CIZ")
         .update({
-          total_ciz: points! + adjustedPoints,
+          total_ciz: points + adjustedPoints,
           updated_at: new Date(),
         })
         .eq("emp_no", empNo);
@@ -104,7 +120,7 @@ const AdminEmployeePage = () => {
       // ポイント履歴の追加
       const history = {
         emp_no: empNo,
-        change_type: changeType === "add" ? "add" : "subtract",
+        change_type: changeType,
         ciz: Math.abs(adjustedPoints),
         reason: "管理者による調整",
         created_at: new Date(),
@@ -119,8 +135,11 @@ const AdminEmployeePage = () => {
         throw new Error(`ポイント履歴追加エラー: ${historyError.message}`);
       }
 
-      setPoints(points! + adjustedPoints);
+      // 状態を更新
+      setPoints((prev) => (prev !== null ? prev + adjustedPoints : null));
       setActionMessage("ポイントを正常に更新しました。");
+      // 実行後は吹き出しとプレビューとボタンを閉じる
+      setActiveButton(null);
       setChangePoints(0);
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -133,10 +152,12 @@ const AdminEmployeePage = () => {
     }
   };
 
+  // エラーがある場合
   if (errorMessage) {
     return <p style={{ color: "red" }}>エラー: {errorMessage}</p>;
   }
 
+  // データ読込中
   if (!employee) {
     return <p>社員情報を読み込んでいます…</p>;
   }
@@ -148,116 +169,118 @@ const AdminEmployeePage = () => {
 
       {/* メインコンテンツ */}
       <div className="p-6">
-        {/* アイコンと社員情報 */}
+        {/* 社員情報 */}
         <div className="flex flex-col items-center mb-6">
-          {/* アイコン */}
           <div className="w-16 h-16 bg-orange-300 rounded-full flex items-center justify-center mb-4"></div>
-
-          {/* 名前 */}
           <h1 className="text-xl font-semibold">
             {`${employee.last_nm} ${employee.first_nm}`}
           </h1>
-
-          {/* 社員番号 */}
           <p className="text-gray-400">{`No.${empNo}`}</p>
         </div>
 
         {/* ポイントボックス */}
-        <div className="bg-[#2f3033] rounded-lg shadow-md p-6 w-full max-w flex flex-col items-center mb-6 mx-auto">
-          <h2 className="text-3xl font-bold mb-2">
+        <div className="bg-[#2f3033] rounded-lg shadow-md px-12 py-8 w-full max-w-xl flex flex-col items-center mx-auto">
+          {/* 現在の保有CIZ */}
+          <h2 className="text-3xl font-bold mb-6">
             {points?.toLocaleString()}{" "}
-            <span className="text-gray-400">ciz</span>
+            <span className="text-gray-400 ml-1">ciz</span>
           </h2>
-          {/* 加算減算ボタン */}
-          <div className="flex justify-center gap-4 w-full max-w-md">
-            <button
-              onClick={handleAddPoints}
-              className={`w-24 py-2 rounded w-1/2 ${
-                activeButton === "add"
-                  ? "bg-[#66EA89] text-black"
-                  : "bg-[#66EA89] bg-opacity-50 text-gray-700"
-              } `}
-            >
-              ADD
-            </button>
-            <button
-              onClick={handleSubtractPoints}
-              className={`w-24 py-2 rounded w-1/2 ${
-                activeButton === "subtract"
-                  ? "bg-[#EF6A6A] text-black"
-                  : "bg-[#EF6A6A] bg-opacity-50 text-gray-700"
-              } `}
-            >
-              SUBTRACT
-            </button>
-          </div>
-          {/* 吹き出し */}
-          {activeButton && (
-            <div className={`relative flex justify-center`}>
-              <div
-                className={`absolute mt-4 ${
-                  activeButton === "add" ? "right-10" : "left-10"
-                }`}
+          {/* ADD/SUBTRACTボタン */}
+          <div className="flex gap-4 w-full mb-6">
+            {/* ADDボタン */}
+            <div className="relative w-1/2">
+              <button
+                onClick={handleAddPoints}
+                className={`w-full py-2 rounded text-lg font-bold ${
+                  activeButton === "add"
+                    ? "bg-[#66EA89] text-black"
+                    : "bg-[#66EA89] bg-opacity-50 text-gray-700"
+                } `}
               >
-                <div className="relative">
-                  <span className="absolute inset-y-0 left-3 items-center text-black text-2xl font-bold">
-                    {activeButton === "add" ? "＋" : "－"}
-                  </span>
-                  <input
-                    type="number"
-                    value={changePoints}
-                    onChange={(e) => setChangePoints(Number(e.target.value))}
-                    className="text-black inset-y-0 pl-10 text-xl font-bold rounded-full w-[150px]"
-                    placeholder="Enter value"
-                  />
+                ADD
+              </button>
+              {/* 吹き出し（ADDがアクティブのとき） */}
+              {activeButton === "add" && (
+                <div className="absolute top-full mt-1 left-0 w-full">
+                  <div className="bg-white text-black rounded-full shadow flex items-center justify-center">
+                    <span className="text-m font-bold mx-1">＋</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={changePoints}
+                      onChange={(e) => setChangePoints(Number(e.target.value))}
+                      className="w-12 text-center text-m font-bold border-b border-gray-300 focus:outline-none"
+                      placeholder="0"
+                    />
+                    <span className="ml-1 text-m">ciz</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
+
+            {/* SUBTRACTボタン */}
+            <div className="relative w-1/2">
+              <button
+                onClick={handleSubtractPoints}
+                className={`w-full py-2 rounded text-lg font-bold ${
+                  activeButton === "subtract"
+                    ? "bg-[#EF6A6A] text-black"
+                    : "bg-[#EF6A6A] bg-opacity-50 text-gray-700"
+                } `}
+              >
+                SUBTRACT
+              </button>
+              {/* 吹き出し（SUBTRACTがアクティブのとき） */}
+              {activeButton === "subtract" && (
+                <div className="absolute top-full mt-1 left-0 w-full">
+                  <div className="bg-white text-black rounded-full shadow flex items-center justify-center">
+                    <span className="text-m font-bold mx-1">－</span>
+                    <input
+                      type="number"
+                      min={0}
+                      value={changePoints}
+                      onChange={(e) => setChangePoints(Number(e.target.value))}
+                      className="w-12 text-center text-m font-bold border-b border-gray-300 focus:outline-none"
+                    />
+                    <span className="ml-1 text-m">ciz</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/**
+           * プレビュー＆実行ボタンは
+           * activeButton が null ではないときだけ表示
+           */}
+          {activeButton !== null && (
+            <>
+              {/* 実行前プレビュー */}
+              <div className="text-center mt-6 mb-6">
+                <p className="text-xl">
+                  {" "}
+                  <span className="font-bold text-3xl">
+                    {previewPoints().toLocaleString()}{" "}
+                    <span className="text-gray-400">ciz</span>
+                  </span>
+                </p>
+              </div>
+              {/* 実行ボタン */}
+              <form onSubmit={handleSubmit} className="space-y-4 w-full">
+                <button
+                  type="submit"
+                  className="bg-[#8E93DA] text-black font-bold py-2 rounded w-full"
+                >
+                  EXECUTE
+                </button>
+              </form>
+            </>
+          )}
+          {/* 更新成功メッセージ */}
+          {actionMessage && (
+            <p className="text-green-400 my-4">{actionMessage}</p>
           )}
         </div>
-
-        <h2 className="text-lg font-semibold mb-2">ポイント調整</h2>
-        {actionMessage && (
-          <p className="text-green-400 mb-4">{actionMessage}</p>
-        )}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="changeType" className="block mb-1">
-              調整タイプ:
-            </label>
-            <select
-              id="changeType"
-              value={changeType}
-              onChange={(e) =>
-                setChangeType(e.target.value as "add" | "subtract")
-              }
-              className="p-2 rounded bg-gray-800 border border-gray-700"
-            >
-              <option value="add">増加</option>
-              <option value="subtract">減少</option>
-            </select>
-          </div>
-          <div>
-            <label htmlFor="changePoints" className="block mb-1">
-              ポイント数:
-            </label>
-            <input
-              id="changePoints"
-              type="number"
-              value={changePoints}
-              onChange={(e) => setChangePoints(Number(e.target.value))}
-              required
-              min={1}
-              className="p-2 rounded bg-gray-800 border border-gray-700"
-            />
-          </div>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-blue-500 rounded hover:bg-blue-600"
-          >
-            ポイントを更新
-          </button>
-        </form>
       </div>
     </div>
   );
