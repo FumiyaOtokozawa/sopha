@@ -11,6 +11,16 @@ type Employee = {
   email?: string;
 };
 
+// 履歴テーブルの型
+type HistoryItem = {
+  history_id: number;
+  emp_no: number;
+  change_type: "add" | "subtract";
+  ciz: number;
+  reason: string;
+  created_at: string;
+};
+
 const AdminEmployeePage = () => {
   const router = useRouter();
   const { empNo } = router.query;
@@ -25,6 +35,9 @@ const AdminEmployeePage = () => {
   const [activeButton, setActiveButton] = useState<"add" | "subtract" | null>(
     null
   );
+
+  // ポイント履歴を保存する配列
+  const [historyList, setHistoryList] = useState<HistoryItem[]>([]);
 
   // 社員情報＆ポイントをまとめてフェッチ
   useEffect(() => {
@@ -72,6 +85,38 @@ const AdminEmployeePage = () => {
     fetchEmployeeData();
   }, [empNo]);
 
+  // ポイント履歴を取得
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        if (!empNo) return;
+
+        // created_atの降順で取得
+        const { data, error } = await supabase
+          .from("EMP_CIZ_HISTORY")
+          .select("*")
+          .eq("emp_no", empNo)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          throw new Error(`履歴データの取得エラー: ${error.message}`);
+        }
+
+        // 取得した履歴をstateに格納
+        setHistoryList((data as HistoryItem[]) ?? []);
+      } catch (error: unknown) {
+        if (error instanceof Error) {
+          console.error("履歴取得エラー:", error.message);
+          setErrorMessage(error.message);
+        } else {
+          console.error("予期しないエラーが発生しました:", error);
+        }
+      }
+    };
+
+    fetchHistory();
+  }, [empNo]);
+
   const handleAddPoints = () => {
     setActiveButton("add");
     setChangeType("add");
@@ -100,7 +145,7 @@ const AdminEmployeePage = () => {
     e.preventDefault();
     if (!empNo || points === null) return;
 
-    // DBに送るときはadd/subtractを判断して +/- を決定
+    // add/subtractを判断して +/- を決定
     const adjustedPoints = changeType === "add" ? changePoints : -changePoints;
 
     try {
@@ -127,9 +172,10 @@ const AdminEmployeePage = () => {
         act_kbn: true,
       };
 
-      const { error: historyError } = await supabase
+      const { data: insertData, error: historyError } = await supabase
         .from("EMP_CIZ_HISTORY")
-        .insert([history]);
+        .insert([history])
+        .select();
 
       if (historyError) {
         throw new Error(`ポイント履歴追加エラー: ${historyError.message}`);
@@ -138,9 +184,15 @@ const AdminEmployeePage = () => {
       // 状態を更新
       setPoints((prev) => (prev !== null ? prev + adjustedPoints : null));
       setActionMessage("ポイントを正常に更新しました。");
+
       // 実行後は吹き出しとプレビューとボタンを閉じる
       setActiveButton(null);
       setChangePoints(0);
+
+      // 新しく追加した履歴を戦闘に反映
+      if (insertData && insertData.length > 0) {
+        setHistoryList((prev) => [insertData[0] as HistoryItem, ...prev]);
+      }
     } catch (error: unknown) {
       if (error instanceof Error) {
         console.error("ポイント調整エラー:", error.message);
@@ -150,6 +202,18 @@ const AdminEmployeePage = () => {
         setErrorMessage("予期しないエラーが発生しました。");
       }
     }
+  };
+
+  // 日付表示用フォーマット
+  const formatDate = (dateString: string) => {
+    const d = new Date(dateString);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const HH = String(d.getHours()).padStart(2, "0");
+    const MM = String(d.getMinutes()).padStart(2, "0");
+    const SS = String(d.getSeconds()).padStart(2, "0");
+    return `${yyyy}/${mm}/${dd} ${HH}:${MM}:${SS}`;
   };
 
   // エラーがある場合
@@ -279,6 +343,44 @@ const AdminEmployeePage = () => {
           {/* 更新成功メッセージ */}
           {actionMessage && (
             <p className="text-green-400 my-4">{actionMessage}</p>
+          )}
+        </div>
+
+        {/* ポイント履歴一覧 */}
+        <div className="bg-[#2f3033] rounded-lg shadow-md mt-8 w-full max-w-xl mx-auto p-4">
+          <h3 className="text-xl font-bold mb-4">Points History</h3>
+
+          {historyList.length === 0 ? (
+            <p className="text-gray-400">履歴はありません</p>
+          ) : (
+            <div className="max-h-60 overflow-y-scroll scrollbar-hidden">
+              {historyList.map((item) => {
+                // ADDの場合は緑色・SUBTRACTは赤色
+                const isAdd = item.change_type === "add";
+                const sign = isAdd ? "+ " : "- ";
+                const colorClass = isAdd ? "text-green-400" : "text-red-400";
+
+                return (
+                  <div
+                    key={item.history_id}
+                    className="flex justify-between items-center bg-[#404040] px-4 py-2 mb-3 rounded-md"
+                  >
+                    {/* 左側: reasonと日付 */}
+                    <div>
+                      <p className="font-medium">{item.reason}</p>
+                      <p className="text-sm text-gray-400">
+                        {formatDate(item.created_at)}
+                      </p>
+                    </div>
+                    {/* 右側: 変動ポイント */}
+                    <div className={`${colorClass} text-lg font-medium`}>
+                      {sign}
+                      {item.ciz.toLocaleString()} ciz
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       </div>
