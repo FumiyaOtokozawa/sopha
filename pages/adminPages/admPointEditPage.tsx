@@ -28,6 +28,11 @@ const AdminEmployeePage = () => {
   const [points, setPoints] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // ページネーション用のState
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const ITEMS_PER_PAGE = 15;
+
   // 各種UI・状態管理用
   const [changePoints, setChangePoints] = useState<number>(0);
   const [changeType, setChangeType] = useState<"add" | "subtract">("add");
@@ -91,13 +96,22 @@ const AdminEmployeePage = () => {
       try {
         if (!empNo) return;
 
-        // created_atの降順で取得
+        // 総件数を取得
+        const { count: totalRecords } = await supabase
+          .from("EMP_CIZ_HISTORY")
+          .select("*", { count: "exact" })
+          .eq("emp_no", empNo);
+        
+        setTotalCount(totalRecords || 0);
+
+        // ページに応じたデータを取得
         const { data, error } = await supabase
           .from("EMP_CIZ_HISTORY")
           .select("*")
           .eq("emp_no", empNo)
-          .order("created_at", { ascending: false });
-
+          .order("created_at", { ascending: false })
+          .range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1);
+          
         if (error) {
           throw new Error(`履歴データの取得エラー: ${error.message}`);
         }
@@ -115,7 +129,7 @@ const AdminEmployeePage = () => {
     };
 
     fetchHistory();
-  }, [empNo]);
+  }, [empNo, currentPage]);
 
   const handleAddPoints = () => {
     setActiveButton("add");
@@ -353,9 +367,40 @@ const AdminEmployeePage = () => {
           {historyList.length === 0 ? (
             <p className="text-gray-400">履歴はありません</p>
           ) : (
-            <div className="max-h-60 overflow-y-scroll scrollbar-hidden">
-              {historyList.map((item) => {
-                // ADDの場合は緑色・SUBTRACTは赤色
+            <>
+              {/* ページネーションコントロールを上部に移動 */}
+              <div className="flex justify-center mb-4">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev -1, 1))}
+                  disabled={currentPage === 1}
+                  className={`px-4 py-2 rounded ${
+                    currentPage === 1
+                      ? 'bg-gray-500 cursor-not-allowed'
+                      : 'bg-[#8E93DA] text-black font-bold hover:bg-opacity-90'
+                  }`}
+                >
+                  Prev
+                </button>
+                <span className="flex items-center mx-4">
+                  {currentPage} / {Math.ceil(totalCount / ITEMS_PER_PAGE)}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                  disabled={currentPage >= Math.ceil(totalCount / ITEMS_PER_PAGE)}
+                  className={`px-4 py-2 rounded ${
+                    currentPage >= Math.ceil(totalCount / ITEMS_PER_PAGE)
+                      ? 'bg-gray-500 cursor-not-allowed'
+                      : 'bg-[#8E93DA] text-black font-bold hover:bg-opacity-90'
+                  }`}
+                >
+                  Next
+                </button>
+              </div>
+
+              <div>
+                {historyList.map((item) => {
+                  // ADDの場合は緑色・SUBTRACTは赤色
+
                 const isAdd = item.change_type === "add";
                 const sign = isAdd ? "+ " : "- ";
                 const colorClass = isAdd ? "text-green-400" : "text-red-400";
@@ -380,10 +425,13 @@ const AdminEmployeePage = () => {
                   </div>
                 );
               })}
-            </div>
+              </div>
+            </>
           )}
+
         </div>
       </div>
+
     </div>
   );
 };
