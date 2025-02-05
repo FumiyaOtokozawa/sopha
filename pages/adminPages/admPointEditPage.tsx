@@ -280,17 +280,30 @@ const AdminEmployeePage = () => {
               {/* 吹き出し（ADDがアクティブのとき） */}
               {activeButton === "add" && (
                 <div className="absolute top-full mt-1 left-0 w-full">
-                  <div className="bg-white text-black rounded-full shadow flex items-center justify-center">
-                    <span className="text-m font-bold mx-1">＋</span>
-                    <input
-                      type="number"
-                      min={0}
-                      value={changePoints}
-                      onChange={(e) => setChangePoints(Number(e.target.value))}
-                      className="w-12 text-center text-m font-bold border-b border-gray-300 focus:outline-none"
-                      placeholder="0"
-                    />
-                    <span className="ml-1 text-m">ciz</span>
+                  <div className="bg-white text-black rounded-full shadow flex items-center justify-center px-4">
+                    <button
+                      onClick={() => setChangePoints(prev => Math.max(0, prev - 1))}
+                      className="text-gray-600 hover:text-black px-2"
+                    >
+                      &#9660;
+                    </button>
+                    <div className="flex items-center justify-center min-w-[100px]">
+                      <input
+                        type="number"
+                        min={0}
+                        value={changePoints}
+                        onChange={(e) => setChangePoints(Number(e.target.value))}
+                        className="w-12 text-center text-m font-bold border-b border-gray-300 focus:outline-none mx-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        placeholder="0"
+                      />
+                      <span className="text-m">ciz</span>
+                    </div>
+                    <button
+                      onClick={() => setChangePoints(prev => prev + 1)}
+                      className="text-gray-600 hover:text-black px-2"
+                    >
+                      &#9650;
+                    </button>
                   </div>
                 </div>
               )}
@@ -311,16 +324,30 @@ const AdminEmployeePage = () => {
               {/* 吹き出し（SUBTRACTがアクティブのとき） */}
               {activeButton === "subtract" && (
                 <div className="absolute top-full mt-1 left-0 w-full">
-                  <div className="bg-white text-black rounded-full shadow flex items-center justify-center">
-                    <span className="text-m font-bold mx-1">－</span>
-                    <input
-                      type="number"
-                      min={0}
-                      value={changePoints}
-                      onChange={(e) => setChangePoints(Number(e.target.value))}
-                      className="w-12 text-center text-m font-bold border-b border-gray-300 focus:outline-none"
-                    />
-                    <span className="ml-1 text-m">ciz</span>
+                  <div className="bg-white text-black rounded-full shadow flex items-center justify-center px-4">
+                    <button
+                      onClick={() => setChangePoints(prev => Math.max(0, prev - 1))}
+                      className="text-gray-600 hover:text-black px-2"
+                    >
+                      &#9660;
+                    </button>
+                    <div className="flex items-center justify-center min-w-[100px]">
+                      <input
+                        type="number"
+                        min={0}
+                        value={changePoints}
+                        onChange={(e) => setChangePoints(Number(e.target.value))}
+                        className="w-12 text-center text-m font-bold border-b border-gray-300 focus:outline-none mx-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        placeholder="0"
+                      />
+                      <span className="text-m">ciz</span>
+                    </div>
+                    <button
+                      onClick={() => setChangePoints(prev => prev + 1)}
+                      className="text-gray-600 hover:text-black px-2"
+                    >
+                      &#9650;
+                    </button>
                   </div>
                 </div>
               )}
