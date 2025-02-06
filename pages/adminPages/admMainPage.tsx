@@ -6,7 +6,7 @@ import PersonSearchIcon from "@mui/icons-material/PersonSearch";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import EditCalendarIcon from "@mui/icons-material/EditCalendar";
 
-const AdminMenu = () => {
+const AdmMainPage = () => {
   const router = useRouter();
 
   const navigateToEmployeeSelectPage = () => {
@@ -14,7 +14,7 @@ const AdminMenu = () => {
   };
 
   const navigateToEmployeeAddPage = () => {
-    router.push("/adminPages/admAddEmpPage");
+    router.push("/adminPages/admAddEmpMPage");
   };
 
   // 今回はイベント管理のバックエンド未実装のため、ただのダミー
@@ -71,4 +71,4 @@ const AdminMenu = () => {
   );
 };
 
-export default AdminMenu;
+export default AdmMainPage;
