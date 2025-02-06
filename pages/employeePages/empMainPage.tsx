@@ -32,6 +32,7 @@ const EmpMainPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [monthlyChange, setMonthlyChange] = useState<number>(0);
 
   // 日付表示用フォーマット
   const formatDate = (dateString: string) => {
@@ -137,6 +138,40 @@ const EmpMainPage = () => {
     fetchHistory();
   }, [employeeNumber, currentPage]);
 
+  // 過去1か月間のポイント増減を計算する関数
+  const fetchMonthlyChange = async (empNo: number) => {
+    try {
+      // 1か月前の日付を計算
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+      // 1か月間の履歴を取得
+      const { data, error } = await supabase
+        .from("EMP_CIZ_HISTORY")
+        .select("change_type, ciz")
+        .eq("emp_no", empNo)
+        .gte("created_at", oneMonthAgo.toISOString());
+
+      if (error) throw error;
+
+      // 増減を計算
+      const totalChange = (data || []).reduce((acc, curr) => {
+        return acc + (curr.change_type === "add" ? curr.ciz : -curr.ciz);
+      }, 0);
+
+      setMonthlyChange(totalChange);
+    } catch (error) {
+      console.error("月間増減の取得エラー:", error);
+    }
+  };
+
+  // employeeNumberが設定されたら月間増減を取得
+  useEffect(() => {
+    if (employeeNumber) {
+      fetchMonthlyChange(employeeNumber);
+    }
+  }, [employeeNumber]);
+
   const handleMenuClick = () => {
     setIsMenuOpen(!isMenuOpen);
   };
@@ -200,8 +235,8 @@ const EmpMainPage = () => {
               <div className="text-[#FCFCFC] text-4xl font-bold mb-2">
                 {points !== null ? points.toLocaleString() : "..."} <span className="text-2xl">ciz</span>
               </div>
-              <div className="text-green-400 text-sm">
-                +50 since last month
+              <div className={`text-sm ${monthlyChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {monthlyChange >= 0 ? '+' : ''}{monthlyChange.toLocaleString()} since last month
               </div>
             </div>
           </div>
