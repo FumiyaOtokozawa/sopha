@@ -45,13 +45,13 @@ const RegistConfirmedPage = () => {
           return;
         }
 
-        // USER_INFOの登録が成功したら、USER_ROLEテーブルにユーザー情報を追加
+        // USER_ROLEテーブルにユーザー情報を追加
         const { error: insertError } = await supabase
           .from('USER_ROLE')
           .insert([
             {
-              emp_no: Number(employeeId), // bigint型なのでNumber型に変換
-              role: '0',                  // text型なので文字列として設定
+              emp_no: Number(employeeId),
+              role: '0',
               act_kbn: true,
               updated_at: new Date().toISOString(),
               updated_by: Number(employeeId)
@@ -60,6 +60,44 @@ const RegistConfirmedPage = () => {
 
         if (insertError) {
           console.error('ロール登録エラー:', insertError);
+          setError('ユーザー情報の登録中にエラーが発生しました');
+          return;
+        }
+
+        // EMP_CIZテーブルに初期ポイント情報を追加
+        // まず最大のciz_idを取得
+        const { data: maxCizData, error: maxCizError } = await supabase
+          .from('EMP_CIZ')
+          .select('ciz_id')
+          .order('ciz_id', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (maxCizError && !maxCizError.message.includes('No rows found')) {
+          console.error('CIZ ID取得エラー:', maxCizError);
+          setError('ユーザー情報の登録中にエラーが発生しました');
+          return;
+        }
+
+        // 新しいciz_idを設定（既存データがない場合は1から開始）
+        const nextCizId = maxCizData ? maxCizData.ciz_id + 1 : 1;
+
+        // EMP_CIZテーブルに登録
+        const { error: cizError } = await supabase
+          .from('EMP_CIZ')
+          .insert([
+            {
+              ciz_id: nextCizId,
+              emp_no: Number(employeeId),
+              total_ciz: 0,
+              act_kbn: true,
+              updated_at: new Date().toISOString(),
+              updated_by: 0  // 0 = admin
+            }
+          ]);
+
+        if (cizError) {
+          console.error('ポイント情報登録エラー:', cizError);
           setError('ユーザー情報の登録中にエラーが発生しました');
           return;
         }
