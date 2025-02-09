@@ -5,6 +5,7 @@ import { supabase } from '../../utils/supabaseClient';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import RedeemIcon from '@mui/icons-material/Redeem';
+import PersonIcon from '@mui/icons-material/Person';
 import Header from "../../components/Header";
 import { Dialog } from '@mui/material';
 import { useRouter } from 'next/router';
@@ -20,6 +21,18 @@ type HistoryItem = {
 };
 
 const ITEMS_PER_PAGE = 10; // 1ページあたりの表示件数
+
+// 共通のメニューボタンスタイル
+const menuButtonClassName = {
+  wrapper: "w-28", // ボタン全体のスタイル
+  container: `
+    bg-[#2f3033] w-28 h-28 
+    flex flex-col items-center justify-center 
+    rounded-md hover:opacity-90 transition
+  `, // アイコンと文字を含むコンテナのスタイル
+  icon: { fontSize: 40, color: "#FCFCFC" }, // アイコンのスタイル
+  text: "mt-2 text-[#FCFCFC] text-sm" // テキストのスタイル
+};
 
 const EmpMainPage = () => {
   const [employeeNumber, setEmployeeNumber] = useState<number | null>(null);
@@ -193,29 +206,49 @@ const EmpMainPage = () => {
               isMenuOpen ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'
             }`}>
               <div className="px-4">
-                <div className="grid grid-cols-3 gap-4">
-                  {/* ポイント譲渡 */}
-                  <button className="flex flex-col items-center gap-2">
-                    <div className="bg-[#404040] w-20 h-20 rounded-md flex items-center justify-center">
-                      <RedeemIcon sx={{ fontSize: 40, color: "#FCFCFC" }} />
+                <div className="flex justify-between">
+                  {/* イベント一覧 */}
+                  <button
+                    onClick={() => router.push('/events/eventListPage')}
+                    className={menuButtonClassName.wrapper}
+                  >
+                    <div className={menuButtonClassName.container}>
+                      <CalendarMonthIcon sx={menuButtonClassName.icon} />
+                      <span className={menuButtonClassName.text}>イベント一覧</span>
                     </div>
-                    <span className="text-black text-sm">ポイント譲渡</span>
-                  </button>
-
-                  {/* イベント確認 */}
-                  <button className="flex flex-col items-center gap-2">
-                    <div className="bg-[#404040] w-20 h-20 rounded-md flex items-center justify-center">
-                      <CalendarMonthIcon sx={{ fontSize: 40, color: "#FCFCFC" }} />
-                    </div>
-                    <span className="text-black text-sm">イベント確認</span>
                   </button>
 
                   {/* イベント追加 */}
-                  <button className="flex flex-col items-center gap-2">
-                    <div className="bg-[#404040] w-20 h-20 rounded-md flex items-center justify-center">
-                      <AddBoxIcon sx={{ fontSize: 40, color: "#FCFCFC" }} />
+                  <button
+                    onClick={() => router.push('/events/eventAddPage')}
+                    className={menuButtonClassName.wrapper}
+                  >
+                    <div className={menuButtonClassName.container}>
+                      <AddBoxIcon sx={menuButtonClassName.icon} />
+                      <span className={menuButtonClassName.text}>イベント追加</span>
                     </div>
-                    <span className="text-black text-sm">イベント追加</span>
+                  </button>
+
+                  {/* ポイント譲渡 */}
+                  <button
+                    onClick={() => router.push('/employeePages/empCizExchangePage')}
+                    className={menuButtonClassName.wrapper}
+                  >
+                    <div className={menuButtonClassName.container}>
+                      <RedeemIcon sx={menuButtonClassName.icon} />
+                      <span className={menuButtonClassName.text}>ポイント譲渡</span>
+                    </div>
+                  </button>
+
+                  {/* プロフィール */}
+                  <button
+                    onClick={() => router.push('/employeePages/empProfSettingPage')}
+                    className={menuButtonClassName.wrapper}
+                  >
+                    <div className={menuButtonClassName.container}>
+                      <PersonIcon sx={menuButtonClassName.icon} />
+                      <span className={menuButtonClassName.text}>プロフィール</span>
+                    </div>
                   </button>
                 </div>
               </div>

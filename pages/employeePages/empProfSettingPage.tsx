@@ -9,7 +9,15 @@ type UserProfile = {
   namae: string;
   last_nm: string;
   first_nm: string;
+  gender: string;
 };
+
+// 性別の定数を定義
+const GENDER = {
+  FEMALE: "0",
+  MALE: "1",
+  OTHER: "2"
+} as const;
 
 // 共通の入力欄スタイル
 const inputClassName = `
@@ -28,6 +36,7 @@ const EmpProfSettingPage = () => {
     namae: "",
     last_nm: "",
     first_nm: "",
+    gender: "",
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -44,7 +53,7 @@ const EmpProfSettingPage = () => {
 
       const { data, error } = await supabase
         .from("USER_INFO")
-        .select("emp_no, myoji, namae, last_nm, first_nm")
+        .select("emp_no, myoji, namae, last_nm, first_nm, gender")
         .eq("email", user.email)
         .single();
 
@@ -66,7 +75,7 @@ const EmpProfSettingPage = () => {
 
     try {
       // 入力値の検証
-      if (!profile.myoji || !profile.namae || !profile.last_nm || !profile.first_nm) {
+      if (!profile.myoji || !profile.namae || !profile.last_nm || !profile.first_nm || !profile.gender) {
         throw new Error("すべての項目を入力してください");
       }
 
@@ -78,6 +87,7 @@ const EmpProfSettingPage = () => {
           namae: profile.namae,
           last_nm: profile.last_nm,
           first_nm: profile.first_nm,
+          gender: profile.gender,
         })
         .eq("emp_no", profile.emp_no);
 
@@ -161,6 +171,45 @@ const EmpProfSettingPage = () => {
                     className={inputClassName}
                     placeholder="Taro"
                   />
+                </div>
+              </div>
+
+              {/* 性別選択欄を修正 */}
+              <div>
+                <label className="block text-sm font-medium text-[#FCFCFC] mb-1">
+                  性別
+                </label>
+                <div className="flex space-x-4">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      value={GENDER.MALE}
+                      checked={profile.gender === GENDER.MALE}
+                      onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
+                      className="text-[#8E93DA] focus:ring-[#8E93DA]"
+                    />
+                    <span className="text-[#FCFCFC]">男性</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      value={GENDER.FEMALE}
+                      checked={profile.gender === GENDER.FEMALE}
+                      onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
+                      className="text-[#8E93DA] focus:ring-[#8E93DA]"
+                    />
+                    <span className="text-[#FCFCFC]">女性</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      value={GENDER.OTHER}
+                      checked={profile.gender === GENDER.OTHER}
+                      onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
+                      className="text-[#8E93DA] focus:ring-[#8E93DA]"
+                    />
+                    <span className="text-[#FCFCFC]">その他</span>
+                  </label>
                 </div>
               </div>
 

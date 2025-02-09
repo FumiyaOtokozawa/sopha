@@ -649,6 +649,15 @@
   },
   {
     "schema_name": "public",
+    "table_name": "USER_INFO",
+    "column_name": "login_count",
+    "ordinal_position": 10,
+    "data_type": "bigint",
+    "is_nullable": "YES",
+    "column_default": "'0'::bigint"
+  },
+  {
+    "schema_name": "public",
     "table_name": "USER_ROLE",
     "column_name": "role_id",
     "ordinal_position": 1,
