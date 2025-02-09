@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, dateFnsLocalizer, ToolbarProps, View } from 'react-big-calendar';
+import { Calendar, dateFnsLocalizer, ToolbarProps } from 'react-big-calendar';
 import { format } from 'date-fns/format';
 import { parse } from 'date-fns/parse';
 import { startOfWeek } from 'date-fns/startOfWeek';
@@ -7,7 +7,6 @@ import { getDay } from 'date-fns/getDay';
 import { ja } from 'date-fns/locale';
 import { supabase } from '../../utils/supabaseClient';
 import Header from '../../components/Header';
-import { format as formatDate } from 'date-fns';
 import React from 'react';
 
 // カレンダーのローカライズ設定
