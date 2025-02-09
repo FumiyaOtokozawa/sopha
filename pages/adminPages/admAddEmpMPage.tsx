@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useRouter } from 'next/router';
 import { supabase } from '../../utils/supabaseClient';
 import Papa from 'papaparse'; // CSVパース用ライブラリ
 import AdminHeader from '../../components/AdminHeader';  // 追加
@@ -22,7 +21,6 @@ interface ResultRow {
 }
 
 const AdmAddEmpMPage = () => {
-  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);

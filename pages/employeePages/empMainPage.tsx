@@ -8,11 +8,6 @@ import AddBoxIcon from '@mui/icons-material/AddBox';
 import AdminHeader from "../../components/AdminHeader";
 
 
-type Employee = {
-  emp_no: number;
-  email: string;
-};
-
 type HistoryItem = {
   history_id: number;
   emp_no: number;
@@ -26,7 +21,6 @@ const ITEMS_PER_PAGE = 5; // 1ページあたりの表示件数
 
 const EmpMainPage = () => {
   const [employeeNumber, setEmployeeNumber] = useState<number | null>(null);
-  const [employee, setEmployee] = useState<Employee | null>(null);
   const [points, setPoints] = useState<number | null>(null);
   const [historyList, setHistoryList] = useState<HistoryItem[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -80,24 +74,15 @@ const EmpMainPage = () => {
       if (!employeeNumber) return;
 
       try {
-        const [employeeResponse, pointsResponse] = await Promise.all([
-          supabase
-            .from("USER_INFO")
-            .select("*")
-            .eq("emp_no", employeeNumber)
-            .single(),
-          supabase
-            .from("EMP_CIZ")
-            .select("total_ciz")
-            .eq("emp_no", employeeNumber)
-            .single(),
-        ]);
+        // USER_INFO の取得を削除し、ポイント情報のみ取得
+        const { data, error } = await supabase
+          .from("EMP_CIZ")
+          .select("total_ciz")
+          .eq("emp_no", employeeNumber)
+          .single();
 
-        if (employeeResponse.error) throw employeeResponse.error;
-        if (pointsResponse.error) throw pointsResponse.error;
-
-        setEmployee(employeeResponse.data);
-        setPoints(pointsResponse.data?.total_ciz ?? 0);
+        if (error) throw error;
+        setPoints(data?.total_ciz ?? 0);
       } catch (error) {
         console.error("データ取得エラー:", error);
       }
