@@ -16,7 +16,7 @@ const LoginPage = () => {
 
     try {
       // ログイン処理
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      const { error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -109,13 +109,15 @@ const LoginPage = () => {
 
           <button
             type="submit"
+            disabled={isLoading}
             className="
               w-full py-2 rounded-md
               bg-[#8E93DA] text-black font-semibold
               hover:bg-opacity-90 transition-colors
+              disabled:opacity-50
             "
           >
-            LOGIN
+            {isLoading ? "ログイン中..." : "LOGIN"}
           </button>
         </form>
 

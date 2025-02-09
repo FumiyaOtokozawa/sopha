@@ -5,7 +5,6 @@ import { supabase } from '../../utils/supabaseClient';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import RedeemIcon from '@mui/icons-material/Redeem';
-import PaymentsIcon from '@mui/icons-material/Payments';
 import Header from "../../components/Header";
 import { Dialog } from '@mui/material';
 import { useRouter } from 'next/router';
