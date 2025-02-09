@@ -6,75 +6,58 @@ const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(""); // エラーメッセージをクリア
-    console.log("ログイン処理開始");
+    setError('');
+    setIsLoading(true);
 
     try {
-      // 1.Supabaseでメール・パスワードによる認証
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      // ログイン処理
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (signInError) {
-        setError(signInError.message);
-        console.error("ログインエラー：", signInError.message);
-        return;
-      }
+      if (authError) throw authError;
 
-      if (!signInData.user) {
-        setError("ユーザー情報の取得に失敗しました");
-        return;
-      }
-
-      // 2.USER_INFOテーブルからemp_noを取得（メールアドレスで検索）
-      const { data: userInfo, error: userInfoError } = await supabase
-        .from("USER_INFO")
-        .select("emp_no")
-        .eq("email", email)
+      // ログイン回数を更新
+      const { data: userData, error: userError } = await supabase
+        .from('USER_INFO')
+        .select('emp_no, login_count')
+        .eq('email', email)
         .single();
 
-      if (userInfoError) {
-        console.error("USER_INFO取得エラー：", userInfoError);
-        setError("ユーザー情報が見つかりませんでした");
-        return;
-      }
+      if (userError) throw userError;
 
-      if (!userInfo) {
-        setError("ユーザー情報が見つかりませんでした");
-        return;
-      }
+      // login_countを+1
+      const { error: updateError } = await supabase
+        .from('USER_INFO')
+        .update({ login_count: (userData.login_count || 0) + 1 })
+        .eq('emp_no', userData.emp_no);
 
-      // 3.USER_ROLEテーブルからroleを取得（emp_noで検索）
-      const { data: userRole, error: userRoleError } = await supabase
-        .from("USER_ROLE")
-        .select("role")
-        .eq("emp_no", userInfo.emp_no)
+      if (updateError) throw updateError;
+
+      // ロール判定して遷移先を決定
+      const { data: roleData, error: roleError } = await supabase
+        .from('USER_ROLE')
+        .select('role')
+        .eq('emp_no', userData.emp_no)
         .single();
 
-      if (userRoleError) {
-        console.error("USER_ROLE取得エラー：", userRoleError);
-        setError("ユーザーの権限情報が見つかりませんでした");
-        return;
-      }
+      if (roleError) throw roleError;
 
-      // 4.roleに応じてページを振り分ける
-      if (userRole.role === "0") {
-        router.push("/employeePages/empMainPage");
-      } else if (userRole.role === "1") {
-        router.push("/adminPages/admMainPage");
-      } else {
-        setError("不明な権限です");
-        console.warn("想定外のrole：", userRole.role);
-      }
+      // 遷移先の決定
+      const path = roleData.role === '1' ? '/adminPages/admMainPage' : '/employeePages/empMainPage';
+      router.push(path);
 
     } catch (error) {
-      console.error("予期しないエラー:", error);
-      setError("ログイン処理中にエラーが発生しました");
+      console.error('ログインエラー:', error);
+      setError('メールアドレスまたはパスワードが正しくありません');
+    } finally {
+      setIsLoading(false);
     }
   };
 

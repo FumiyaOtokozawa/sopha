@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from '../../utils/supabaseClient';
-import CurrencyExchangeIcon from '@mui/icons-material/CurrencyExchange';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import AddBoxIcon from '@mui/icons-material/AddBox';
-import AdminHeader from "../../components/AdminHeader";
+import RedeemIcon from '@mui/icons-material/Redeem';
+import PaymentsIcon from '@mui/icons-material/Payments';
+import Header from "../../components/Header";
+import { Dialog } from '@mui/material';
+import { useRouter } from 'next/router';
 
 
 type HistoryItem = {
@@ -17,7 +20,7 @@ type HistoryItem = {
   created_at: string;
 };
 
-const ITEMS_PER_PAGE = 5; // 1ページあたりの表示件数
+const ITEMS_PER_PAGE = 10; // 1ページあたりの表示件数
 
 const EmpMainPage = () => {
   const [employeeNumber, setEmployeeNumber] = useState<number | null>(null);
@@ -27,6 +30,8 @@ const EmpMainPage = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [monthlyChange, setMonthlyChange] = useState<number>(0);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const router = useRouter();
 
   // 日付表示用フォーマット
   const formatDate = (dateString: string) => {
@@ -50,10 +55,10 @@ const EmpMainPage = () => {
         return;
       }
 
-      // USER_INFOからemp_noを取得
+      // USER_INFOからemp_noとlogin_countを取得
       const { data: userData, error: userDataError } = await supabase
         .from("USER_INFO")
-        .select("emp_no")
+        .select("emp_no, login_count")
         .eq("email", user.email)
         .single();
 
@@ -63,6 +68,11 @@ const EmpMainPage = () => {
       }
 
       setEmployeeNumber(userData.emp_no);
+      
+      // 初回ログインの場合、ダイアログを表示
+      if (userData.login_count === 1) {
+        setShowProfileDialog(true);
+      }
     };
 
     fetchEmployeeInfo();
@@ -163,7 +173,7 @@ const EmpMainPage = () => {
 
   return (
     <div>
-      <AdminHeader />
+      <Header isAdmin={false} />
       
       <div className="p-4">
         {/* メニューボタン */}
@@ -185,12 +195,12 @@ const EmpMainPage = () => {
             }`}>
               <div className="px-4">
                 <div className="grid grid-cols-3 gap-4">
-                  {/* ポイント履歴 */}
+                  {/* ポイント譲渡 */}
                   <button className="flex flex-col items-center gap-2">
                     <div className="bg-[#404040] w-20 h-20 rounded-md flex items-center justify-center">
-                      <CurrencyExchangeIcon sx={{ fontSize: 40, color: "#FCFCFC" }} />
+                      <RedeemIcon sx={{ fontSize: 40, color: "#FCFCFC" }} />
                     </div>
-                    <span className="text-black text-sm">ポイント履歴</span>
+                    <span className="text-black text-sm">ポイント譲渡</span>
                   </button>
 
                   {/* イベント確認 */}
@@ -293,6 +303,33 @@ const EmpMainPage = () => {
           </div>
         </div>
       </div>
+
+      {/* プロフィール設定ダイアログ */}
+      <Dialog
+        open={showProfileDialog}
+        onClose={() => setShowProfileDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <div className="bg-[#2D2D2D] p-6">
+          <h2 className="text-xl font-bold mb-4 text-[#FCFCFC]">プロフィール設定</h2>
+          <p className="text-[#FCFCFC] mb-4">
+            初回ログインありがとうございます。<br />
+            プロフィール情報を設定してください。
+          </p>
+          <div className="flex justify-end">
+            <button
+              onClick={() => {
+                // TODO: プロフィール設定ページへの遷移を実装
+                router.push('/employeePages/empProfSettingPage');
+              }}
+              className="bg-[#8E93DA] text-black px-4 py-2 rounded-md font-bold"
+            >
+              設定する
+            </button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 };

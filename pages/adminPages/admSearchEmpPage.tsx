@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import supabase from "../../supabaseClient";
-import AdminHeader from "../../components/AdminHeader";
+import Header from "../../components/Header";
 import SearchIcon from "@mui/icons-material/Search";
 import PersonIcon from "@mui/icons-material/Person";
 
@@ -84,7 +84,7 @@ const EmployeeSelect = () => {
   return (
     <div className="bg-[#1f1f1f] min-h-screen text-white">
       {/* ヘッダー（共通部分） */}
-      <AdminHeader />
+      <Header />
 
       {/* メインコンテンツ */}
       <div className="p-6 flex flex-col items-center">

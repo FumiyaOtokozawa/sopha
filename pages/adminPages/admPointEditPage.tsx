@@ -3,7 +3,7 @@
 import { useRouter } from "next/router";
 import { FormEvent, useEffect, useState } from "react";
 import supabase from "../../supabaseClient";
-import AdminHeader from "../../components/AdminHeader";
+import Header from "../../components/Header";
 
 type Employee = {
   last_nm: string;
@@ -243,7 +243,7 @@ const AdminEmployeePage = () => {
   return (
     <div>
       {/* ヘッダー（共通部分） */}
-      <AdminHeader />
+      <Header />
 
       {/* メインコンテンツ */}
       <div className="p-6">

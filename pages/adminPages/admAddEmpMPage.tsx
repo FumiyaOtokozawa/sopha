@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../../utils/supabaseClient';
 import Papa from 'papaparse'; // CSVパース用ライブラリ
-import AdminHeader from '../../components/AdminHeader';  // 追加
+import Header from '../../components/Header';  // 追加
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import ErrorIcon from '@mui/icons-material/Error';
@@ -149,7 +149,7 @@ const AdmAddEmpMPage = () => {
   return (
     <div className="flex flex-col min-h-screen">
       {/* ヘッダー追加 */}
-      <AdminHeader />
+      <Header />
 
       {/* メインコンテンツ */}
       <div className="p-4">

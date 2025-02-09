@@ -1,7 +1,7 @@
 // pages/adminPages/admMainPage.tsx
 
 import { useRouter } from "next/router";
-import AdminHeader from "../../components/AdminHeader";
+import Header from "../../components/Header";
 import PersonSearchIcon from "@mui/icons-material/PersonSearch";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import EditCalendarIcon from "@mui/icons-material/EditCalendar";
@@ -25,7 +25,7 @@ const AdmMainPage = () => {
   return (
     <div>
       {/* ヘッダー（共通部分） */}
-      <AdminHeader />
+      <Header isAdmin={true} />
 
       {/* メインコンテンツ */}
       <div className="p-4">
