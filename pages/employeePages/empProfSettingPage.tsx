@@ -11,6 +11,15 @@ type UserProfile = {
   first_nm: string;
 };
 
+// 共通の入力欄スタイル
+const inputClassName = `
+    w-full p-2 rounded-md
+    bg-[#CFD8DC80] text-[#37373F] placeholder-[#37373F]
+    focus:outline-none focus:ring-2 focus:ring-blue-500
+    focus:bg-[#FCFCFC] focus:placeholder-[#808080]
+    [&:not(:placeholder-shown)]:bg-[#FCFCFC]
+`;
+
 const EmpProfSettingPage = () => {
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile>({
@@ -109,8 +118,8 @@ const EmpProfSettingPage = () => {
                     type="text"
                     value={profile.myoji}
                     onChange={(e) => setProfile({ ...profile, myoji: e.target.value })}
-                    className="w-full p-2 rounded-md bg-[#404040] text-[#FCFCFC] focus:outline-none focus:ring-2 focus:ring-[#8E93DA]"
-                    placeholder="山田"
+                    className={inputClassName}
+                    placeholder="根菜"
                   />
                 </div>
                 <div>
@@ -121,7 +130,7 @@ const EmpProfSettingPage = () => {
                     type="text"
                     value={profile.namae}
                     onChange={(e) => setProfile({ ...profile, namae: e.target.value })}
-                    className="w-full p-2 rounded-md bg-[#404040] text-[#FCFCFC] focus:outline-none focus:ring-2 focus:ring-[#8E93DA]"
+                    className={inputClassName}
                     placeholder="太郎"
                   />
                 </div>
@@ -137,8 +146,8 @@ const EmpProfSettingPage = () => {
                     type="text"
                     value={profile.last_nm}
                     onChange={(e) => setProfile({ ...profile, last_nm: e.target.value })}
-                    className="w-full p-2 rounded-md bg-[#404040] text-[#FCFCFC] focus:outline-none focus:ring-2 focus:ring-[#8E93DA]"
-                    placeholder="YAMADA"
+                    className={inputClassName}
+                    placeholder="Konsai"
                   />
                 </div>
                 <div>
@@ -149,8 +158,8 @@ const EmpProfSettingPage = () => {
                     type="text"
                     value={profile.first_nm}
                     onChange={(e) => setProfile({ ...profile, first_nm: e.target.value })}
-                    className="w-full p-2 rounded-md bg-[#404040] text-[#FCFCFC] focus:outline-none focus:ring-2 focus:ring-[#8E93DA]"
-                    placeholder="TARO"
+                    className={inputClassName}
+                    placeholder="Taro"
                   />
                 </div>
               </div>
