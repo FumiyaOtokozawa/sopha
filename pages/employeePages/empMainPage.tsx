@@ -9,6 +9,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import Header from "../../components/Header";
 import { Dialog } from '@mui/material';
 import { useRouter } from 'next/router';
+import LogoutIcon from "@mui/icons-material/Logout";
 
 
 type HistoryItem = {
@@ -24,14 +25,20 @@ const ITEMS_PER_PAGE = 10; // 1ページあたりの表示件数
 
 // 共通のメニューボタンスタイル
 const menuButtonClassName = {
-  wrapper: "w-28", // ボタン全体のスタイル
+  wrapper: "w-full", // 親要素の幅に合わせる
   container: `
-    bg-[#2f3033] w-28 h-28 
+    bg-[#2f3033] w-full aspect-square
     flex flex-col items-center justify-center 
     rounded-md hover:opacity-90 transition
-  `, // アイコンと文字を含むコンテナのスタイル
-  icon: { fontSize: 40, color: "#FCFCFC" }, // アイコンのスタイル
-  text: "mt-2 text-[#FCFCFC] text-sm" // テキストのスタイル
+    text-[min(1.5vw,14px)]
+  `,
+  icon: { 
+    fontSize: 'min(5vw, 40px)',
+    color: "#FCFCFC",
+    width: 'min(8vw, 40px)',
+    height: 'min(8vw, 40px)'
+  },
+  text: "mt-2 text-[#FCFCFC] text-[min(2.5vw,14px)]"
 };
 
 const EmpMainPage = () => {
@@ -185,7 +192,7 @@ const EmpMainPage = () => {
 
   return (
     <div>
-      <Header isAdmin={false} />
+      <Header />
       
       <div className="p-4">
         {/* メニューボタン */}
@@ -205,8 +212,8 @@ const EmpMainPage = () => {
             <div className={`transition-all duration-300 ${
               isMenuOpen ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'
             }`}>
-              <div className="px-4">
-                <div className="flex justify-between">
+              <div className="px-4 w-full">
+                <div className="grid grid-cols-4 gap-2">
                   {/* イベント一覧 */}
                   <button
                     onClick={() => router.push('/events/eventListPage')}
@@ -248,6 +255,17 @@ const EmpMainPage = () => {
                     <div className={menuButtonClassName.container}>
                       <PersonIcon sx={menuButtonClassName.icon} />
                       <span className={menuButtonClassName.text}>プロフィール</span>
+                    </div>
+                  </button>
+
+                  {/* ログアウト */}
+                  <button
+                    onClick={() => router.push("/loginPage")}
+                    className={menuButtonClassName.wrapper}
+                  >
+                    <div className={menuButtonClassName.container}>
+                      <LogoutIcon sx={menuButtonClassName.icon} />
+                      <span className={menuButtonClassName.text}>ログアウト</span>
                     </div>
                   </button>
                 </div>

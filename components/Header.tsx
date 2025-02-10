@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from '../utils/supabaseClient';
-import LogoutButton from "./LogoutButton";
+import HomeIcon from '@mui/icons-material/Home';
+import { useRouter } from 'next/router';
 
 type UserInfo = {
   emp_no: number;
@@ -11,12 +12,9 @@ type UserInfo = {
   role?: string;
 };
 
-type HeaderProps = {
-  isAdmin?: boolean;
-};
-
-export default function Header({ isAdmin = false }: HeaderProps) {
+export default function Header() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -24,14 +22,14 @@ export default function Header({ isAdmin = false }: HeaderProps) {
       
       if (!user) return;
 
-      // USER_INFOとUSER_ROLEを結合して取得
+      // USER_INFOとUSER_ROLEを結合して取得（外部結合）
       const { data, error } = await supabase
         .from("USER_INFO")
         .select(`
           emp_no,
           myoji,
           namae,
-          USER_ROLE!inner(role)
+          USER_ROLE!left(role)
         `)
         .eq("email", user.email)
         .single();
@@ -45,26 +43,34 @@ export default function Header({ isAdmin = false }: HeaderProps) {
         emp_no: data.emp_no,
         myoji: data.myoji,
         namae: data.namae,
-        role: data.USER_ROLE[0]?.role
+        role: data.USER_ROLE?.[0]?.role || "0" // デフォルトは"0"（Employee）
       });
     };
 
     fetchUserInfo();
   }, []);
 
+  const handleHomeClick = () => {
+    if (!userInfo) return;
+    
+    if (userInfo.role === "1") {
+      router.push('/adminPages/admMainPage');
+    } else {
+      router.push('/employeePages/empMainPage');
+    }
+  };
+
   return (
     <header className="flex items-center justify-between bg-[#3D3E42] px-6 py-4 text-white">
       {/* 左側：ユーザー情報 */}
       <div className="flex items-center">
-        {/* アイコンの丸 */}
         <div className={`w-10 h-10 rounded-full mr-3 ${
           userInfo?.role === "1" ? 'bg-[#eaad99]' : 'bg-[#8E93DA]'
         }`}></div>
-        {/* 文字情報 */}
         <div>
           <p className="font-bold">
             {userInfo ? (
-              isAdmin ? "Admin" : `${userInfo.myoji} ${userInfo.namae}`
+              userInfo.role === "1" ? "管理者" : `${userInfo.myoji} ${userInfo.namae}`
             ) : "Loading..."}
           </p>
           <p className="text-sm">
@@ -73,10 +79,14 @@ export default function Header({ isAdmin = false }: HeaderProps) {
         </div>
       </div>
 
-      {/* 右側：ログアウトなどのボタン */}
-      <div>
-        <LogoutButton />
-      </div>
+      {/* 右側：TOPへ戻るボタン */}
+      <button
+        onClick={handleHomeClick}
+        className="p-2 hover:bg-[#4A4B50] rounded-full transition-colors"
+        title="TOPへ戻る"
+      >
+        <HomeIcon />
+      </button>
     </header>
   );
 }

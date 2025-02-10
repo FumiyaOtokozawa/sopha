@@ -5,7 +5,7 @@ import Header from '../../components/Header';  // 追加
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import ErrorIcon from '@mui/icons-material/Error';
-import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';  // CSVファイルアイコン用
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import FileUploadIcon from '@mui/icons-material/FileUpload';  // アップロードアイコン用
 
 interface CSVRow {
@@ -148,30 +148,27 @@ const AdmAddEmpMPage = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* ヘッダー追加 */}
       <Header />
 
-      {/* メインコンテンツ */}
       <div className="p-4">
         <h2 className="text-lg font-bold mb-4">社員マスタ登録</h2>
         <div className="flex flex-col items-center">
-          <div className="bg-[#FCFCFC19] rounded-lg shadow-md p-8 w-[600px]">
-            {/* ファイルアップロード部分 */}
+          <div className="bg-[#FCFCFC19] rounded-lg shadow-md p-4 sm:p-8 w-full max-w-[600px]">
             <div className="space-y-4">
               <div className="flex items-center justify-center w-full">
                 <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-[#FCFCFC] border-dashed rounded-lg cursor-pointer hover:bg-[#FCFCFC0D]">
                   {!file ? (
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                       <FileUploadIcon className="text-[#FCFCFC] mb-2" sx={{ fontSize: 40 }} />
-                      <p className="mb-2 text-sm text-[#FCFCFC]">
+                      <p className="mb-2 text-sm text-[#FCFCFC] text-center px-2">
                         <span className="font-semibold">クリックしてファイルを選択</span>
                       </p>
                       <p className="text-xs text-[#FCFCFC]">CSV形式のファイル</p>
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-4">
+                    <div className="flex flex-col items-center justify-center py-4 px-2">
                       <InsertDriveFileIcon className="text-[#8E93DA] mb-2" sx={{ fontSize: 40 }} />
-                      <p className="text-sm text-[#FCFCFC] text-center">
+                      <p className="text-sm text-[#FCFCFC] text-center break-all">
                         <span className="font-semibold">{file.name}</span>
                       </p>
                       <p className="text-xs text-[#FCFCFC] mt-1">
@@ -201,14 +198,13 @@ const AdmAddEmpMPage = () => {
                 {isLoading ? "登録中..." : "登録"}
               </button>
 
-              {/* メッセージを登録ボタンの下に移動 */}
               {errorMessage && (
-                <div className="bg-[#EF6A6A] text-black p-3 rounded text-sm">
+                <div className="bg-[#EF6A6A] text-black p-3 rounded text-sm break-all">
                   {errorMessage}
                 </div>
               )}
               {successMessage && (
-                <div className="bg-[#66EA89] text-black p-3 rounded text-sm">
+                <div className="bg-[#66EA89] text-black p-3 rounded text-sm break-all">
                   {successMessage}
                 </div>
               )}
@@ -216,29 +212,28 @@ const AdmAddEmpMPage = () => {
           </div>
         </div>
 
-        {/* 結果一覧 */}
         {results.length > 0 && (
           <div className="mt-4">
-            <div className="bg-[#FCFCFC19] rounded-lg shadow-md p-4 max-w-[600px] mx-auto">
+            <div className="bg-[#FCFCFC19] rounded-lg shadow-md p-4 w-full max-w-[600px] mx-auto">
               <h2 className="text-lg font-bold mb-4 text-[#FCFCFC]">登録結果</h2>
               <div className="space-y-2">
                 {results.map((result, index) => (
                   <div
                     key={index}
-                    className="flex items-center space-x-2 text-[#FCFCFC]"
+                    className="flex items-center gap-2 text-[#FCFCFC] break-all"
                   >
                     {result.status === 'success' && (
-                      <AddCircleIcon className="text-green-500" />
+                      <AddCircleIcon className="text-green-500 flex-shrink-0" />
                     )}
                     {result.status === 'duplicate' && (
-                      <CheckCircleIcon className="text-yellow-500" />
+                      <CheckCircleIcon className="text-yellow-500 flex-shrink-0" />
                     )}
                     {result.status === 'error' && (
-                      <ErrorIcon className="text-red-500" />
+                      <ErrorIcon className="text-red-500 flex-shrink-0" />
                     )}
-                    <span>{result.name}</span>
+                    <span className="break-all">{result.name}</span>
                     {result.errorMessage && (
-                      <span className="text-red-500 text-sm">
+                      <span className="text-red-500 text-sm break-all">
                         （{result.errorMessage}）
                       </span>
                     )}

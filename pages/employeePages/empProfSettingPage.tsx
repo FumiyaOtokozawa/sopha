@@ -110,7 +110,7 @@ const EmpProfSettingPage = () => {
 
   return (
     <div>
-      <Header isAdmin={false} />
+      <Header />
 
       <div className="p-4">
         <div className="w-full max-w-xl mx-auto">
