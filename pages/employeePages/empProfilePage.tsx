@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../utils/supabaseClient';
 import Header from '../../components/Header';
+import Image from 'next/image';
 
 interface UserProfile {
   emp_no: string;
@@ -81,9 +82,11 @@ const EmpProfilePage = () => {
             <div className="flex justify-center mb-6">
               <div className="w-32 h-32 rounded-full bg-[#1D1D21] overflow-hidden">
                 {profile?.profile_url ? (
-                  <img
+                  <Image
                     src={profile.profile_url}
                     alt="プロフィール画像"
+                    width={128}
+                    height={128}
                     className="w-full h-full object-cover"
                   />
                 ) : (

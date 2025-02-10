@@ -196,7 +196,7 @@ const EmpMainPage = () => {
       
       <div className="p-4">
         {/* メニューボタン */}
-        <div className="w-full max-w-xl mx-auto space-y-8">
+        <div className="w-full max-w-xl mx-auto space-y-4">
           <div className={`bg-[#8E93DA] rounded-md transition-all duration-300 overflow-hidden ${
             isMenuOpen ? 'pb-4' : ''
           }`}>
@@ -238,7 +238,7 @@ const EmpMainPage = () => {
 
                   {/* ポイント譲渡 */}
                   <button
-                    onClick={() => router.push('/employeePages/empCizExchangePage')}
+                    onClick={() => router.push('/employeePages/empCizTransPage')}
                     className={menuButtonClassName.wrapper}
                   >
                     <div className={menuButtonClassName.container}>

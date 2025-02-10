@@ -69,9 +69,7 @@ export default function Header() {
         }`}></div>
         <div>
           <p className="font-bold">
-            {userInfo ? (
-              userInfo.role === "1" ? "管理者" : `${userInfo.myoji} ${userInfo.namae}`
-            ) : "Loading..."}
+            {userInfo ? `${userInfo.myoji} ${userInfo.namae}` : "Loading..."}
           </p>
           <p className="text-sm">
             {userInfo ? `No.${userInfo.emp_no}` : ""}
