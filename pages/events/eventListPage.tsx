@@ -77,6 +77,8 @@ const CustomToolbar = ({ onNavigate, date }: ToolbarProps<Event>) => {
 
 export default function EventListPage() {
   const [events, setEvents] = useState<Event[]>([]);
+  const [view, setView] = useState<'calendar' | 'list'>('calendar');
+  const [showAllEvents, setShowAllEvents] = useState(true);
 
   // イベントデータの取得を修正
   useEffect(() => {
@@ -137,6 +139,67 @@ export default function EventListPage() {
     `);
   };
 
+  // 繰り返しイベントをフィルタリングする関数
+  const filterRepeatingEvents = (events: Event[]) => {
+    // まず現在時刻以降のイベントのみをフィルタリング
+    const futureEvents = events.filter(event => event.start > new Date());
+    
+    if (showAllEvents) return futureEvents;
+
+    const eventGroups = futureEvents.reduce((groups, event) => {
+      if (!groups[event.title]) {
+        groups[event.title] = [];
+      }
+      groups[event.title].push(event);
+      return groups;
+    }, {} as { [key: string]: Event[] });
+
+    return Object.values(eventGroups).map(group => {
+      if (group.length === 1) return group[0];
+      // 同名イベントの中で最も近い日付のものを返す
+      return group.reduce((nearest, event) => {
+        if (!nearest || event.start < nearest.start) return event;
+        return nearest;
+      });
+    }).filter(Boolean) as Event[];
+  };
+
+  // イベントリストの表示コンポーネント
+  const EventList = () => (
+    <div className="bg-[#2d2d33] rounded-lg p-4">
+      <div className="mb-4 flex justify-end">
+        <button
+          className={`px-4 py-1 rounded-md transition-colors text-sm flex items-center gap-2 ${
+            !showAllEvents ? 'bg-[#5b63d3] text-white' : 'bg-[#37373F] text-gray-400 hover:text-white'
+          }`}
+          onClick={() => setShowAllEvents(!showAllEvents)}
+        >
+          <span>繰り返しイベントを非表示</span>
+          <div className={`w-3.5 h-3.5 rounded-full ${!showAllEvents ? 'bg-white' : 'bg-gray-600'}`} />
+        </button>
+      </div>
+      {filterRepeatingEvents(events.sort((a, b) => a.start.getTime() - b.start.getTime()))
+        .map((event) => (
+          <div
+            key={event.id}
+            className="mb-4 p-4 bg-[#37373F] rounded-lg cursor-pointer hover:bg-[#404049] transition-colors"
+            onClick={() => handleEventClick(event)}
+          >
+            <div className="text-lg font-medium mb-2">{event.title}</div>
+            <div className="text-sm text-gray-400">
+              <div>場　所：{event.place || '未定'}</div>
+              <div>主催者：{event.ownerName}</div>
+              <div>日　時：
+                {format(event.start, 'M月d日 HH:mm', { locale: ja })} - 
+                {format(event.end, ' M月d日 HH:mm', { locale: ja })}
+              </div>
+
+            </div>
+          </div>
+        ))}
+    </div>
+  );
+
   return (
     <div>
       <Header />
@@ -145,47 +208,53 @@ export default function EventListPage() {
         <div className="bg-[#2d2d33] rounded-lg p-2 flex gap-2 mb-4">
           <button
             className={`flex-1 py-2 rounded-md transition-colors ${
-              true ? 'bg-[#5b63d3] text-white' : 'text-gray-400 hover:text-white'
+              view === 'calendar' ? 'bg-[#5b63d3] text-white' : 'text-gray-400 hover:text-white'
             }`}
+            onClick={() => setView('calendar')}
           >
             カレンダー
           </button>
           <button
             className={`flex-1 py-2 rounded-md transition-colors ${
-              false ? 'bg-[#5b63d3] text-white' : 'text-gray-400 hover:text-white'
+              view === 'list' ? 'bg-[#5b63d3] text-white' : 'text-gray-400 hover:text-white'
             }`}
+            onClick={() => setView('list')}
           >
             予定リスト
           </button>
         </div>
         <div style={{ height: '700px' }}>
-          <Calendar<Event>
-            localizer={localizer}
-            events={events}
-            startAccessor="start"
-            endAccessor="end"
-            culture='ja'
-            onSelectEvent={handleEventClick}
-            defaultView="month"
-            views={['month']}
-            components={{
-              toolbar: CustomToolbar
-            }}
-            messages={{
-              date: '日付',
-              time: '時間',
-              event: 'イベント',
-              allDay: '終日',
-              week: '週',
-              day: '日',
-              month: '月',
-              previous: '前へ',
-              next: '次へ',
-              today: '今日',
-              showMore: total => `他 ${total} 件`
-            }}
-            className="custom-calendar"
-          />
+          {view === 'calendar' ? (
+            <Calendar<Event>
+              localizer={localizer}
+              events={events}
+              startAccessor="start"
+              endAccessor="end"
+              culture='ja'
+              onSelectEvent={handleEventClick}
+              defaultView="month"
+              views={['month']}
+              components={{
+                toolbar: CustomToolbar
+              }}
+              messages={{
+                date: '日付',
+                time: '時間',
+                event: 'イベント',
+                allDay: '終日',
+                week: '週',
+                day: '日',
+                month: '月',
+                previous: '前へ',
+                next: '次へ',
+                today: '今日',
+                showMore: total => `他 ${total} 件`
+              }}
+              className="custom-calendar"
+            />
+          ) : (
+            <EventList />
+          )}
         </div>
       </div>
     </div>
