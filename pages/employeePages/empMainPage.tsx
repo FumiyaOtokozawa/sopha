@@ -249,7 +249,7 @@ const EmpMainPage = () => {
 
                   {/* プロフィール */}
                   <button
-                    onClick={() => router.push('/employeePages/empProfSettingPage')}
+                    onClick={() => router.push('/employeePages/empProfilePage')}
                     className={menuButtonClassName.wrapper}
                   >
                     <div className={menuButtonClassName.container}>
