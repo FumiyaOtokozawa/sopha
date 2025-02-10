@@ -3,13 +3,14 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../utils/supabaseClient';
 import Header from '../../components/Header';
 import UserSearchList from '../../components/UserSearchList';
+import type { User } from '../../types/user';
 import CizTransferModal from '../../components/CizTransferModal';
 
 const EmpCizTransPage = () => {
   const router = useRouter();
   const [currentUserEmpNo, setCurrentUserEmpNo] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [error, setError] = useState<string>('');
 
   useEffect(() => {
@@ -30,7 +31,7 @@ const EmpCizTransPage = () => {
     fetchCurrentUser();
   }, []);
 
-  const handleUserSelect = (user: any) => {
+  const handleUserSelect = (user: User) => {
     setSelectedUser(user);
     setIsModalOpen(true);
     setError('');
@@ -41,7 +42,7 @@ const EmpCizTransPage = () => {
       // トランザクション開始
       const { error: transactionError } = await supabase.rpc('transfer_points', {
         p_from_emp_no: currentUserEmpNo,
-        p_to_emp_no: selectedUser.emp_no,
+        p_to_emp_no: selectedUser?.emp_no,
         p_points: points
       });
       
@@ -50,9 +51,9 @@ const EmpCizTransPage = () => {
       setIsModalOpen(false);
       setSelectedUser(null);
       router.push('/employeePages/empMainPage'); // 成功したらメイン画面に戻る
-    } catch (error: any) {
+    } catch (error) {
       console.error('ポイント譲渡エラー:', error);
-      setError(error.message || 'ポイントの譲渡に失敗しました');
+      setError(error instanceof Error ? error.message : 'ポイントの譲渡に失敗しました');
     }
   };
 

@@ -15,7 +15,8 @@ interface CizTransferModalProps {
 const CizTransferModal = ({ isOpen, onClose, onSubmit, selectedUser, error }: CizTransferModalProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const points = parseInt((e.target as any).points.value);
+    const form = e.target as HTMLFormElement;
+    const points = parseInt((form.elements.namedItem('points') as HTMLInputElement).value);
     if (points > 0) {
       onSubmit(points);
     }

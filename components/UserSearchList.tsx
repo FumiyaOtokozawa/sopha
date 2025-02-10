@@ -1,15 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import PersonIcon from "@mui/icons-material/Person";
 import { supabase } from "../utils/supabaseClient";
-
-interface User {
-  emp_no: number;
-  myoji: string;
-  namae: string;
-  last_nm: string;
-  first_nm: string;
-}
+import type { User } from "../types/user";
 
 interface UserSearchListProps {
   title: string;
@@ -22,7 +15,7 @@ const UserSearchList = ({ title, excludeEmpNo, onUserSelect }: UserSearchListPro
   const [users, setUsers] = useState<User[]>([]);
 
   // 検索処理
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     let query = supabase
       .from("USER_INFO")
@@ -46,12 +39,12 @@ const UserSearchList = ({ title, excludeEmpNo, onUserSelect }: UserSearchListPro
     } else {
       setUsers(data || []);
     }
-  };
+  }, [searchTerm, excludeEmpNo]);
 
   // 初期表示
   useEffect(() => {
     handleSearch({ preventDefault: () => {} } as React.FormEvent);
-  }, [excludeEmpNo]);
+  }, [excludeEmpNo, handleSearch]);
 
   return (
     <div className="p-6 flex flex-col items-center">
