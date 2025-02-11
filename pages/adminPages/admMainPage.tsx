@@ -18,9 +18,9 @@ const AdmMainPage = () => {
     router.push("/adminPages/admAddEmpMPage");
   };
 
-  // 今回はイベント管理のバックエンド未実装のため、ただのダミー
+  // ダミーの処理を実際の画面遷移に変更
   const navigateToEventManagePage = () => {
-    alert("イベント管理機能は現在準備中です。");
+    router.push("/adminPages/admEventEditPage");
   };
   const navigateToLogout = () => {
     router.push("/loginPage");
