@@ -280,27 +280,27 @@ const AdminEmployeePage = () => {
               {/* 吹き出し（ADDがアクティブのとき） */}
               {activeButton === "add" && (
                 <div className="absolute top-full mt-1 left-0 w-full">
-                  <div className="bg-white text-black rounded-full shadow flex items-center justify-center px-4">
+                  <div className="bg-white text-black rounded-full shadow flex items-center justify-between px-2 py-0.5">
                     <button
                       onClick={() => setChangePoints(prev => Math.max(0, prev - 1))}
-                      className="text-gray-600 hover:text-black px-2"
+                      className="text-gray-600 hover:text-black w-6 h-6 flex items-center justify-center text-sm"
                     >
                       &#9660;
                     </button>
-                    <div className="flex items-center justify-center min-w-[100px]">
+                    <div className="flex items-center justify-center flex-1 min-w-0">
                       <input
                         type="number"
                         min={0}
                         value={changePoints}
                         onChange={(e) => setChangePoints(Number(e.target.value))}
-                        className="w-12 text-center text-m font-bold border-b border-gray-300 focus:outline-none mx-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-full max-w-[60px] text-center text-sm font-bold border-b border-gray-300 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none py-0.5"
                         placeholder="0"
                       />
-                      <span className="text-m">ciz</span>
+                      <span className="text-sm ml-1">ciz</span>
                     </div>
                     <button
                       onClick={() => setChangePoints(prev => prev + 1)}
-                      className="text-gray-600 hover:text-black px-2"
+                      className="text-gray-600 hover:text-black w-6 h-6 flex items-center justify-center text-sm"
                     >
                       &#9650;
                     </button>
@@ -324,27 +324,27 @@ const AdminEmployeePage = () => {
               {/* 吹き出し（SUBTRACTがアクティブのとき） */}
               {activeButton === "subtract" && (
                 <div className="absolute top-full mt-1 left-0 w-full">
-                  <div className="bg-white text-black rounded-full shadow flex items-center justify-center px-4">
+                  <div className="bg-white text-black rounded-full shadow flex items-center justify-between px-2 py-0.5">
                     <button
                       onClick={() => setChangePoints(prev => Math.max(0, prev - 1))}
-                      className="text-gray-600 hover:text-black px-2"
+                      className="text-gray-600 hover:text-black w-6 h-6 flex items-center justify-center text-sm"
                     >
                       &#9660;
                     </button>
-                    <div className="flex items-center justify-center min-w-[100px]">
+                    <div className="flex items-center justify-center flex-1 min-w-0">
                       <input
                         type="number"
                         min={0}
                         value={changePoints}
                         onChange={(e) => setChangePoints(Number(e.target.value))}
-                        className="w-12 text-center text-m font-bold border-b border-gray-300 focus:outline-none mx-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="w-full max-w-[60px] text-center text-sm font-bold border-b border-gray-300 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none py-0.5"
                         placeholder="0"
                       />
-                      <span className="text-m">ciz</span>
+                      <span className="text-sm ml-1">ciz</span>
                     </div>
                     <button
                       onClick={() => setChangePoints(prev => prev + 1)}
-                      className="text-gray-600 hover:text-black px-2"
+                      className="text-gray-600 hover:text-black w-6 h-6 flex items-center justify-center text-sm"
                     >
                       &#9650;
                     </button>
@@ -424,34 +424,34 @@ const AdminEmployeePage = () => {
                 </button>
               </div>
 
-              <div>
+              <div className="space-y-3">
                 {historyList.map((item) => {
-                  // ADDの場合は緑色・SUBTRACTは赤色
+                  const isAdd = item.change_type === "add";
+                  const sign = isAdd ? "+ " : "- ";
+                  const colorClass = isAdd ? "text-green-400" : "text-red-400";
 
-                const isAdd = item.change_type === "add";
-                const sign = isAdd ? "+ " : "- ";
-                const colorClass = isAdd ? "text-green-400" : "text-red-400";
-
-                return (
-                  <div
-                    key={item.history_id}
-                    className="flex justify-between items-center bg-[#404040] px-4 py-2 mb-3 rounded-md"
-                  >
-                    {/* 左側: reasonと日付 */}
-                    <div>
-                      <p className="font-medium">{item.reason}</p>
-                      <p className="text-sm text-gray-400">
-                        {formatDate(item.created_at)}
-                      </p>
+                  return (
+                    <div
+                      key={item.history_id}
+                      className="bg-[#404040] px-4 py-3 rounded-md"
+                    >
+                      {/* 左側: reasonと日付 */}
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1 mr-4">
+                          <p className="font-medium break-all">{item.reason}</p>
+                          <p className="text-sm text-gray-400 mt-1">
+                            {formatDate(item.created_at)}
+                          </p>
+                        </div>
+                        {/* 右側: 変動ポイント */}
+                        <div className={`${colorClass} text-lg font-medium flex-shrink-0`}>
+                          {sign}
+                          {item.ciz.toLocaleString()} ciz
+                        </div>
+                      </div>
                     </div>
-                    {/* 右側: 変動ポイント */}
-                    <div className={`${colorClass} text-lg font-medium`}>
-                      {sign}
-                      {item.ciz.toLocaleString()} ciz
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
               </div>
             </>
           )}

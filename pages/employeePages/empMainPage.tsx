@@ -324,7 +324,7 @@ const EmpMainPage = () => {
                 </div>
 
                 {/* 履歴リスト */}
-                <div>
+                <div className="space-y-3">
                   {historyList.map((item) => {
                     const isAdd = item.change_type === "add";
                     const sign = isAdd ? "+ " : "- ";
@@ -333,17 +333,20 @@ const EmpMainPage = () => {
                     return (
                       <div
                         key={item.history_id}
-                        className="flex justify-between items-center bg-[#404040] px-4 py-2 mb-3 rounded-md"
+                        className="bg-[#404040] px-4 py-3 rounded-md"
                       >
-                        <div>
-                          <p className="font-medium text-[#FCFCFC]">{item.reason}</p>
-                          <p className="text-sm text-gray-400">
-                            {formatDate(item.created_at)}
-                          </p>
+                        <div className="flex justify-between items-center">
+                          <div className="flex-1 mr-4">
+                            <p className="font-medium break-all text-[#FCFCFC]">{item.reason}</p>
+                            <p className="text-sm text-gray-400 mt-1">
+                              {formatDate(item.created_at)}
+                            </p>
+                          </div>
+                          <div className={`${colorClass} text-lg font-medium flex-shrink-0`}>
+                            {sign}
+                            {item.ciz.toLocaleString()} ciz
+                          </div>
                         </div>
-                        <p className={`font-bold ${colorClass}`}>
-                          {sign}{item.ciz.toLocaleString()} ciz
-                        </p>
                       </div>
                     );
                   })}
