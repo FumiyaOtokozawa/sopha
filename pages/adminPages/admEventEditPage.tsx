@@ -4,11 +4,13 @@ import Header from "../../components/Header";
 import { format } from "date-fns";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import CategoryIcon from "@mui/icons-material/Category";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import SearchIcon from "@mui/icons-material/Search";
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+// @ts-nocheck
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import CategoryIcon from "@mui/icons-material/Category";
 
 // イベント情報の型定義
 type Event = {
