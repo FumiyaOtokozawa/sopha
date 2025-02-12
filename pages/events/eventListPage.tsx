@@ -8,6 +8,7 @@ import { ja } from 'date-fns/locale';
 import { supabase } from '../../utils/supabaseClient';
 import Header from '../../components/Header';
 import React from 'react';
+import { useRouter } from 'next/router';
 
 // カレンダーのローカライズ設定
 const locales = {
@@ -24,13 +25,13 @@ const localizer = dateFnsLocalizer({
 
 // イベントの型定義を修正
 interface Event {
-  id: number;
+  event_id: number;
   title: string;
   start: Date;
   end: Date;
   place?: string;
   owner?: string;
-  ownerName?: string; // 主催者の名前を追加
+  ownerName?: string;
 }
 
 // 月の英語表記を定義
@@ -79,6 +80,7 @@ export default function EventListPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
   const [showAllEvents, setShowAllEvents] = useState(true);
+  const router = useRouter();
 
   // イベントデータの取得を修正
   useEffect(() => {
@@ -112,7 +114,7 @@ export default function EventListPage() {
         }
 
         return {
-          id: event.event_id,
+          event_id: event.event_id,
           title: event.title,
           start: new Date(event.start_date),
           end: new Date(event.end_date),
@@ -130,13 +132,10 @@ export default function EventListPage() {
 
   // イベントをクリックした時の処理を修正
   const handleEventClick = (event: Event) => {
-    alert(`
-      イベント ： ${event.title}
-      場　所 ： ${event.place || '未定'}
-      主催者 ： ${event.ownerName}
-      開　始 ： ${event.start.toLocaleString()}
-      終　了 ： ${event.end.toLocaleString()}
-    `);
+    console.log('Event clicked:', event);
+    console.log('Navigating to:', `/events/eventDetailPage?event_id=${event.event_id}`);
+    router.push(`/events/eventDetailPage?event_id=${event.event_id}`);
+    console.log('Navigation triggered');
   };
 
   // 繰り返しイベントをフィルタリングする関数
@@ -164,7 +163,7 @@ export default function EventListPage() {
     }).filter(Boolean) as Event[];
   };
 
-  // イベントリストの表示コンポーネント
+  // イベントリストの表示コンポーネントを修正
   const EventList = () => (
     <div className="bg-[#2d2d33] rounded-lg p-4">
       <div className="mb-4 flex justify-end">
@@ -181,7 +180,7 @@ export default function EventListPage() {
       {filterRepeatingEvents(events.sort((a, b) => a.start.getTime() - b.start.getTime()))
         .map((event) => (
           <div
-            key={event.id}
+            key={event.event_id}
             className="mb-4 p-4 bg-[#37373F] rounded-lg cursor-pointer hover:bg-[#404049] transition-colors"
             onClick={() => handleEventClick(event)}
           >
