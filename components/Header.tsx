@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from '../utils/supabaseClient';
-import HomeIcon from '@mui/icons-material/Home';
 import { useRouter } from 'next/router';
+import LogoutIcon from '@mui/icons-material/Logout';
 
 type UserInfo = {
   emp_no: number;
@@ -50,41 +50,40 @@ export default function Header() {
     fetchUserInfo();
   }, []);
 
-  const handleHomeClick = () => {
-    if (!userInfo) return;
-    
-    if (userInfo.role === "1") {
-      router.push('/adminPages/admMainPage');
-    } else {
-      router.push('/employeePages/empMainPage');
-    }
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
   };
 
   return (
-    <header className="flex items-center justify-between bg-[#3D3E42] px-6 py-4 text-white">
-      {/* 左側：ユーザー情報 */}
-      <div className="flex items-center">
-        <div className={`w-10 h-10 rounded-full mr-3 ${
-          userInfo?.role === "1" ? 'bg-[#eaad99]' : 'bg-[#8E93DA]'
-        }`}></div>
-        <div>
-          <p className="font-bold">
-            {userInfo ? `${userInfo.myoji} ${userInfo.namae}` : "Loading..."}
-          </p>
-          <p className="text-sm">
-            {userInfo ? `No.${userInfo.emp_no}` : ""}
-          </p>
+    <>
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between bg-[#3D3E42] px-6 py-4 text-white">
+        {/* 左側：ユーザー情報 */}
+        <div className="flex items-center">
+          <div className={`w-10 h-10 rounded-full mr-3 ${
+            userInfo?.role === "1" ? 'bg-[#eaad99]' : 'bg-[#8E93DA]'
+          }`}></div>
+          <div>
+            <p className="font-bold">
+              {userInfo ? `${userInfo.myoji} ${userInfo.namae}` : "Loading..."}
+            </p>
+            <p className="text-sm">
+              {userInfo ? `No.${userInfo.emp_no}` : ""}
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* 右側：TOPへ戻るボタン */}
-      <button
-        onClick={handleHomeClick}
-        className="p-2 hover:bg-[#4A4B50] rounded-full transition-colors"
-        title="TOPへ戻る"
-      >
-        <HomeIcon />
-      </button>
-    </header>
+        {/* 右側：ログアウトボタン */}
+        <button
+          onClick={handleLogout}
+          className="p-2 hover:bg-[#4A4B50] rounded-full transition-colors"
+          title="ログアウト"
+        >
+          <LogoutIcon />
+        </button>
+      </header>
+      {/* ヘッダーの高さ分のスペーサー */}
+      <div className="h-20"></div>
+    </>
   );
 }
