@@ -9,6 +9,11 @@ import { supabase } from '../../utils/supabaseClient';
 import Header from '../../components/Header';
 import React from 'react';
 import { useRouter } from 'next/router';
+import { Box } from '@mui/material';
+import FooterMenu from '../../components/FooterMenu';
+import AddBoxIcon from '@mui/icons-material/AddBox';
+import EventDetailModal from '../../components/EventDetailModal';
+import { Event } from '../../types/event';  // 追加
 
 // カレンダーのローカライズ設定
 const locales = {
@@ -22,17 +27,6 @@ const localizer = dateFnsLocalizer({
   getDay,
   locales,
 });
-
-// イベントの型定義を修正
-interface Event {
-  event_id: number;
-  title: string;
-  start: Date;
-  end: Date;
-  place?: string;
-  owner?: string;
-  ownerName?: string;
-}
 
 // 月の英語表記を定義
 const monthNames = [
@@ -80,62 +74,82 @@ export default function EventListPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
   const [showAllEvents, setShowAllEvents] = useState(true);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const router = useRouter();
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  // イベントデータの取得を修正
+  const fetchEvents = async () => {
+    // 現在の月の開始日と終了日を計算
+    const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+    const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0, 23, 59, 59);
+
+    const { data: eventData, error: eventError } = await supabase
+      .from('EVENT_LIST')
+      .select('*')
+      .eq('act_kbn', true)
+      // 日付でフィルタリング
+      .gte('start_date', startOfMonth.toISOString())
+      .lte('start_date', endOfMonth.toISOString());
+
+    if (eventError) {
+      console.error('イベントの取得に失敗しました:', eventError);
+      return;
+    }
+
+    // ユーザー情報を一括で取得
+    const uniqueOwners = [...new Set(eventData.map(event => event.owner))];
+    const { data: userData } = await supabase
+      .from('USER_INFO')
+      .select('emp_no, myoji, namae')
+      .in('emp_no', uniqueOwners);
+
+    // ユーザー情報をマップ化
+    const userMap = new Map(
+      userData?.map(user => [user.emp_no, `${user.myoji} ${user.namae}`])
+    );
+
+    const formattedEvents = eventData.map(event => ({
+      event_id: event.event_id,
+      title: event.title,
+      start_date: event.start_date,
+      end_date: event.end_date,
+      start: new Date(event.start_date),
+      end: new Date(event.end_date),
+      place: event.place,
+      owner: event.owner,
+      ownerName: userMap.get(event.owner) || '未設定',
+      genre: event.genre,
+      description: event.description
+    }));
+
+    setEvents(formattedEvents);
+  };
+
+  // 月が変更されたときにイベントを再取得
+  const handleMonthChange = (date: Date) => {
+    setCurrentMonth(date);
+  };
+
   useEffect(() => {
-    const fetchEvents = async () => {
-      // まずイベントデータを取得
-      const { data: eventData, error: eventError } = await supabase
-        .from('EVENT_LIST')
-        .select('*')
-        .eq('act_kbn', true);
-
-      if (eventError) {
-        console.error('イベントの取得に失敗しました:', eventError);
-        return;
-      }
-
-      // イベントデータを整形し、所有者情報を取得
-      const formattedEvents = await Promise.all(eventData.map(async event => {
-        let ownerName = '未設定';
-        
-        if (event.owner) {
-          // 所有者情報を取得
-          const { data: userData, error: userError } = await supabase
-            .from('USER_INFO')
-            .select('myoji, namae')
-            .eq('emp_no', event.owner)
-            .single();
-
-          if (!userError && userData) {
-            ownerName = `${userData.myoji} ${userData.namae}`;
-          }
-        }
-
-        return {
-          event_id: event.event_id,
-          title: event.title,
-          start: new Date(event.start_date),
-          end: new Date(event.end_date),
-          place: event.place,
-          owner: event.owner,
-          ownerName: ownerName
-        };
-      }));
-
-      setEvents(formattedEvents);
-    };
-
     fetchEvents();
-  }, []);
+  }, [currentMonth]); // currentMonthが変更されたときにfetchEventsを実行
 
   // イベントをクリックした時の処理を修正
   const handleEventClick = (event: Event) => {
-    console.log('Event clicked:', event);
-    console.log('Navigating to:', `/events/eventDetailPage?event_id=${event.event_id}`);
-    router.push(`/events/eventDetailPage?event_id=${event.event_id}`);
-    console.log('Navigation triggered');
+    setSelectedEvent(event);
+    setIsModalOpen(true);
+  };
+
+  // モーダルを閉じる処理
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedEvent(null);
+  };
+
+  // イベント更新後の処理
+  const handleEventUpdated = () => {
+    fetchEvents(); // イベント一覧を再取得
   };
 
   // 繰り返しイベントをフィルタリングする関数
@@ -200,62 +214,92 @@ export default function EventListPage() {
   );
 
   return (
-    <div>
-      <Header />
-      <div className="p-4">
-        <h1 className="text-2xl font-bold mb-4">イベントカレンダー</h1>
-        <div className="bg-[#2d2d33] rounded-lg p-2 flex gap-2 mb-4">
-          <button
-            className={`flex-1 py-2 rounded-md transition-colors ${
-              view === 'calendar' ? 'bg-[#5b63d3] text-white' : 'text-gray-400 hover:text-white'
-            }`}
-            onClick={() => setView('calendar')}
-          >
-            カレンダー
-          </button>
-          <button
-            className={`flex-1 py-2 rounded-md transition-colors ${
-              view === 'list' ? 'bg-[#5b63d3] text-white' : 'text-gray-400 hover:text-white'
-            }`}
-            onClick={() => setView('list')}
-          >
-            予定リスト
-          </button>
-        </div>
-        <div style={{ height: '700px' }}>
-          {view === 'calendar' ? (
-            <Calendar<Event>
-              localizer={localizer}
-              events={events}
-              startAccessor="start"
-              endAccessor="end"
-              culture='ja'
-              onSelectEvent={handleEventClick}
-              defaultView="month"
-              views={['month']}
-              components={{
-                toolbar: CustomToolbar
-              }}
-              messages={{
-                date: '日付',
-                time: '時間',
-                event: 'イベント',
-                allDay: '終日',
-                week: '週',
-                day: '日',
-                month: '月',
-                previous: '前へ',
-                next: '次へ',
-                today: '今日',
-                showMore: total => `他 ${total} 件`
-              }}
-              className="custom-calendar"
-            />
-          ) : (
-            <EventList />
-          )}
+    <Box sx={{ pb: 7 }}>
+      <div>
+        <Header />
+        <div className="p-4">
+          <div className="mb-4">
+            <button
+              onClick={() => router.push('/events/eventAddPage')}
+              className="w-full py-2 rounded bg-[#5b63d3] text-white font-bold hover:bg-opacity-80 flex items-center justify-center gap-2"
+            >
+              <AddBoxIcon />
+              イベント追加
+            </button>
+          </div>
+
+          <div className="bg-[#2d2d33] rounded-lg p-2 flex gap-2 mb-4">
+            <button
+              className={`flex-1 py-2 rounded-md transition-colors ${
+                view === 'calendar' ? 'bg-[#5b63d3] text-white' : 'text-gray-400 hover:text-white'
+              }`}
+              onClick={() => setView('calendar')}
+            >
+              カレンダー
+            </button>
+            <button
+              className={`flex-1 py-2 rounded-md transition-colors ${
+                view === 'list' ? 'bg-[#5b63d3] text-white' : 'text-gray-400 hover:text-white'
+              }`}
+              onClick={() => setView('list')}
+            >
+              予定リスト
+            </button>
+          </div>
+          <div style={{ 
+            height: 'calc(100vh - 300px)' // ヘッダー、ボタン、フッターの高さを考慮
+          }}>
+            {view === 'calendar' ? (
+              <Calendar<Event>
+                localizer={localizer}
+                events={events}
+                startAccessor="start"
+                endAccessor="end"
+                culture='ja'
+                onSelectEvent={handleEventClick}
+                defaultView="month"
+                views={['month']}
+                onNavigate={handleMonthChange}
+                components={{
+                  toolbar: CustomToolbar,
+                  event: React.memo(({ event }) => (
+                    <div className="text-sm truncate">
+                      {event.title}
+                    </div>
+                  ))
+                }}
+                eventPropGetter={React.useCallback(() => ({
+                  className: 'calendar-event'
+                }), [])}
+                messages={{
+                  date: '日付',
+                  time: '時間',
+                  event: 'イベント',
+                  allDay: '終日',
+                  week: '週',
+                  day: '日',
+                  month: '月',
+                  previous: '前へ',
+                  next: '次へ',
+                  today: '今日',
+                  showMore: total => `他 ${total} 件`
+                }}
+                className="custom-calendar"
+              />
+            ) : (
+              <EventList />
+            )}
+          </div>
         </div>
       </div>
-    </div>
+      <FooterMenu />
+      
+      <EventDetailModal
+        event={selectedEvent}
+        open={isModalOpen}
+        onClose={handleCloseModal}
+        onEventUpdated={handleEventUpdated}
+      />
+    </Box>
   );
 } 

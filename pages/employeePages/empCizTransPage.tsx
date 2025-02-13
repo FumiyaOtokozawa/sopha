@@ -5,6 +5,8 @@ import Header from '../../components/Header';
 import UserSearchList from '../../components/UserSearchList';
 import type { User } from '../../types/user';
 import CizTransferModal from '../../components/CizTransferModal';
+import { Box } from '@mui/material';
+import FooterMenu from '../../components/FooterMenu';
 
 const EmpCizTransPage = () => {
   const router = useRouter();
@@ -58,21 +60,24 @@ const EmpCizTransPage = () => {
   };
 
   return (
-    <div className="min-h-screen">
-      <Header />
-      <UserSearchList
-        title="ポイント譲渡"
-        excludeEmpNo={currentUserEmpNo || undefined}
-        onUserSelect={handleUserSelect}
-      />
-      <CizTransferModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleTransfer}
-        selectedUser={selectedUser}
-        error={error}
-      />
-    </div>
+    <Box sx={{ pb: 7 }}>
+      <div className="min-h-screen">
+        <Header />
+        <UserSearchList
+          title="ポイント譲渡"
+          excludeEmpNo={currentUserEmpNo || undefined}
+          onUserSelect={handleUserSelect}
+        />
+        <CizTransferModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSubmit={handleTransfer}
+          selectedUser={selectedUser}
+          error={error}
+        />
+      </div>
+      <FooterMenu />
+    </Box>
   );
 };
 

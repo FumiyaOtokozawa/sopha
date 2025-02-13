@@ -2,15 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from '../../utils/supabaseClient';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import AddBoxIcon from '@mui/icons-material/AddBox';
-import RedeemIcon from '@mui/icons-material/Redeem';
-import PersonIcon from '@mui/icons-material/Person';
 import Header from "../../components/Header";
 import { Dialog } from '@mui/material';
 import { useRouter } from 'next/router';
-import LogoutIcon from "@mui/icons-material/Logout";
-
+import { Box } from '@mui/material';
+import FooterMenu from '../../components/FooterMenu';
 
 type HistoryItem = {
   history_id: number;
@@ -21,33 +17,12 @@ type HistoryItem = {
   created_at: string;
 };
 
-const ITEMS_PER_PAGE = 10; // 1ページあたりの表示件数
-
-// 共通のメニューボタンスタイル
-const menuButtonClassName = {
-  wrapper: "w-full", // 親要素の幅に合わせる
-  container: `
-    bg-[#2f3033] w-full aspect-square
-    flex flex-col items-center justify-center 
-    rounded-md hover:opacity-90 transition
-    text-[min(1.5vw,14px)]
-  `,
-  icon: { 
-    fontSize: 'min(5vw, 40px)',
-    color: "#FCFCFC",
-    width: 'min(8vw, 40px)',
-    height: 'min(8vw, 40px)'
-  },
-  text: "mt-2 text-[#FCFCFC] text-[min(2.5vw,14px)]"
-};
+const ITEMS_PER_PAGE = 20;
 
 const EmpMainPage = () => {
   const [employeeNumber, setEmployeeNumber] = useState<number | null>(null);
   const [points, setPoints] = useState<number | null>(null);
   const [historyList, setHistoryList] = useState<HistoryItem[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [monthlyChange, setMonthlyChange] = useState<number>(0);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const router = useRouter();
@@ -74,7 +49,6 @@ const EmpMainPage = () => {
         return;
       }
 
-      // USER_INFOからemp_noとlogin_countを取得
       const { data: userData, error: userDataError } = await supabase
         .from("USER_INFO")
         .select("emp_no, login_count")
@@ -88,7 +62,6 @@ const EmpMainPage = () => {
 
       setEmployeeNumber(userData.emp_no);
       
-      // 初回ログインの場合、ダイアログを表示
       if (userData.login_count === 1) {
         setShowProfileDialog(true);
       }
@@ -97,13 +70,12 @@ const EmpMainPage = () => {
     fetchEmployeeInfo();
   }, []);
 
-  // 社員情報とポイント情報を取得
+  // ポイント情報を取得
   useEffect(() => {
     const fetchEmployeeData = async () => {
       if (!employeeNumber) return;
 
       try {
-        // USER_INFO の取得を削除し、ポイント情報のみ取得
         const { data, error } = await supabase
           .from("EMP_CIZ")
           .select("total_ciz")
@@ -126,21 +98,12 @@ const EmpMainPage = () => {
       if (!employeeNumber) return;
 
       try {
-        // 総件数を取得
-        const { count: totalRecords } = await supabase
-          .from("EMP_CIZ_HISTORY")
-          .select("*", { count: "exact" })
-          .eq("emp_no", employeeNumber);
-        
-        setTotalCount(totalRecords || 0);
-
-        // ページに応じたデータを取得
         const { data, error } = await supabase
           .from("EMP_CIZ_HISTORY")
           .select("*")
           .eq("emp_no", employeeNumber)
           .order("created_at", { ascending: false })
-          .range((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE - 1);
+          .limit(ITEMS_PER_PAGE);
 
         if (error) throw error;
         setHistoryList(data || []);
@@ -150,129 +113,44 @@ const EmpMainPage = () => {
     };
 
     fetchHistory();
-  }, [employeeNumber, currentPage]);
-
-  // 過去1か月間のポイント増減を計算する関数
-  const fetchMonthlyChange = async (empNo: number) => {
-    try {
-      // 1か月前の日付を計算
-      const oneMonthAgo = new Date();
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-
-      // 1か月間の履歴を取得
-      const { data, error } = await supabase
-        .from("EMP_CIZ_HISTORY")
-        .select("change_type, ciz")
-        .eq("emp_no", empNo)
-        .gte("created_at", oneMonthAgo.toISOString());
-
-      if (error) throw error;
-
-      // 増減を計算
-      const totalChange = (data || []).reduce((acc, curr) => {
-        return acc + (curr.change_type === "add" ? curr.ciz : -curr.ciz);
-      }, 0);
-
-      setMonthlyChange(totalChange);
-    } catch (error) {
-      console.error("月間増減の取得エラー:", error);
-    }
-  };
-
-  // employeeNumberが設定されたら月間増減を取得
-  useEffect(() => {
-    if (employeeNumber) {
-      fetchMonthlyChange(employeeNumber);
-    }
   }, [employeeNumber]);
 
-  const handleMenuClick = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
+  // 過去1か月間のポイント増減を計算
+  useEffect(() => {
+    const fetchMonthlyChange = async () => {
+      if (!employeeNumber) return;
+
+      try {
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+        const { data, error } = await supabase
+          .from("EMP_CIZ_HISTORY")
+          .select("change_type, ciz")
+          .eq("emp_no", employeeNumber)
+          .gte("created_at", oneMonthAgo.toISOString());
+
+        if (error) throw error;
+
+        const totalChange = (data || []).reduce((acc, curr) => {
+          return acc + (curr.change_type === "add" ? curr.ciz : -curr.ciz);
+        }, 0);
+
+        setMonthlyChange(totalChange);
+      } catch (error) {
+        console.error("月間増減の取得エラー:", error);
+      }
+    };
+
+    fetchMonthlyChange();
+  }, [employeeNumber]);
 
   return (
-    <div>
+    <Box sx={{ pb: 7 }}>
       <Header />
       
       <div className="p-4">
-        {/* メニューボタン */}
         <div className="w-full max-w-xl mx-auto space-y-4">
-          <div className={`bg-[#8E93DA] rounded-md transition-all duration-300 overflow-hidden ${
-            isMenuOpen ? 'pb-4' : ''
-          }`}>
-            {/* メニューヘッダー */}
-            <button
-              onClick={handleMenuClick}
-              className="w-full text-black py-2 font-bold"
-            >
-              MENU
-            </button>
-
-            {/* メニュー展開部分 */}
-            <div className={`transition-all duration-300 ${
-              isMenuOpen ? 'max-h-96 opacity-100 mt-2' : 'max-h-0 opacity-0'
-            }`}>
-              <div className="px-4 w-full">
-                <div className="grid grid-cols-4 gap-2">
-                  {/* イベント一覧 */}
-                  <button
-                    onClick={() => router.push('/events/eventListPage')}
-                    className={menuButtonClassName.wrapper}
-                  >
-                    <div className={menuButtonClassName.container}>
-                      <CalendarMonthIcon sx={menuButtonClassName.icon} />
-                      <span className={menuButtonClassName.text}>イベント一覧</span>
-                    </div>
-                  </button>
-
-                  {/* イベント追加 */}
-                  <button
-                    onClick={() => router.push('/events/eventAddPage')}
-                    className={menuButtonClassName.wrapper}
-                  >
-                    <div className={menuButtonClassName.container}>
-                      <AddBoxIcon sx={menuButtonClassName.icon} />
-                      <span className={menuButtonClassName.text}>イベント追加</span>
-                    </div>
-                  </button>
-
-                  {/* ポイント譲渡 */}
-                  <button
-                    onClick={() => router.push('/employeePages/empCizTransPage')}
-                    className={menuButtonClassName.wrapper}
-                  >
-                    <div className={menuButtonClassName.container}>
-                      <RedeemIcon sx={menuButtonClassName.icon} />
-                      <span className={menuButtonClassName.text}>ポイント譲渡</span>
-                    </div>
-                  </button>
-
-                  {/* プロフィール */}
-                  <button
-                    onClick={() => router.push('/employeePages/empProfilePage')}
-                    className={menuButtonClassName.wrapper}
-                  >
-                    <div className={menuButtonClassName.container}>
-                      <PersonIcon sx={menuButtonClassName.icon} />
-                      <span className={menuButtonClassName.text}>プロフィール</span>
-                    </div>
-                  </button>
-
-                  {/* ログアウト */}
-                  <button
-                    onClick={() => router.push("/loginPage")}
-                    className={menuButtonClassName.wrapper}
-                  >
-                    <div className={menuButtonClassName.container}>
-                      <LogoutIcon sx={menuButtonClassName.icon} />
-                      <span className={menuButtonClassName.text}>ログアウト</span>
-                    </div>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Total Points Card */}
           <div className="bg-[#2f3033] rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold mb-4 text-[#FCFCFC]">Total Points</h2>
@@ -288,70 +166,40 @@ const EmpMainPage = () => {
 
           {/* Points History */}
           <div className="bg-[#2f3033] rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold mb-4 text-[#FCFCFC]">Points History</h2>
+            <h2 className="text-xl font-bold mb-6 text-[#FCFCFC]">Points History</h2>
 
             {historyList.length === 0 ? (
               <p className="text-gray-400">履歴はありません</p>
             ) : (
-              <>
-                {/* ページネーションコントロール */}
-                <div className="flex justify-center mb-4">
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className={`px-4 py-2 rounded ${
-                      currentPage === 1
-                        ? 'bg-gray-500 cursor-not-allowed'
-                        : 'bg-[#8E93DA] text-black font-bold hover:bg-opacity-90'
-                    }`}
-                  >
-                    Prev
-                  </button>
-                  <span className="flex items-center mx-4 text-[#FCFCFC]">
-                    {currentPage} / {Math.ceil(totalCount / ITEMS_PER_PAGE)}
-                  </span>
-                  <button
-                    onClick={() => setCurrentPage(prev => prev + 1)}
-                    disabled={currentPage >= Math.ceil(totalCount / ITEMS_PER_PAGE)}
-                    className={`px-4 py-2 rounded ${
-                      currentPage >= Math.ceil(totalCount / ITEMS_PER_PAGE)
-                        ? 'bg-gray-500 cursor-not-allowed'
-                        : 'bg-[#8E93DA] text-black font-bold hover:bg-opacity-90'
-                    }`}
-                  >
-                    Next
-                  </button>
-                </div>
+              <div className="space-y-4">
+                {historyList.map((item) => {
+                  const isAdd = item.change_type === "add";
+                  const sign = isAdd ? "+ " : "- ";
+                  const colorClass = isAdd ? "text-green-400" : "text-red-400";
 
-                {/* 履歴リスト */}
-                <div className="space-y-3">
-                  {historyList.map((item) => {
-                    const isAdd = item.change_type === "add";
-                    const sign = isAdd ? "+ " : "- ";
-                    const colorClass = isAdd ? "text-green-400" : "text-red-400";
-
-                    return (
-                      <div
-                        key={item.history_id}
-                        className="bg-[#404040] px-4 py-3 rounded-md"
-                      >
-                        <div className="flex justify-between items-center">
-                          <div className="flex-1 mr-4">
-                            <p className="font-medium break-all text-[#FCFCFC]">{item.reason}</p>
-                            <p className="text-sm text-gray-400 mt-1">
-                              {formatDate(item.created_at)}
-                            </p>
-                          </div>
-                          <div className={`${colorClass} text-lg font-medium flex-shrink-0`}>
-                            {sign}
-                            {item.ciz.toLocaleString()} ciz
-                          </div>
+                  return (
+                    <div
+                      key={item.history_id}
+                      className="bg-[#404040] px-4 py-3 rounded-md"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1 mr-4">
+                          <p className="text-sm sm:text-base font-medium break-all text-[#FCFCFC] leading-relaxed">
+                            {item.reason}
+                          </p>
+                          <p className="text-xs sm:text-sm text-gray-400 mt-1.5">
+                            {formatDate(item.created_at)}
+                          </p>
+                        </div>
+                        <div className={`${colorClass} text-lg sm:text-xl font-bold flex-shrink-0 ml-2`}>
+                          {sign}
+                          {item.ciz.toLocaleString()} <span className="text-sm sm:text-base font-medium">ciz</span>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
@@ -372,10 +220,7 @@ const EmpMainPage = () => {
           </p>
           <div className="flex justify-end">
             <button
-              onClick={() => {
-                // TODO: プロフィール設定ページへの遷移を実装
-                router.push('/employeePages/empProfSettingPage');
-              }}
+              onClick={() => router.push('/employeePages/empProfSettingPage')}
               className="bg-[#8E93DA] text-black px-4 py-2 rounded-md font-bold"
             >
               設定する
@@ -383,7 +228,9 @@ const EmpMainPage = () => {
           </div>
         </div>
       </Dialog>
-    </div>
+
+      <FooterMenu />
+    </Box>
   );
 };
 

@@ -23,8 +23,20 @@ const CizTransferModal = ({ isOpen, onClose, onSubmit, selectedUser, error }: Ci
   };
 
   return (
-    <Dialog open={isOpen} onClose={onClose}>
-      <div className="bg-[#2D2D33] p-6 w-[400px]">
+    <Dialog 
+      open={isOpen} 
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      sx={{
+        '& .MuiDialog-paper': {
+          margin: '16px',
+          width: 'calc(100% - 32px)',
+          maxWidth: '400px'
+        }
+      }}
+    >
+      <div className="bg-[#2D2D33] p-4 sm:p-6">
         <h2 className="text-xl font-bold mb-4 text-[#FCFCFC]">ポイント譲渡</h2>
         <p className="text-[#FCFCFC] mb-4">
           {selectedUser ? `${selectedUser.myoji} ${selectedUser.namae}` : ''} さんへ
@@ -43,17 +55,17 @@ const CizTransferModal = ({ isOpen, onClose, onSubmit, selectedUser, error }: Ci
               className="w-full bg-[#1D1D21] text-[#FCFCFC] rounded p-2"
             />
           </div>
-          <div className="flex justify-end gap-4">
+          <div className="flex justify-end gap-2 sm:gap-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded bg-[#4A4B50] text-[#FCFCFC] hover:bg-opacity-80"
+              className="px-3 sm:px-4 py-2 rounded bg-[#4A4B50] text-[#FCFCFC] hover:bg-opacity-80"
             >
               キャンセル
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded bg-[#8E93DA] text-black font-bold hover:bg-opacity-80"
+              className="px-3 sm:px-4 py-2 rounded bg-[#8E93DA] text-black font-bold hover:bg-opacity-80"
             >
               譲渡
             </button>
