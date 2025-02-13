@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Calendar, dateFnsLocalizer, ToolbarProps } from 'react-big-calendar';
 import format from 'date-fns/format';
 import parse from 'date-fns/parse';
@@ -70,6 +70,19 @@ const CustomToolbar = ({ onNavigate, date }: ToolbarProps<Event>) => {
   );
 };
 
+// カスタムイベントコンポーネントの型定義を追加
+interface CustomEventProps {
+  event: Event;
+}
+
+const CustomEvent = React.memo(function CustomEvent({ event }: CustomEventProps) {
+  return (
+    <div className="text-sm truncate">
+      {event.title}
+    </div>
+  );
+});
+
 export default function EventListPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
@@ -79,7 +92,11 @@ export default function EventListPage() {
   const router = useRouter();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  const fetchEvents = async () => {
+  const eventStyleGetter = React.useCallback(() => ({
+    className: 'calendar-event'
+  }), []);
+
+  const fetchEvents = useCallback(async () => {
     // 現在の月の開始日と終了日を計算
     const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
     const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0, 23, 59, 59);
@@ -124,16 +141,16 @@ export default function EventListPage() {
     }));
 
     setEvents(formattedEvents);
-  };
+  }, [currentMonth]);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [currentMonth, fetchEvents]);
 
   // 月が変更されたときにイベントを再取得
   const handleMonthChange = (date: Date) => {
     setCurrentMonth(date);
   };
-
-  useEffect(() => {
-    fetchEvents();
-  }, [currentMonth]); // currentMonthが変更されたときにfetchEventsを実行
 
   // イベントをクリックした時の処理を修正
   const handleEventClick = (event: Event) => {
@@ -262,15 +279,9 @@ export default function EventListPage() {
                 onNavigate={handleMonthChange}
                 components={{
                   toolbar: CustomToolbar,
-                  event: React.memo(({ event }) => (
-                    <div className="text-sm truncate">
-                      {event.title}
-                    </div>
-                  ))
+                  event: CustomEvent  // メモ化したコンポーネントを使用
                 }}
-                eventPropGetter={React.useCallback(() => ({
-                  className: 'calendar-event'
-                }), [])}
+                eventPropGetter={eventStyleGetter}
                 messages={{
                   date: '日付',
                   time: '時間',
