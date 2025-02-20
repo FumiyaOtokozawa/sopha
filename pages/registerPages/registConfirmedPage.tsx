@@ -102,6 +102,24 @@ const RegistConfirmedPage = () => {
           return;
         }
 
+        // EVENT_PARTICIPATIONテーブルに初期データを登録
+        const { error: participationError } = await supabase
+          .from('EVENT_PARTICIPATION')
+          .insert([
+            {
+              emp_no: Number(employeeId),
+              official_count: 0,
+              unofficial_count: 0,
+              updated_at: new Date().toISOString()
+            }
+          ]);
+
+        if (participationError) {
+          console.error('イベント参加情報登録エラー:', participationError);
+          setError('ユーザー情報の登録中にエラーが発生しました');
+          return;
+        }
+
       } catch (error) {
         console.error('登録エラー:', error);
         setError('ユーザー情報の登録中にエラーが発生しました');

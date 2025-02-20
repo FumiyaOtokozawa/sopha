@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from '../../utils/supabaseClient';
 import Header from "../../components/Header";
-import { Dialog } from '@mui/material';
+import { Dialog, Tabs, Tab } from '@mui/material';
 import { useRouter } from 'next/router';
 import { Box } from '@mui/material';
 import FooterMenu from '../../components/FooterMenu';
@@ -17,6 +17,24 @@ type HistoryItem = {
   created_at: string;
 };
 
+type EventParticipation = {
+  emp_no: number;
+  official_count: number;
+  unofficial_count: number;
+  updated_at: string;
+};
+
+type EventParticipationHistory = {
+  history_id: number;
+  emp_no: number;
+  event_id: number;
+  participated_at: string;
+  EVENT_LIST: {
+    title: string;
+    genre: '0' | '1';
+  };
+};
+
 const ITEMS_PER_PAGE = 20;
 
 const EmpMainPage = () => {
@@ -25,6 +43,12 @@ const EmpMainPage = () => {
   const [historyList, setHistoryList] = useState<HistoryItem[]>([]);
   const [monthlyChange, setMonthlyChange] = useState<number>(0);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [participation, setParticipation] = useState<{
+    official_count: number;
+    unofficial_count: number;
+  } | null>(null);
+  const [activeTab, setActiveTab] = useState<'points' | 'events'>('points');
+  const [participationHistory, setParticipationHistory] = useState<EventParticipationHistory[]>([]);
   const router = useRouter();
 
   // 日付表示用フォーマット
@@ -145,6 +169,54 @@ const EmpMainPage = () => {
     fetchMonthlyChange();
   }, [employeeNumber]);
 
+  // イベント参加数を取得
+  useEffect(() => {
+    const fetchParticipation = async () => {
+      if (!employeeNumber) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("EVENT_PARTICIPATION")
+          .select("official_count, unofficial_count")
+          .eq("emp_no", employeeNumber)
+          .single();
+
+        if (error) throw error;
+        setParticipation(data || { official_count: 0, unofficial_count: 0 });
+      } catch (error) {
+        console.error("参加数取得エラー:", error);
+      }
+    };
+
+    fetchParticipation();
+  }, [employeeNumber]);
+
+  // イベント参加履歴を取得
+  useEffect(() => {
+    const fetchParticipationHistory = async () => {
+      if (!employeeNumber) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("EVENT_PAR_HISTORY")
+          .select(`
+            *,
+            EVENT_LIST(title, genre)
+          `)
+          .eq("emp_no", employeeNumber)
+          .order("participated_at", { ascending: false })
+          .limit(ITEMS_PER_PAGE);
+
+        if (error) throw error;
+        setParticipationHistory(data || []);
+      } catch (error) {
+        console.error("参加履歴取得エラー:", error);
+      }
+    };
+
+    fetchParticipationHistory();
+  }, [employeeNumber]);
+
   return (
     <Box sx={{ pb: 7 }}>
       <Header />
@@ -158,26 +230,91 @@ const EmpMainPage = () => {
               <div className="text-[#FCFCFC] text-4xl font-bold mb-2">
                 {points !== null ? points.toLocaleString() : "..."} <span className="text-2xl">ciz</span>
               </div>
-              <div className={`text-sm ${monthlyChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              <div className={`text-sm ${monthlyChange >= 0 ? 'text-green-400' : 'text-red-400'} mb-3`}>
                 {monthlyChange >= 0 ? '+' : ''}{monthlyChange.toLocaleString()} since last month
+              </div>
+              <div className="flex justify-end items-center gap-4 text-sm text-gray-300 border-t border-gray-600 pt-3">
+                <div>
+                  公式イベント：<span className="font-medium">{participation?.official_count ?? 0}</span>回
+                </div>
+                <div>
+                  非公式イベント：<span className="font-medium">{participation?.unofficial_count ?? 0}</span>回
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Points History */}
+          {/* History Section */}
           <div className="bg-[#2f3033] rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold mb-6 text-[#FCFCFC]">Points History</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-[#FCFCFC]">History</h2>
+              <Tabs 
+                value={activeTab}
+                onChange={(_, newValue) => setActiveTab(newValue)}
+                sx={{
+                  minHeight: '32px',
+                  '& .MuiTab-root': {
+                    minHeight: '32px',
+                    padding: '6px 16px',
+                    color: '#FCFCFC',
+                    fontSize: '0.875rem',
+                    textTransform: 'none',
+                  },
+                  '& .Mui-selected': {
+                    color: '#8E93DA !important',
+                  },
+                  '& .MuiTabs-indicator': {
+                    backgroundColor: '#8E93DA',
+                  },
+                }}
+              >
+                <Tab value="points" label="ポイント履歴" />
+                <Tab value="events" label="参加履歴" />
+              </Tabs>
+            </div>
 
-            {historyList.length === 0 ? (
-              <p className="text-gray-400">履歴はありません</p>
-            ) : (
+            {activeTab === 'points' ? (
+              // ポイント履歴
               <div className="space-y-4">
-                {historyList.map((item) => {
-                  const isAdd = item.change_type === "add";
-                  const sign = isAdd ? "+ " : "- ";
-                  const colorClass = isAdd ? "text-green-400" : "text-red-400";
+                {historyList.length === 0 ? (
+                  <p className="text-gray-400">履歴はありません</p>
+                ) : (
+                  historyList.map((item) => {
+                    const isAdd = item.change_type === "add";
+                    const sign = isAdd ? "+ " : "- ";
+                    const colorClass = isAdd ? "text-green-400" : "text-red-400";
 
-                  return (
+                    return (
+                      <div
+                        key={item.history_id}
+                        className="bg-[#404040] px-4 py-3 rounded-md"
+                      >
+                        <div className="flex justify-between items-center">
+                          <div className="flex-1 mr-4">
+                            <p className="text-sm sm:text-base font-medium break-all text-[#FCFCFC] leading-relaxed">
+                              {item.reason}
+                            </p>
+                            <p className="text-xs sm:text-sm text-gray-400 mt-1.5">
+                              {formatDate(item.created_at)}
+                            </p>
+                          </div>
+                          <div className={`${colorClass} text-lg sm:text-xl font-bold flex-shrink-0 ml-2`}>
+                            {sign}
+                            {item.ciz.toLocaleString()} <span className="text-sm sm:text-base font-medium">ciz</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            ) : (
+              // イベント参加履歴
+              <div className="space-y-4">
+                {participationHistory.length === 0 ? (
+                  <p className="text-gray-400">参加履歴はありません</p>
+                ) : (
+                  participationHistory.map((item) => (
                     <div
                       key={item.history_id}
                       className="bg-[#404040] px-4 py-3 rounded-md"
@@ -185,20 +322,21 @@ const EmpMainPage = () => {
                       <div className="flex justify-between items-center">
                         <div className="flex-1 mr-4">
                           <p className="text-sm sm:text-base font-medium break-all text-[#FCFCFC] leading-relaxed">
-                            {item.reason}
+                            {item.EVENT_LIST.title}
                           </p>
                           <p className="text-xs sm:text-sm text-gray-400 mt-1.5">
-                            {formatDate(item.created_at)}
+                            {formatDate(item.participated_at)}
                           </p>
                         </div>
-                        <div className={`${colorClass} text-lg sm:text-xl font-bold flex-shrink-0 ml-2`}>
-                          {sign}
-                          {item.ciz.toLocaleString()} <span className="text-sm sm:text-base font-medium">ciz</span>
+                        <div className={`text-sm font-medium ${
+                          item.EVENT_LIST.genre === '1' ? 'text-blue-400' : 'text-green-400'
+                        }`}>
+                          {item.EVENT_LIST.genre === '1' ? '公式' : '非公式'}
                         </div>
                       </div>
                     </div>
-                  );
-                })}
+                  ))
+                )}
               </div>
             )}
           </div>
