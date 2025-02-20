@@ -97,24 +97,24 @@ export default function EventListPage() {
   }), []);
 
   const fetchEvents = useCallback(async () => {
-    // 現在の月の開始日と終了日を計算
+    // 表示月の月初めと1年後の月末を計算
     const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-    const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0, 23, 59, 59);
+    const endOfNextYear = new Date(currentMonth.getFullYear() + 1, currentMonth.getMonth(), 0, 23, 59, 59);
 
+    // Supabaseからイベントデータを取得
     const { data: eventData, error: eventError } = await supabase
       .from('EVENT_LIST')
       .select('*')
       .eq('act_kbn', true)
-      // 日付でフィルタリング
       .gte('start_date', startOfMonth.toISOString())
-      .lte('start_date', endOfMonth.toISOString());
+      .lte('start_date', endOfNextYear.toISOString());  // 1年後までの期間に変更
 
     if (eventError) {
       console.error('イベントの取得に失敗しました:', eventError);
       return;
     }
 
-    // ユーザー情報を一括で取得
+    // ユーザー情報の一括取得
     const uniqueOwners = [...new Set(eventData.map(event => event.owner))];
     const { data: userData } = await supabase
       .from('USER_INFO')
@@ -264,7 +264,9 @@ export default function EventListPage() {
             </button>
           </div>
           <div style={{ 
-            height: 'calc(100vh - 300px)' // ヘッダー、ボタン、フッターの高さを考慮
+            height: '67.5vh',  // 画面の高さの75%を使用
+            overflow: 'auto',
+            maxHeight: 'calc(100vh - 12rem)'  // 最大高さを設定（ヘッダー・フッター分を考慮）
           }}>
             {view === 'calendar' ? (
               <Calendar<Event>
