@@ -13,7 +13,6 @@ import { Box } from '@mui/material';
 import FooterMenu from '../../components/FooterMenu';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import EventDetailModal from '../../components/EventDetailModal';
-import { Event } from '../../types/event';  // 追加
 
 // カレンダーのローカライズ設定
 const locales = {
@@ -83,6 +82,22 @@ const CustomEvent = React.memo(function CustomEvent({ event }: CustomEventProps)
   );
 });
 
+// Event型の更新（types/event.tsにある場合はそちらを更新）
+interface Event {
+  event_id: number;
+  title: string;
+  start_date: string;
+  end_date: string;
+  start: Date;
+  end: Date;
+  place: string;
+  owner: string;
+  ownerName: string;
+  genre: string;
+  description?: string;
+  repeat_id?: number | null;  // repeat_idを追加
+}
+
 export default function EventListPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
@@ -137,7 +152,8 @@ export default function EventListPage() {
       owner: event.owner,
       ownerName: userMap.get(event.owner) || '未設定',
       genre: event.genre,
-      description: event.description
+      description: event.description,
+      repeat_id: event.repeat_id  // repeat_idを追加
     }));
 
     setEvents(formattedEvents);
@@ -169,32 +185,34 @@ export default function EventListPage() {
     fetchEvents(); // イベント一覧を再取得
   };
 
-  // 繰り返しイベントをフィルタリングする関数
+  // 繰り返しイベントをフィルタリングする関数を改善
   const filterRepeatingEvents = (events: Event[]) => {
     // まず現在時刻以降のイベントのみをフィルタリング
     const futureEvents = events.filter(event => event.start > new Date());
     
     if (showAllEvents) return futureEvents;
 
+    // repeat_idを使用してグループ化
     const eventGroups = futureEvents.reduce((groups, event) => {
-      if (!groups[event.title]) {
-        groups[event.title] = [];
+      const groupKey = event.repeat_id ? `repeat_${event.repeat_id}` : `single_${event.event_id}`;
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
       }
-      groups[event.title].push(event);
+      groups[groupKey].push(event);
       return groups;
     }, {} as { [key: string]: Event[] });
 
     return Object.values(eventGroups).map(group => {
       if (group.length === 1) return group[0];
-      // 同名イベントの中で最も近い日付のものを返す
+      // 同じrepeat_idを持つイベントの中で最も近い日付のものを返す
       return group.reduce((nearest, event) => {
         if (!nearest || event.start < nearest.start) return event;
         return nearest;
       });
-    }).filter(Boolean) as Event[];
+    });
   };
 
-  // イベントリストの表示コンポーネントを修正
+  // EventListコンポーネントの表示を改善
   const EventList = () => (
     <div className="bg-[#2d2d33] rounded-lg p-4">
       <div className="mb-4 flex justify-end">
@@ -215,7 +233,12 @@ export default function EventListPage() {
             className="mb-4 p-4 bg-[#37373F] rounded-lg cursor-pointer hover:bg-[#404049] transition-colors"
             onClick={() => handleEventClick(event)}
           >
-            <div className="text-lg font-medium mb-2">{event.title}</div>
+            <div className="text-lg font-medium mb-2">
+              {event.title}
+              {event.repeat_id && (
+                <span className="ml-2 text-sm text-gray-400">（繰り返し）</span>
+              )}
+            </div>
             <div className="text-sm text-gray-400">
               <div>場　所：{event.place || '未定'}</div>
               <div>主催者：{event.ownerName}</div>
@@ -223,7 +246,6 @@ export default function EventListPage() {
                 {format(event.start, 'M月d日 HH:mm', { locale: ja })} - 
                 {format(event.end, ' M月d日 HH:mm', { locale: ja })}
               </div>
-
             </div>
           </div>
         ))}

@@ -89,6 +89,9 @@ const EventAddPage = () => {
 
       // 繰り返しイベントの作成
       if (formData.isRecurring && formData.start && formData.end && formData.recurringEndDate) {
+        // 新しいrepeat_idを生成（タイムスタンプを使用）
+        const repeat_id = Date.now();
+        
         const events = [];
         let currentStart = new Date(formData.start.getTime());
         let currentEnd = new Date(formData.end.getTime());
@@ -105,7 +108,8 @@ const EventAddPage = () => {
             created_by: userData.emp_no,
             updated_by: userData.emp_no,
             act_kbn: true,
-            genre: formData.genre
+            genre: formData.genre,
+            repeat_id: repeat_id
           });
 
           // 次の日付を計算
@@ -167,7 +171,8 @@ const EventAddPage = () => {
             created_by: userData.emp_no,
             updated_by: userData.emp_no,
             act_kbn: true,
-            genre: formData.genre
+            genre: formData.genre,
+            repeat_id: null
           });
 
         if (insertError) throw insertError;

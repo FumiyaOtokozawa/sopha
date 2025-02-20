@@ -20,6 +20,7 @@ interface Event {
   owner: string;
   ownerName?: string;
   genre: string;
+  repeat_id?: number | null;
 }
 
 export default function EventDetailPage() {
@@ -29,6 +30,7 @@ export default function EventDetailPage() {
   const [isOwner, setIsOwner] = useState(false);
   const [editedEvent, setEditedEvent] = useState<Event | null>(null);
   const [error, setError] = useState<string>('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     console.log('Router query:', router.query);
@@ -124,22 +126,49 @@ export default function EventDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('このイベントを削除してもよろしいですか？')) {
+    if (!event?.repeat_id) {
+      if (!window.confirm('このイベントを削除してもよろしいですか？')) {
+        return;
+      }
+      await deleteEvent('single');
       return;
     }
+    
+    setShowDeleteModal(true);
+  };
 
+  const deleteEvent = async (deleteType: 'single' | 'all' | 'future') => {
     try {
-      const { error } = await supabase
-        .from('EVENT_LIST')
-        .update({ act_kbn: false })
-        .eq('event_id', Number(router.query.event_id));
-
-      if (error) throw error;
+      if (deleteType === 'single') {
+        const { error } = await supabase
+          .from('EVENT_LIST')
+          .update({ act_kbn: false })
+          .eq('event_id', Number(router.query.event_id));
+        
+        if (error) throw error;
+      } else if (deleteType === 'all') {
+        const { error } = await supabase
+          .from('EVENT_LIST')
+          .update({ act_kbn: false })
+          .eq('repeat_id', event?.repeat_id);
+        
+        if (error) throw error;
+      } else if (deleteType === 'future') {
+        const { error } = await supabase
+          .from('EVENT_LIST')
+          .update({ act_kbn: false })
+          .eq('repeat_id', event?.repeat_id)
+          .gte('start_date', event?.start_date);
+        
+        if (error) throw error;
+      }
 
       router.push('/events/eventListPage');
     } catch (error) {
       console.error('削除エラー:', error);
       setError('イベントの削除に失敗しました');
+    } finally {
+      setShowDeleteModal(false);
     }
   };
 
@@ -305,6 +334,43 @@ export default function EventDetailPage() {
           </div>
         </div>
       </div>
+      
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-[#2D2D33] p-6 rounded-lg max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold text-[#FCFCFC] mb-4">
+              削除オプションを選択してください
+            </h3>
+            <div className="space-y-3">
+              <button
+                onClick={() => deleteEvent('single')}
+                className="w-full p-3 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-opacity-80"
+              >
+                このイベントのみを削除
+              </button>
+              <button
+                onClick={() => deleteEvent('future')}
+                className="w-full p-3 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-opacity-80"
+              >
+                このイベントと以降のイベントを削除
+              </button>
+              <button
+                onClick={() => deleteEvent('all')}
+                className="w-full p-3 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-opacity-80"
+              >
+                全ての繰り返しイベントを削除
+              </button>
+            </div>
+            <button
+              onClick={() => setShowDeleteModal(false)}
+              className="w-full mt-4 p-3 rounded bg-[#4A4B50] text-[#FCFCFC] hover:bg-opacity-80"
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      )}
+      
       <FooterMenu />
     </Box>
   );

@@ -7,6 +7,7 @@ import { ja } from 'date-fns/locale';
 import format from 'date-fns/format';
 import { Dialog } from '@mui/material';
 import { Event } from '../types/event';
+import { useRouter } from 'next/router';
 
 interface EventDetailModalProps {
   event: Event | null;
@@ -20,6 +21,8 @@ export default function EventDetailModal({ event, open, onClose, onEventUpdated 
   const [editedEvent, setEditedEvent] = useState<Event | null>(null);
   const [error, setError] = useState<string>('');
   const [isOwner, setIsOwner] = useState(false);
+  const [showDeleteOptions, setShowDeleteOptions] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const checkOwner = async () => {
@@ -80,24 +83,53 @@ export default function EventDetailModal({ event, open, onClose, onEventUpdated 
     }
   };
 
-  const handleDelete = async () => {
-    if (!event || !window.confirm('このイベントを削除してもよろしいですか？')) {
+  const handleDelete = async (deleteType: 'single' | 'all' | 'future') => {
+    if (!event) return;
+
+    // 削除確認メッセージを設定
+    const confirmMessages = {
+      single: '本当にこのイベントを削除しますか？',
+      all: '本当に全ての繰り返しイベントを削除しますか？',
+      future: '本当にこのイベントと以降のイベントを全て削除しますか？'
+    };
+
+    // 確認ダイアログを表示
+    if (!window.confirm(confirmMessages[deleteType])) {
       return;
     }
 
     try {
-      const { error: deleteError } = await supabase
-        .from('EVENT_LIST')
-        .update({ act_kbn: false })
-        .eq('event_id', event.event_id);
+      if (deleteType === 'single') {
+        const { error } = await supabase
+          .from('EVENT_LIST')
+          .update({ act_kbn: false })
+          .eq('event_id', event.event_id);
+        
+        if (error) throw error;
+      } else if (deleteType === 'all') {
+        const { error } = await supabase
+          .from('EVENT_LIST')
+          .update({ act_kbn: false })
+          .eq('repeat_id', event.repeat_id);
+        
+        if (error) throw error;
+      } else if (deleteType === 'future') {
+        const { error } = await supabase
+          .from('EVENT_LIST')
+          .update({ act_kbn: false })
+          .eq('repeat_id', event.repeat_id)
+          .gte('start_date', event.start_date);
+        
+        if (error) throw error;
+      }
 
-      if (deleteError) throw deleteError;
-
+      setShowDeleteOptions(false);  // 削除オプションのポップアップを閉じる
       onEventUpdated();
       onClose();
+      router.push('/events/eventListPage');
     } catch (error) {
       console.error('削除エラー:', error);
-      setError('イベントの削除に失敗しました');
+      setError('イベントの削除に失敗しました');  // エラーメッセージを表示
     }
   };
 
@@ -127,12 +159,44 @@ export default function EventDetailModal({ event, open, onClose, onEventUpdated 
               >
                 編集
               </button>
-              <button
-                onClick={handleDelete}
-                className="px-4 py-2 rounded bg-red-500 text-white hover:bg-opacity-80"
-              >
-                削除
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    if (event?.repeat_id) {
+                      setShowDeleteOptions(!showDeleteOptions);
+                    } else {
+                      handleDelete('single');
+                    }
+                  }}
+                  className="px-4 py-2 rounded bg-red-500 text-white hover:bg-opacity-80"
+                >
+                  削除
+                </button>
+                {showDeleteOptions && event?.repeat_id && (
+                  <div className="absolute right-0 top-12 w-72 bg-[#2D2D33] rounded-lg shadow-lg border border-gray-700 z-50">
+                    <div className="p-3 space-y-2">
+                      <button
+                        onClick={() => handleDelete('single')}
+                        className="w-full p-2 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
+                      >
+                        このイベントのみを削除
+                      </button>
+                      <button
+                        onClick={() => handleDelete('future')}
+                        className="w-full p-2 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
+                      >
+                        このイベントと以降のイベントを削除
+                      </button>
+                      <button
+                        onClick={() => handleDelete('all')}
+                        className="w-full p-2 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
+                      >
+                        全ての繰り返しイベントを削除
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

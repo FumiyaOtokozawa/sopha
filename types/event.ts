@@ -10,4 +10,5 @@ export interface Event {
   ownerName?: string;
   genre: string;
   description?: string;
+  repeat_id?: number | null;
 } 
