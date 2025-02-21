@@ -336,12 +336,15 @@ export default function EventDetailModal({ event, open, onClose, onEventUpdated 
         </div>
 
         {!isEditing && (
-          <div className="flex justify-end mt-6">
+          <div className="flex justify-center mt-6">
             <button
-              onClick={onClose}
-              className="px-4 py-2 rounded bg-[#4A4B50] text-[#FCFCFC] hover:bg-opacity-80"
+              onClick={() => {
+                onClose();
+                router.push(`/events/eventDetailPage?event_id=${event.event_id}`);
+              }}
+              className="px-4 py-2 rounded bg-[#8E93DA] text-black font-bold hover:bg-opacity-80 w-3/4"
             >
-              閉じる
+              イベント詳細へ
             </button>
           </div>
         )}

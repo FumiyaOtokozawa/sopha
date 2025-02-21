@@ -7,8 +7,9 @@ import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { ja } from 'date-fns/locale';
 import format from 'date-fns/format';
-import { Box } from '@mui/material';
+import { Box, Avatar } from '@mui/material';
 import FooterMenu from '../../components/FooterMenu';
+import ChangeCircleIcon from '@mui/icons-material/ChangeCircle';
 
 interface Event {
   event_id: number;
@@ -23,6 +24,22 @@ interface Event {
   repeat_id?: number | null;
 }
 
+interface EventParticipant {
+  emp_no: number;
+  myoji: string;
+  namae: string;
+  status: '1' | '0';
+}
+
+interface SupabaseEntry {
+  emp_no: number;
+  status: '1' | '0';
+  USER_INFO: {
+    myoji: string;
+    namae: string;
+  };
+}
+
 export default function EventDetailPage() {
   const router = useRouter();
   const [event, setEvent] = useState<Event | null>(null);
@@ -31,6 +48,9 @@ export default function EventDetailPage() {
   const [editedEvent, setEditedEvent] = useState<Event | null>(null);
   const [error, setError] = useState<string>('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [currentUserEmpNo, setCurrentUserEmpNo] = useState<number | null>(null);
+  const [entryStatus, setEntryStatus] = useState<'1' | '0' | null>(null);
+  const [participants, setParticipants] = useState<EventParticipant[]>([]);
 
   useEffect(() => {
     console.log('Router query:', router.query);
@@ -79,6 +99,7 @@ export default function EventDetailPage() {
         setEvent(eventData);
         setEditedEvent(eventData);
         setIsOwner(userData.emp_no === eventData.owner);
+        setCurrentUserEmpNo(userData.emp_no);
 
       } catch (error) {
         console.error('エラー:', error);
@@ -87,7 +108,61 @@ export default function EventDetailPage() {
     };
 
     fetchEventAndCheckOwner();
-  }, [router.query]);
+
+    // ユーザーの参加ステータスを取得
+    const fetchEntryStatus = async () => {
+      if (!currentUserEmpNo || !router.query.event_id) return;
+
+      try {
+        const { data: entry } = await supabase
+          .from('EVENT_TEMP_ENTRY')
+          .select('status')
+          .eq('event_id', router.query.event_id)
+          .eq('emp_no', currentUserEmpNo)
+          .single();
+
+        if (entry) {
+          setEntryStatus(entry.status as '1' | '0');
+        }
+      } catch (error) {
+        console.error('参加ステータスの取得に失敗:', error);
+      }
+    };
+
+    fetchEntryStatus();
+
+    // 参加者情報を取得
+    const fetchParticipants = async () => {
+      if (!router.query.event_id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('EVENT_TEMP_ENTRY')
+          .select(`
+            emp_no,
+            status,
+            USER_INFO!inner(myoji, namae)
+          `)
+          .eq('event_id', router.query.event_id);
+
+        if (error) throw error;
+
+        // データの型を明示的に指定
+        const formattedParticipants = (data as unknown as SupabaseEntry[])?.map(entry => ({
+          emp_no: entry.emp_no,
+          myoji: entry.USER_INFO.myoji,
+          namae: entry.USER_INFO.namae,
+          status: entry.status
+        })) || [];
+
+        setParticipants(formattedParticipants);
+      } catch (error) {
+        console.error('参加者の取得に失敗:', error);
+      }
+    };
+
+    fetchParticipants();
+  }, [router.query, currentUserEmpNo]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -172,6 +247,50 @@ export default function EventDetailPage() {
     }
   };
 
+  const handleEventEntry = async (status: '1' | '0') => {
+    if (!currentUserEmpNo || !router.query.event_id) return;
+
+    try {
+      const { data: existingEntry } = await supabase
+        .from('EVENT_TEMP_ENTRY')
+        .select('entry_id')
+        .eq('event_id', router.query.event_id)
+        .eq('emp_no', currentUserEmpNo)
+        .single();
+
+      if (existingEntry) {
+        // 既存のエントリーを更新
+        const { error: updateError } = await supabase
+          .from('EVENT_TEMP_ENTRY')
+          .update({
+            status: status,
+            updated_at: new Date().toISOString()
+          })
+          .eq('entry_id', existingEntry.entry_id);
+
+        if (updateError) throw updateError;
+      } else {
+        // 新規エントリーを作成
+        const { error: insertError } = await supabase
+          .from('EVENT_TEMP_ENTRY')
+          .insert({
+            event_id: Number(router.query.event_id),
+            emp_no: currentUserEmpNo,
+            status: status,
+            updated_at: new Date().toISOString()
+          });
+
+        if (insertError) throw insertError;
+      }
+
+      // 成功時にステータスを更新
+      setEntryStatus(status);
+
+    } catch (error) {
+      console.error('ステータス登録エラー:', error);
+    }
+  };
+
   if (!event) {
     return <div>読み込み中...</div>;
   }
@@ -208,7 +327,98 @@ export default function EventDetailPage() {
               )}
 
               <div className="space-y-4">
-                {isEditing ? (
+                {!isEditing ? (
+                  <div className="space-y-6 text-[#FCFCFC]">
+                    <div>
+                      <h2 className="text-2xl font-bold mb-1">{event.title}</h2>
+                      <p className="text-gray-400 text-sm">{event.ownerName} が主催</p>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <div className="text-lg">
+                        {format(new Date(event.start_date), 'M/d(E) HH:mm', { locale: ja })}
+                      </div>
+                      <div className="text-gray-500">→</div>
+                      <div className="text-lg">
+                        {format(new Date(event.end_date), 'M/d(E) HH:mm', { locale: ja })}
+                      </div>
+                    </div>
+
+                    <div className="text-lg text-gray-300">
+                      @ {event.place || '未定'}
+                    </div>
+
+                    {event.description && (
+                      <div className="mt-8 pt-6 border-t border-gray-700">
+                        <p className="text-gray-300 whitespace-pre-wrap">
+                          {event.description}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="mt-8 pt-6 border-t border-gray-700">
+                      <div className="flex gap-8">
+                        <div className="flex-1">
+                          <h3 className="text-sm font-medium text-gray-400 mb-3">出席予定 ({participants.filter(p => p.status === '1').length})</h3>
+                          <div className="flex flex-wrap gap-2">
+                            {participants
+                              .filter(p => p.status === '1')
+                              .map(participant => (
+                                <div
+                                  key={participant.emp_no}
+                                  className="flex items-center bg-green-600 bg-opacity-10 rounded-full px-3 py-1"
+                                >
+                                  <Avatar
+                                    sx={{
+                                      width: 20,
+                                      height: 20,
+                                      fontSize: '0.75rem',
+                                      bgcolor: 'rgba(34, 197, 94, 0.2)',
+                                      color: '#22c55e',
+                                    }}
+                                  >
+                                    {participant.myoji[0]}
+                                  </Avatar>
+                                  <span className="ml-2 text-sm text-green-500">
+                                    {participant.myoji} {participant.namae}
+                                  </span>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+
+                        <div className="flex-1">
+                          <h3 className="text-sm font-medium text-gray-400 mb-3">欠席予定 ({participants.filter(p => p.status === '0').length})</h3>
+                          <div className="flex flex-wrap gap-2">
+                            {participants
+                              .filter(p => p.status === '0')
+                              .map(participant => (
+                                <div
+                                  key={participant.emp_no}
+                                  className="flex items-center bg-red-600 bg-opacity-10 rounded-full px-3 py-1"
+                                >
+                                  <Avatar
+                                    sx={{
+                                      width: 20,
+                                      height: 20,
+                                      fontSize: '0.75rem',
+                                      bgcolor: 'rgba(239, 68, 68, 0.2)',
+                                      color: '#ef4444',
+                                    }}
+                                  >
+                                    {participant.myoji[0]}
+                                  </Avatar>
+                                  <span className="ml-2 text-sm text-red-500">
+                                    {participant.myoji} {participant.namae}
+                                  </span>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
                   // 編集フォーム
                   <div className="space-y-4">
                     <div>
@@ -300,34 +510,6 @@ export default function EventDetailPage() {
                       </button>
                     </div>
                   </div>
-                ) : (
-                  // 詳細表示
-                  <div className="space-y-4 text-[#FCFCFC]">
-                    <div>
-                      <h2 className="text-xl font-bold mb-2">{event.title}</h2>
-                      <p className="text-gray-400">主催者：{event.ownerName}</p>
-                    </div>
-                    
-                    <div>
-                      <h3 className="font-medium mb-1">日時</h3>
-                      <p className="text-gray-400">
-                        {format(new Date(event.start_date), 'yyyy年M月d日 HH:mm', { locale: ja })} - 
-                        {format(new Date(event.end_date), ' yyyy年M月d日 HH:mm', { locale: ja })}
-                      </p>
-                    </div>
-
-                    <div>
-                      <h3 className="font-medium mb-1">場所</h3>
-                      <p className="text-gray-400">{event.place || '未定'}</p>
-                    </div>
-
-                    {event.description && (
-                      <div>
-                        <h3 className="font-medium mb-1">説明</h3>
-                        <p className="text-gray-400 whitespace-pre-wrap">{event.description}</p>
-                      </div>
-                    )}
-                  </div>
                 )}
               </div>
             </div>
@@ -370,6 +552,51 @@ export default function EventDetailPage() {
           </div>
         </div>
       )}
+      
+      {/* 出席・欠席ボタンを画面下部に固定 */}
+      <div className="fixed bottom-16 left-0 right-0 bg-[#1D1D21] p-4 border-t border-gray-700">
+        <div className="max-w-2xl mx-auto">
+          {entryStatus ? (
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1">
+                <div 
+                  className={`
+                    text-xl font-bold py-3 rounded-lg text-center w-full
+                    ${entryStatus === '1' 
+                      ? 'bg-green-600 bg-opacity-20 text-green-500' 
+                      : 'bg-red-600 bg-opacity-20 text-red-500'
+                    }
+                  `}
+                >
+                  {entryStatus === '1' ? '出席予定' : '欠席予定'}
+                </div>
+              </div>
+              <button
+                onClick={() => setEntryStatus(null)}
+                className="text-gray-300 hover:text-white transition-colors duration-200"
+                aria-label="ステータスを変更"
+              >
+                <ChangeCircleIcon sx={{ fontSize: 40 }} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex justify-between gap-4">
+              <button
+                onClick={() => handleEventEntry('1')}
+                className="px-8 py-3 rounded bg-green-600 text-white font-bold hover:bg-opacity-80 flex-1"
+              >
+                出席
+              </button>
+              <button
+                onClick={() => handleEventEntry('0')}
+                className="px-8 py-3 rounded bg-red-600 text-white font-bold hover:bg-opacity-80 flex-1"
+              >
+                欠席
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
       
       <FooterMenu />
     </Box>
