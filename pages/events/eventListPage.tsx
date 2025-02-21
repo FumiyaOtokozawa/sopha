@@ -187,8 +187,13 @@ export default function EventListPage() {
 
   // 繰り返しイベントをフィルタリングする関数を改善
   const filterRepeatingEvents = (events: Event[]) => {
-    // まず現在時刻以降のイベントのみをフィルタリング
-    const futureEvents = events.filter(event => event.start > new Date());
+    // 前日の23:59:59を計算
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(23, 59, 59);
+    
+    // 前日23:59:59以降のイベントをフィルタリング
+    const futureEvents = events.filter(event => event.start > yesterday);
     
     if (showAllEvents) return futureEvents;
 
