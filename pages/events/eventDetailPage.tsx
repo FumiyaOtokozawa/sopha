@@ -10,6 +10,7 @@ import format from 'date-fns/format';
 import { Box, Avatar } from '@mui/material';
 import FooterMenu from '../../components/FooterMenu';
 import ChangeCircleIcon from '@mui/icons-material/ChangeCircle';
+import { enUS } from 'date-fns/locale';
 
 interface Event {
   event_id: number;
@@ -25,6 +26,7 @@ interface Event {
 }
 
 interface EventParticipant {
+  entry_id: number;
   emp_no: number;
   myoji: string;
   namae: string;
@@ -32,6 +34,7 @@ interface EventParticipant {
 }
 
 interface SupabaseEntry {
+  entry_id: number;
   emp_no: number;
   status: '1' | '0';
   USER_INFO: {
@@ -139,16 +142,18 @@ export default function EventDetailPage() {
         const { data, error } = await supabase
           .from('EVENT_TEMP_ENTRY')
           .select(`
+            entry_id,
             emp_no,
             status,
             USER_INFO!inner(myoji, namae)
           `)
-          .eq('event_id', router.query.event_id);
+          .eq('event_id', router.query.event_id)
+          .order('entry_id', { ascending: true });
 
         if (error) throw error;
 
-        // データの型を明示的に指定
         const formattedParticipants = (data as unknown as SupabaseEntry[])?.map(entry => ({
+          entry_id: entry.entry_id,
           emp_no: entry.emp_no,
           myoji: entry.USER_INFO.myoji,
           namae: entry.USER_INFO.namae,
@@ -286,6 +291,30 @@ export default function EventDetailPage() {
       // 成功時にステータスを更新
       setEntryStatus(status);
 
+      // 参加者一覧を再取得
+      const { data, error } = await supabase
+        .from('EVENT_TEMP_ENTRY')
+        .select(`
+          entry_id,
+          emp_no,
+          status,
+          USER_INFO!inner(myoji, namae)
+        `)
+        .eq('event_id', router.query.event_id)
+        .order('entry_id', { ascending: true });
+
+      if (error) throw error;
+
+      const formattedParticipants = (data as unknown as SupabaseEntry[])?.map(entry => ({
+        entry_id: entry.entry_id,
+        emp_no: entry.emp_no,
+        myoji: entry.USER_INFO.myoji,
+        namae: entry.USER_INFO.namae,
+        status: entry.status
+      })) || [];
+
+      setParticipants(formattedParticipants);
+
     } catch (error) {
       console.error('ステータス登録エラー:', error);
     }
@@ -328,28 +357,31 @@ export default function EventDetailPage() {
 
               <div className="space-y-4">
                 {!isEditing ? (
-                  <div className="space-y-6 text-[#FCFCFC]">
-                    <div>
-                      <h2 className="text-2xl font-bold mb-1">{event.title}</h2>
-                      <p className="text-gray-400 text-sm">{event.ownerName} が主催</p>
-                    </div>
-                    
-                    <div className="flex items-center gap-2 text-gray-300">
-                      <div className="text-lg">
-                        {format(new Date(event.start_date), 'M/d(E) HH:mm', { locale: ja })}
+                  <div className="space-y-4 text-[#FCFCFC]">
+                    <div className="space-y-2">
+                      <h2 className="text-xl font-bold">{event.title}</h2>
+                      <p className="text-sm text-gray-400">{event.ownerName} が主催</p>
+                      
+                      <div className="flex items-center gap-2 text-gray-300 text-sm">
+                        <div>
+                          {format(new Date(event.start_date), "yyyy/MM/dd (ccc) HH:mm", { locale: enUS })}
+                        </div>
+                        <div className="text-gray-300">→</div>
+                        <div>
+                          {format(new Date(event.start_date), 'yyyy/MM/dd') === format(new Date(event.end_date), 'yyyy/MM/dd')
+                            ? format(new Date(event.end_date), "HH:mm", { locale: enUS })
+                            : format(new Date(event.end_date), "yyyy/MM/dd (ccc) HH:mm", { locale: enUS })
+                          }
+                        </div>
                       </div>
-                      <div className="text-gray-500">→</div>
-                      <div className="text-lg">
-                        {format(new Date(event.end_date), 'M/d(E) HH:mm', { locale: ja })}
-                      </div>
-                    </div>
 
-                    <div className="text-lg text-gray-300">
-                      @ {event.place || '未定'}
+                      <div className="text-sm text-gray-300">
+                        at {event.place || '未定'}
+                      </div>
                     </div>
 
                     {event.description && (
-                      <div className="mt-8 pt-6 border-t border-gray-700">
+                      <div className="mt-6 pt-4 border-t border-gray-700">
                         <p className="text-gray-300 whitespace-pre-wrap">
                           {event.description}
                         </p>
@@ -365,7 +397,7 @@ export default function EventDetailPage() {
                               .filter(p => p.status === '1')
                               .map(participant => (
                                 <div
-                                  key={participant.emp_no}
+                                  key={participant.entry_id}
                                   className="flex items-center bg-green-600 bg-opacity-10 rounded-full px-3 py-1"
                                 >
                                   <Avatar
@@ -394,7 +426,7 @@ export default function EventDetailPage() {
                               .filter(p => p.status === '0')
                               .map(participant => (
                                 <div
-                                  key={participant.emp_no}
+                                  key={participant.entry_id}
                                   className="flex items-center bg-red-600 bg-opacity-10 rounded-full px-3 py-1"
                                 >
                                   <Avatar
