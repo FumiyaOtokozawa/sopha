@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from '../utils/supabaseClient';
 import { useRouter } from 'next/router';
-import LogoutIcon from '@mui/icons-material/Logout';
+import LogoutButton from './LogoutButton';
 
 type UserInfo = {
   emp_no: number;
@@ -50,11 +50,6 @@ export default function Header() {
     fetchUserInfo();
   }, []);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/');
-  };
-
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between bg-[#3D3E42] px-6 py-4 text-white">
@@ -73,14 +68,10 @@ export default function Header() {
           </div>
         </div>
 
-        {/* 右側：ログアウトボタン */}
-        <button
-          onClick={handleLogout}
-          className="p-2 hover:bg-[#4A4B50] rounded-full transition-colors"
-          title="ログアウト"
-        >
-          <LogoutIcon />
-        </button>
+        {/* 右側：LogoutButtonコンポーネントを使用 */}
+        <div className="p-2 hover:bg-[#4A4B50] rounded-full transition-colors">
+          <LogoutButton />
+        </div>
       </header>
       {/* ヘッダーの高さ分のスペーサー */}
       <div className="h-20"></div>

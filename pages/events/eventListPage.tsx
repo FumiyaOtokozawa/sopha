@@ -77,15 +77,16 @@ interface CustomEventProps {
 const CustomEvent = React.memo(function CustomEvent({ event }: CustomEventProps) {
   return (
     <div className="text-sm truncate">
-      {event.title}
+      {event.abbreviation || event.title}
     </div>
   );
 });
 
-// Event型の更新（types/event.tsにある場合はそちらを更新）
+// Event型の更新
 interface Event {
   event_id: number;
   title: string;
+  abbreviation: string;
   start_date: string;
   end_date: string;
   start: Date;
@@ -95,7 +96,7 @@ interface Event {
   ownerName: string;
   genre: string;
   description?: string;
-  repeat_id?: number | null;  // repeat_idを追加
+  repeat_id?: number | null;
 }
 
 export default function EventListPage() {
@@ -107,8 +108,8 @@ export default function EventListPage() {
   const router = useRouter();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  const eventStyleGetter = React.useCallback(() => ({
-    className: 'calendar-event'
+  const eventStyleGetter = React.useCallback((event: Event) => ({
+    className: `calendar-event ${event.genre === '1' ? 'official-event' : 'normal-event'}`
   }), []);
 
   const fetchEvents = useCallback(async () => {
@@ -144,6 +145,7 @@ export default function EventListPage() {
     const formattedEvents = eventData.map(event => ({
       event_id: event.event_id,
       title: event.title,
+      abbreviation: event.abbreviation,
       start_date: event.start_date,
       end_date: event.end_date,
       start: new Date(event.start_date),
@@ -153,7 +155,7 @@ export default function EventListPage() {
       ownerName: userMap.get(event.owner) || '未設定',
       genre: event.genre,
       description: event.description,
-      repeat_id: event.repeat_id  // repeat_idを追加
+      repeat_id: event.repeat_id
     }));
 
     setEvents(formattedEvents);
@@ -238,7 +240,12 @@ export default function EventListPage() {
             className="mb-4 p-4 bg-[#37373F] rounded-lg cursor-pointer hover:bg-[#404049] transition-colors"
             onClick={() => handleEventClick(event)}
           >
-            <div className="text-lg font-medium mb-2">
+            <div className="text-lg font-medium mb-2 flex items-center gap-2">
+              {event.genre === '1' && (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#8E93DA]" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              )}
               {event.title}
               {event.repeat_id && (
                 <span className="ml-2 text-sm text-gray-400">（繰り返し）</span>

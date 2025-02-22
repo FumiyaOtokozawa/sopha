@@ -145,18 +145,23 @@
 
 /* イベントのスタイル */
 .custom-calendar .rbc-event {
-  background-color: #8E93DA;
+  background-color: #5b63d3;
   border: none;
   border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 0.75rem;
-  margin: 1px 4px;
-  max-width: calc(100% - 8px);
+  padding-top: 2px;
+  padding-left: 4px;
+  padding-right: 4px;
+  font-size: 0.5rem;
+  margin: 1px 2px;
+  max-width: calc(100% - 2px);
   box-sizing: border-box;
+  text-overflow: clip;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .custom-calendar .rbc-event.rbc-selected {
-  background-color: #7A7FC7;
+  background-color: #5b63d3;
 }
 
 /* イベントの行のスタイル */

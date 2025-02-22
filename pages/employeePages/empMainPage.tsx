@@ -313,7 +313,7 @@ const EmpMainPage = () => {
 
             <div className="h-[calc(100vh-500px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
               {activeTab === 'points' ? (
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {historyList.length === 0 ? (
                     <p className="text-gray-400">履歴はありません</p>
                   ) : (
@@ -368,7 +368,7 @@ const EmpMainPage = () => {
                   )}
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {participationHistory.length === 0 ? (
                     <p className="text-gray-400">参加履歴はありません</p>
                   ) : (

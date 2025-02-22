@@ -11,4 +11,5 @@ export interface Event {
   genre: string;
   description?: string;
   repeat_id?: number | null;
+  abbreviation?: string;
 } 

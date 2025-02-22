@@ -20,6 +20,7 @@ interface EventForm {
   isRecurring: boolean;
   recurringType: string;
   recurringEndDate: Date | null;
+  abbreviation: string;
 }
 
 const EventAddPage = () => {
@@ -33,7 +34,8 @@ const EventAddPage = () => {
     genre: '0',
     isRecurring: false,
     recurringType: 'weekly',
-    recurringEndDate: null
+    recurringEndDate: null,
+    abbreviation: '',
   });
   const [error, setError] = useState<string>('');
 
@@ -47,6 +49,12 @@ const EventAddPage = () => {
     };
   }, []);
 
+  // 省略名のバリデーション関数を追加
+  const validateAbbreviation = (value: string): boolean => {
+    const length = [...value].length; // 文字列を配列に分解して長さを取得
+    return length <= 3;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -58,6 +66,11 @@ const EventAddPage = () => {
 
     if (formData.isRecurring && !formData.recurringEndDate) {
       setError('繰り返し終了日を設定してください');
+      return;
+    }
+
+    if (formData.abbreviation && !validateAbbreviation(formData.abbreviation)) {
+      setError('省略名は全角3文字以内で入力してください');
       return;
     }
 
@@ -109,7 +122,8 @@ const EventAddPage = () => {
             updated_by: userData.emp_no,
             act_kbn: true,
             genre: formData.genre,
-            repeat_id: repeat_id
+            repeat_id: repeat_id,
+            abbreviation: formData.abbreviation,
           });
 
           // 次の日付を計算
@@ -172,7 +186,8 @@ const EventAddPage = () => {
             updated_by: userData.emp_no,
             act_kbn: true,
             genre: formData.genre,
-            repeat_id: null
+            repeat_id: null,
+            abbreviation: formData.abbreviation,
           });
 
         if (insertError) throw insertError;
@@ -235,6 +250,25 @@ const EventAddPage = () => {
               />
             </div>
 
+            {/* 省略名入力フィールドを追加 */}
+            <div>
+              <label className="block text-sm font-medium mb-1 text-[#FCFCFC]">
+                省略名（全角3文字以内）
+              </label>
+              <input
+                type="text"
+                value={formData.abbreviation}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (validateAbbreviation(value)) {
+                    setFormData({...formData, abbreviation: value});
+                  }
+                }}
+                className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px] placeholder-[#6B7280]"
+                placeholder="例：懇親会、ポケカ、など"
+              />
+            </div>
+
             {/* 日時選択 */}
             <div className="flex flex-row gap-4 w-full">
               <div className="w-1/2">
@@ -256,6 +290,10 @@ const EventAddPage = () => {
                       '& .MuiInputBase-input': {
                         padding: '8px 14px',
                         height: '24px',
+                        '&::placeholder': {
+                          color: '#6B7280',  // gray-500相当の色
+                          opacity: 1,
+                        },
                       },
                       '& .MuiSvgIcon-root': {
                         color: '#FCFCFC',
@@ -284,6 +322,10 @@ const EventAddPage = () => {
                       '& .MuiInputBase-input': {
                         padding: '8px 14px',
                         height: '24px',
+                        '&::placeholder': {
+                          color: '#6B7280',  // gray-500相当の色
+                          opacity: 1,
+                        },
                       },
                       '& .MuiSvgIcon-root': {
                         color: '#FCFCFC',
@@ -370,6 +412,10 @@ const EventAddPage = () => {
                         '& .MuiInputBase-input': {
                           padding: '8px 14px',
                           height: '24px',
+                          '&::placeholder': {
+                            color: '#6B7280',  // gray-500相当の色
+                            opacity: 1,
+                          },
                         },
                         '& .MuiSvgIcon-root': {
                           color: '#FCFCFC',
