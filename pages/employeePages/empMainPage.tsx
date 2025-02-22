@@ -46,6 +46,11 @@ const EmpMainPage = () => {
   const [participation, setParticipation] = useState<EventParticipation | null>(null);
   const [activeTab, setActiveTab] = useState<'points' | 'events'>('points');
   const [participationHistory, setParticipationHistory] = useState<EventParticipationHistory[]>([]);
+  const [pointsPage, setPointsPage] = useState<number>(1);
+  const [eventsPage, setEventsPage] = useState<number>(1);
+  const [hasMorePoints, setHasMorePoints] = useState<boolean>(true);
+  const [hasMoreEvents, setHasMoreEvents] = useState<boolean>(true);
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
 
   const formatDate = (dateString: string) => {
     const d = new Date(dateString);
@@ -109,26 +114,38 @@ const EmpMainPage = () => {
     fetchEmployeeData();
   }, [employeeNumber]);
 
-  useEffect(() => {
-    const fetchHistory = async () => {
-      if (!employeeNumber) return;
+  const fetchHistory = async (page: number = 1) => {
+    if (!employeeNumber) return;
 
-      try {
-        const { data, error } = await supabase
-          .from("EMP_CIZ_HISTORY")
-          .select("*")
-          .eq("emp_no", employeeNumber)
-          .order("created_at", { ascending: false })
-          .limit(ITEMS_PER_PAGE);
+    try {
+      setIsLoadingMore(true);
+      const { data, error } = await supabase
+        .from("EMP_CIZ_HISTORY")
+        .select("*")
+        .eq("emp_no", employeeNumber)
+        .order("created_at", { ascending: false })
+        .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
 
-        if (error) throw error;
+      if (error) throw error;
+      
+      if (page === 1) {
         setHistoryList(data || []);
-      } catch (error) {
-        console.error("履歴取得エラー:", error);
+      } else {
+        setHistoryList(prev => [...prev, ...(data || [])]);
       }
-    };
+      
+      setHasMorePoints(data?.length === ITEMS_PER_PAGE);
+    } catch (error) {
+      console.error("履歴取得エラー:", error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
-    fetchHistory();
+  useEffect(() => {
+    if (employeeNumber) {
+      fetchHistory(1);
+    }
   }, [employeeNumber]);
 
   useEffect(() => {
@@ -186,33 +203,58 @@ const EmpMainPage = () => {
     fetchParticipation();
   }, [employeeNumber]);
 
-  useEffect(() => {
-    const fetchParticipationHistory = async () => {
-      if (!employeeNumber) return;
+  const fetchParticipationHistory = async (page: number = 1) => {
+    if (!employeeNumber) return;
 
-      try {
-        const { data, error } = await supabase
-          .from("EVENT_PAR_HISTORY")
-          .select(`
-            *,
-            EVENT_LIST(title, genre)
-          `)
-          .eq("emp_no", employeeNumber)
-          .order("participated_at", { ascending: false })
-          .limit(ITEMS_PER_PAGE);
+    try {
+      setIsLoadingMore(true);
+      const { data, error } = await supabase
+        .from("EVENT_PAR_HISTORY")
+        .select(`
+          *,
+          EVENT_LIST(title, genre)
+        `)
+        .eq("emp_no", employeeNumber)
+        .order("participated_at", { ascending: false })
+        .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
 
-        if (error) throw error;
+      if (error) throw error;
+
+      if (page === 1) {
         setParticipationHistory(data || []);
-      } catch (error) {
-        console.error("参加履歴取得エラー:", error);
+      } else {
+        setParticipationHistory(prev => [...prev, ...(data || [])]);
       }
-    };
+      
+      setHasMoreEvents(data?.length === ITEMS_PER_PAGE);
+    } catch (error) {
+      console.error("参加履歴取得エラー:", error);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
-    fetchParticipationHistory();
-  }, [employeeNumber]);
+  const handleLoadMore = async () => {
+    if (activeTab === 'points') {
+      const nextPage = pointsPage + 1;
+      await fetchHistory(nextPage);
+      setPointsPage(nextPage);
+    } else {
+      const nextPage = eventsPage + 1;
+      await fetchParticipationHistory(nextPage);
+      setEventsPage(nextPage);
+    }
+  };
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: 'points' | 'events') => {
     setActiveTab(newValue);
+    if (newValue === 'points') {
+      setPointsPage(1);
+      fetchHistory(1);
+    } else {
+      setEventsPage(1);
+      fetchParticipationHistory(1);
+    }
   };
 
   return (
@@ -269,70 +311,114 @@ const EmpMainPage = () => {
               </Tabs>
             </div>
 
-            {activeTab === 'points' ? (
-              <div className="space-y-4">
-                {historyList.length === 0 ? (
-                  <p className="text-gray-400">履歴はありません</p>
-                ) : (
-                  historyList.map((item) => {
-                    const isAdd = item.change_type === "add";
-                    const sign = isAdd ? "+ " : "- ";
-                    const colorClass = isAdd ? "text-green-400" : "text-red-400";
+            <div className="h-[calc(100vh-500px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
+              {activeTab === 'points' ? (
+                <div className="space-y-4">
+                  {historyList.length === 0 ? (
+                    <p className="text-gray-400">履歴はありません</p>
+                  ) : (
+                    <>
+                      {historyList.map((item) => {
+                        const isAdd = item.change_type === "add";
+                        const sign = isAdd ? "+ " : "- ";
+                        const colorClass = isAdd ? "text-green-400" : "text-red-400";
 
-                    return (
-                      <div
-                        key={item.history_id}
-                        className="bg-[#404040] px-4 py-3 rounded-md"
-                      >
-                        <div className="flex justify-between items-center">
-                          <div className="flex-1 mr-4">
-                            <p className="text-sm sm:text-base font-medium break-all text-[#FCFCFC] leading-relaxed">
-                              {item.reason}
-                            </p>
-                            <p className="text-xs sm:text-sm text-gray-400 mt-1.5">
-                              {formatDate(item.created_at)}
-                            </p>
+                        return (
+                          <div
+                            key={item.history_id}
+                            className="bg-[#404040] px-4 py-3 rounded-md"
+                          >
+                            <div className="flex justify-between items-center">
+                              <div className="flex-1 mr-4">
+                                <p className="text-sm sm:text-base font-medium break-all text-[#FCFCFC] leading-relaxed">
+                                  {item.reason}
+                                </p>
+                                <p className="text-xs sm:text-sm text-gray-400 mt-1.5">
+                                  {formatDate(item.created_at)}
+                                </p>
+                              </div>
+                              <div className={`${colorClass} text-lg sm:text-xl font-bold flex-shrink-0 ml-2`}>
+                                {sign}
+                                {item.ciz.toLocaleString()} <span className="text-sm sm:text-base font-medium">ciz</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className={`${colorClass} text-lg sm:text-xl font-bold flex-shrink-0 ml-2`}>
-                            {sign}
-                            {item.ciz.toLocaleString()} <span className="text-sm sm:text-base font-medium">ciz</span>
+                        );
+                      })}
+                      
+                      {hasMorePoints && (
+                        <div className="flex justify-center mt-6 mb-2">
+                          <button
+                            onClick={handleLoadMore}
+                            disabled={isLoadingMore}
+                            className="bg-[#363636] text-[#FCFCFC] py-2.5 rounded-md text-sm font-medium hover:bg-[#404040] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 w-full"
+                          >
+                            {isLoadingMore ? (
+                              <span className="flex items-center justify-center gap-2">
+                                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[#FCFCFC] border-t-transparent"></span>
+                                読み込み中
+                              </span>
+                            ) : (
+                              "さらに読み込む"
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {participationHistory.length === 0 ? (
+                    <p className="text-gray-400">参加履歴はありません</p>
+                  ) : (
+                    <>
+                      {participationHistory.map((item) => (
+                        <div
+                          key={item.history_id}
+                          className="bg-[#404040] px-4 py-3 rounded-md"
+                        >
+                          <div className="flex justify-between items-center">
+                            <div className="flex-1 mr-4">
+                              <p className="text-sm sm:text-base font-medium break-all text-[#FCFCFC] leading-relaxed">
+                                {item.EVENT_LIST.title}
+                              </p>
+                              <p className="text-xs sm:text-sm text-gray-400 mt-1.5">
+                                {formatDate(item.participated_at)}
+                              </p>
+                            </div>
+                            <div className={`text-sm font-medium ${
+                              item.EVENT_LIST.genre === '1' ? 'text-blue-400' : 'text-green-400'
+                            }`}>
+                              {item.EVENT_LIST.genre === '1' ? '公式' : '非公式'}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {participationHistory.length === 0 ? (
-                  <p className="text-gray-400">参加履歴はありません</p>
-                ) : (
-                  participationHistory.map((item) => (
-                    <div
-                      key={item.history_id}
-                      className="bg-[#404040] px-4 py-3 rounded-md"
-                    >
-                      <div className="flex justify-between items-center">
-                        <div className="flex-1 mr-4">
-                          <p className="text-sm sm:text-base font-medium break-all text-[#FCFCFC] leading-relaxed">
-                            {item.EVENT_LIST.title}
-                          </p>
-                          <p className="text-xs sm:text-sm text-gray-400 mt-1.5">
-                            {formatDate(item.participated_at)}
-                          </p>
+                      ))}
+                      
+                      {hasMoreEvents && (
+                        <div className="flex justify-center mt-6 mb-2">
+                          <button
+                            onClick={handleLoadMore}
+                            disabled={isLoadingMore}
+                            className="bg-[#363636] text-[#FCFCFC] py-2.5 rounded-md text-sm font-medium hover:bg-[#404040] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 w-full"
+                          >
+                            {isLoadingMore ? (
+                              <span className="flex items-center justify-center gap-2">
+                                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[#FCFCFC] border-t-transparent"></span>
+                                読み込み中
+                              </span>
+                            ) : (
+                              "さらに読み込む"
+                            )}
+                          </button>
                         </div>
-                        <div className={`text-sm font-medium ${
-                          item.EVENT_LIST.genre === '1' ? 'text-blue-400' : 'text-green-400'
-                        }`}>
-                          {item.EVENT_LIST.genre === '1' ? '公式' : '非公式'}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
