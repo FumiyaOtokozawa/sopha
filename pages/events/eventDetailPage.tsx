@@ -50,7 +50,6 @@ export default function EventDetailPage() {
   const [isOwner, setIsOwner] = useState(false);
   const [editedEvent, setEditedEvent] = useState<Event | null>(null);
   const [error, setError] = useState<string>('');
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [currentUserEmpNo, setCurrentUserEmpNo] = useState<number | null>(null);
   const [entryStatus, setEntryStatus] = useState<'1' | '2' | '11' | null>(null);
   const [participants, setParticipants] = useState<EventParticipant[]>([]);
