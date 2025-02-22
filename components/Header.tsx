@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from '../utils/supabaseClient';
-import { useRouter } from 'next/router';
 import LogoutButton from './LogoutButton';
 
 type UserInfo = {
@@ -14,7 +13,6 @@ type UserInfo = {
 
 export default function Header() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
-  const router = useRouter();
 
   useEffect(() => {
     const fetchUserInfo = async () => {

@@ -1,6 +1,6 @@
 // pages/employeePages/empMainPage.tsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from '../../utils/supabaseClient';
 import Header from "../../components/Header";
 import { Dialog, Tabs, Tab, Box } from '@mui/material';
@@ -114,7 +114,7 @@ const EmpMainPage = () => {
     fetchEmployeeData();
   }, [employeeNumber]);
 
-  const fetchHistory = async (page: number = 1) => {
+  const fetchHistory = useCallback(async (page: number = 1) => {
     if (!employeeNumber) return;
 
     try {
@@ -140,13 +140,13 @@ const EmpMainPage = () => {
     } finally {
       setIsLoadingMore(false);
     }
-  };
+  }, [employeeNumber]);
 
   useEffect(() => {
     if (employeeNumber) {
       fetchHistory(1);
     }
-  }, [employeeNumber]);
+  }, [employeeNumber, fetchHistory]);
 
   useEffect(() => {
     const fetchMonthlyChange = async () => {
@@ -256,6 +256,10 @@ const EmpMainPage = () => {
       fetchParticipationHistory(1);
     }
   };
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
 
   return (
     <Box sx={{ pb: 7 }}>

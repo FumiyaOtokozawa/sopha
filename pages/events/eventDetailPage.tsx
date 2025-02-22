@@ -43,11 +43,6 @@ interface SupabaseEntry {
   };
 }
 
-interface AttendanceConfirmationResult {
-  success: boolean;
-  error?: string;
-}
-
 export default function EventDetailPage() {
   const router = useRouter();
   const [event, setEvent] = useState<Event | null>(null);
@@ -174,15 +169,6 @@ export default function EventDetailPage() {
     fetchParticipants();
   }, [router.query, currentUserEmpNo]);
 
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-
-  const handleCancel = () => {
-    setIsEditing(false);
-    setEditedEvent(event);
-  };
-
   const handleSave = async () => {
     if (!editedEvent) return;
 
@@ -207,53 +193,6 @@ export default function EventDetailPage() {
     } catch (error) {
       console.error('更新エラー:', error);
       setError('イベントの更新に失敗しました');
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!event?.repeat_id) {
-      if (!window.confirm('このイベントを削除してもよろしいですか？')) {
-        return;
-      }
-      await deleteEvent('single');
-      return;
-    }
-    
-    setShowDeleteModal(true);
-  };
-
-  const deleteEvent = async (deleteType: 'single' | 'all' | 'future') => {
-    try {
-      if (deleteType === 'single') {
-        const { error } = await supabase
-          .from('EVENT_LIST')
-          .update({ act_kbn: false })
-          .eq('event_id', Number(router.query.event_id));
-        
-        if (error) throw error;
-      } else if (deleteType === 'all') {
-        const { error } = await supabase
-          .from('EVENT_LIST')
-          .update({ act_kbn: false })
-          .eq('repeat_id', event?.repeat_id);
-        
-        if (error) throw error;
-      } else if (deleteType === 'future') {
-        const { error } = await supabase
-          .from('EVENT_LIST')
-          .update({ act_kbn: false })
-          .eq('repeat_id', event?.repeat_id)
-          .gte('start_date', event?.start_date);
-        
-        if (error) throw error;
-      }
-
-      router.push('/events/eventListPage');
-    } catch (error) {
-      console.error('削除エラー:', error);
-      setError('イベントの削除に失敗しました');
-    } finally {
-      setShowDeleteModal(false);
     }
   };
 
@@ -787,7 +726,7 @@ export default function EventDetailPage() {
 
                     <div className="flex justify-end gap-4 mt-6">
                       <button
-                        onClick={handleCancel}
+                        onClick={() => setIsEditing(false)}
                         className="px-4 py-2 rounded bg-[#4A4B50] text-[#FCFCFC] hover:bg-opacity-80"
                       >
                         キャンセル
@@ -806,42 +745,6 @@ export default function EventDetailPage() {
           </div>
         </div>
       </div>
-      
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[#2D2D33] p-6 rounded-lg max-w-md w-full mx-4">
-            <h3 className="text-xl font-bold text-[#FCFCFC] mb-4">
-              削除オプションを選択してください
-            </h3>
-            <div className="space-y-3">
-              <button
-                onClick={() => deleteEvent('single')}
-                className="w-full p-3 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-opacity-80"
-              >
-                このイベントのみを削除
-              </button>
-              <button
-                onClick={() => deleteEvent('future')}
-                className="w-full p-3 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-opacity-80"
-              >
-                このイベントと以降のイベントを削除
-              </button>
-              <button
-                onClick={() => deleteEvent('all')}
-                className="w-full p-3 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-opacity-80"
-              >
-                全ての繰り返しイベントを削除
-              </button>
-            </div>
-            <button
-              onClick={() => setShowDeleteModal(false)}
-              className="w-full mt-4 p-3 rounded bg-[#4A4B50] text-[#FCFCFC] hover:bg-opacity-80"
-            >
-              キャンセル
-            </button>
-          </div>
-        </div>
-      )}
       
       {/* 出席・欠席ボタンを画面下部に固定 */}
       <div className="fixed bottom-16 left-0 right-0 bg-[#1D1D21] p-4 border-t border-gray-700">
