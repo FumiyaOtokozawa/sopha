@@ -27,6 +27,8 @@ interface Event {
   ownerName?: string;
   genre: string;
   repeat_id?: number | null;
+  format: 'offline' | 'online' | 'hybrid';
+  url?: string;
 }
 
 interface EventParticipant {
@@ -486,6 +488,28 @@ export default function EventDetailPage() {
                       
                       <p className="text-sm text-gray-400">主催者：{event.ownerName}</p>
                     </div>
+
+                    <div>
+                      <h3 className="font-medium mb-1">開催形式</h3>
+                      <p className="text-gray-300">
+                        {event.format === 'offline' ? 'オフライン' :
+                         event.format === 'online' ? 'オンライン' : 'ハイブリッド'}
+                      </p>
+                    </div>
+
+                    {event.url && (
+                      <div>
+                        <h3 className="font-medium mb-1">参加URL</h3>
+                        <a 
+                          href={event.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:underline"
+                        >
+                          {event.url}
+                        </a>
+                      </div>
+                    )}
 
                     {event.description && (
                       <div className="mt-6 pt-4 border-t border-gray-700">

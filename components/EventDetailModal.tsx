@@ -81,6 +81,8 @@ export default function EventDetailModal({ event, open, onClose, onEventUpdated 
           description: editedEvent.description,
           genre: editedEvent.genre,
           abbreviation: editedEvent.abbreviation,
+          format: editedEvent.format,
+          url: editedEvent.url,
         })
         .eq('event_id', editedEvent.event_id);
 
@@ -295,6 +297,40 @@ export default function EventDetailModal({ event, open, onClose, onEventUpdated 
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-400">
+                  開催形式<span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={editedEvent?.format}
+                  onChange={(e) => setEditedEvent(prev => ({ 
+                    ...prev!, 
+                    format: e.target.value as 'offline' | 'online' | 'hybrid'
+                  }))}
+                  className="w-full h-10 bg-[#1D1D21] rounded px-3 text-[#FCFCFC]"
+                  required
+                >
+                  <option value="offline">オフライン</option>
+                  <option value="online">オンライン</option>
+                  <option value="hybrid">ハイブリッド</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-400">
+                  URL
+                  {editedEvent?.format === 'online' && <span className="text-red-500">*</span>}
+                </label>
+                <input
+                  type="url"
+                  value={editedEvent?.url}
+                  onChange={(e) => setEditedEvent(prev => ({ ...prev!, url: e.target.value }))}
+                  className="w-full h-10 bg-[#1D1D21] rounded px-3 text-[#FCFCFC]"
+                  required={editedEvent?.format === 'online'}
+                  placeholder="https://..."
+                />
+              </div>
+
               <div className="flex justify-end gap-4">
                 <div className="flex-1 flex justify-start">
                   <button
@@ -392,6 +428,28 @@ export default function EventDetailModal({ event, open, onClose, onEventUpdated 
               )}
               
               <p className="text-gray-400">主催者：{event.ownerName}</p>
+
+              <div>
+                <h3 className="font-medium mb-1">開催形式</h3>
+                <p className="text-gray-300">
+                  {event.format === 'offline' ? 'オフライン' :
+                   event.format === 'online' ? 'オンライン' : 'ハイブリッド'}
+                </p>
+              </div>
+
+              {event.url && (
+                <div>
+                  <h3 className="font-medium mb-1">参加URL</h3>
+                  <a 
+                    href={event.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:underline"
+                  >
+                    {event.url}
+                  </a>
+                </div>
+              )}
             </div>
           )}
         </div>

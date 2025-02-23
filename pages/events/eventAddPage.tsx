@@ -21,6 +21,8 @@ interface EventForm {
   recurringType: string;
   recurringEndDate: Date | null;
   abbreviation: string;
+  format: 'offline' | 'online' | 'hybrid';
+  url?: string;
 }
 
 const EventAddPage = () => {
@@ -36,6 +38,8 @@ const EventAddPage = () => {
     recurringType: 'weekly',
     recurringEndDate: null,
     abbreviation: '',
+    format: 'offline',
+    url: '',
   });
   const [error, setError] = useState<string>('');
 
@@ -124,6 +128,8 @@ const EventAddPage = () => {
             genre: formData.genre,
             repeat_id: repeat_id,
             abbreviation: formData.abbreviation,
+            format: formData.format,
+            url: formData.url,
           });
 
           // 次の日付を計算
@@ -172,23 +178,27 @@ const EventAddPage = () => {
           ? maxEventData[0].event_id + 1 
           : 1;
 
+        const eventData = {
+          event_id: nextEventId,
+          title: formData.title,
+          start_date: startDate ? new Date(startDate.getTime() - (startDate.getTimezoneOffset() * 60000)).toISOString() : null,
+          end_date: endDate ? new Date(endDate.getTime() - (endDate.getTimezoneOffset() * 60000)).toISOString() : null,
+          place: formData.place,
+          description: formData.description,
+          owner: userData.emp_no,
+          created_by: userData.emp_no,
+          updated_by: userData.emp_no,
+          act_kbn: true,
+          genre: formData.genre,
+          repeat_id: null,
+          abbreviation: formData.abbreviation,
+          format: formData.format,
+          url: formData.url,
+        };
+
         const { error: insertError } = await supabase
           .from('EVENT_LIST')
-          .insert({
-            event_id: nextEventId,
-            title: formData.title,
-            start_date: startDate ? new Date(startDate.getTime() - (startDate.getTimezoneOffset() * 60000)).toISOString() : null,
-            end_date: endDate ? new Date(endDate.getTime() - (endDate.getTimezoneOffset() * 60000)).toISOString() : null,
-            place: formData.place,
-            description: formData.description,
-            owner: userData.emp_no,
-            created_by: userData.emp_no,
-            updated_by: userData.emp_no,
-            act_kbn: true,
-            genre: formData.genre,
-            repeat_id: null,
-            abbreviation: formData.abbreviation,
-          });
+          .insert(eventData);
 
         if (insertError) throw insertError;
       }
@@ -219,26 +229,46 @@ const EventAddPage = () => {
         <h1 className="text-xl font-bold mb-4 text-[#FCFCFC]">イベント追加</h1>
         
         <form onSubmit={handleSubmit} className="max-w-xl mx-auto">
-          <div className="bg-[#2D2D33] rounded-lg p-6 space-y-4">
-            {/* イベント種別 */}
-            <div>
-              <label className="block text-sm font-medium mb-1 text-[#FCFCFC]">
-                イベント種別<span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.genre}
-                onChange={(e) => setFormData({...formData, genre: e.target.value})}
-                className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
-                required
-              >
-                <option value="0">非公式イベント</option>
-                <option value="1">公式イベント</option>
-              </select>
+          <div className="bg-[#2D2D33] rounded-lg p-4 space-y-3">
+            {/* イベント種別と開催形式を横並びに */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* イベント種別 */}
+              <div>
+                <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
+                  イベント種別<span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.genre}
+                  onChange={(e) => setFormData({...formData, genre: e.target.value})}
+                  className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
+                  required
+                >
+                  <option value="0">非公式イベント</option>
+                  <option value="1">公式イベント</option>
+                </select>
+              </div>
+
+              {/* 開催形式 */}
+              <div>
+                <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
+                  開催形式<span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.format}
+                  onChange={(e) => setFormData({...formData, format: e.target.value as 'offline' | 'online' | 'hybrid'})}
+                  className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
+                  required
+                >
+                  <option value="offline">オフライン</option>
+                  <option value="online">オンライン</option>
+                  <option value="hybrid">ハイブリッド</option>
+                </select>
+              </div>
             </div>
 
             {/* タイトル */}
             <div>
-              <label className="block text-sm font-medium mb-1 text-[#FCFCFC]">
+              <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
                 タイトル<span className="text-red-500">*</span>
               </label>
               <input
@@ -252,7 +282,7 @@ const EventAddPage = () => {
 
             {/* 省略名入力フィールドを追加 */}
             <div>
-              <label className="block text-sm font-medium mb-1 text-[#FCFCFC]">
+              <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
                 省略名（全角3文字以内）
               </label>
               <input
@@ -270,9 +300,9 @@ const EventAddPage = () => {
             </div>
 
             {/* 日時選択 */}
-            <div className="flex flex-row gap-4 w-full">
+            <div className="flex flex-row gap-3 w-full">
               <div className="w-1/2">
-                <label className="block text-sm font-medium mb-1 text-[#FCFCFC]">
+                <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
                   開始日時<span className="text-red-500">*</span>
                 </label>
                 <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>
@@ -304,7 +334,7 @@ const EventAddPage = () => {
                 </LocalizationProvider>
               </div>
               <div className="w-1/2">
-                <label className="block text-sm font-medium mb-1 text-[#FCFCFC]">
+                <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
                   終了日時<span className="text-red-500">*</span>
                 </label>
                 <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>
@@ -339,7 +369,7 @@ const EventAddPage = () => {
 
             {/* 場所 */}
             <div>
-              <label className="block text-sm font-medium mb-1 text-[#FCFCFC]">
+              <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
                 場所<span className="text-red-500">*</span>
               </label>
               <input
@@ -351,9 +381,25 @@ const EventAddPage = () => {
               />
             </div>
 
+            {/* URL - 場所の直後に移動 */}
+            <div>
+              <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
+                URL
+                {formData.format === 'online' && <span className="text-red-500">*</span>}
+              </label>
+              <input
+                type="url"
+                value={formData.url}
+                onChange={(e) => setFormData({...formData, url: e.target.value})}
+                className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
+                required={formData.format === 'online'}
+                placeholder="https://..."
+              />
+            </div>
+
             {/* 説明 */}
             <div>
-              <label className="block text-sm font-medium mb-1 text-[#FCFCFC]">
+              <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
                 説明
               </label>
               <textarea
@@ -365,7 +411,7 @@ const EventAddPage = () => {
 
             {/* 繰り返し設定 */}
             <div>
-              <label className="flex items-center text-sm font-medium text-[#FCFCFC]">
+              <label className="flex items-center text-xs font-medium text-[#FCFCFC]">
                 <input
                   type="checkbox"
                   checked={formData.isRecurring}
@@ -377,9 +423,9 @@ const EventAddPage = () => {
             </div>
 
             {formData.isRecurring && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-[#FCFCFC]">
+                  <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
                     繰り返しタイプ
                   </label>
                   <select
@@ -394,7 +440,7 @@ const EventAddPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-[#FCFCFC]">
+                  <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
                     繰り返し終了日<span className="text-red-500">*</span>
                   </label>
                   <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>

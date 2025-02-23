@@ -13,6 +13,7 @@ import { Box } from '@mui/material';
 import FooterMenu from '../../components/FooterMenu';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import EventDetailModal from '../../components/EventDetailModal';
+import { Event } from '../../types/event';
 
 // カレンダーのローカライズ設定
 const locales = {
@@ -82,23 +83,6 @@ const CustomEvent = React.memo(function CustomEvent({ event }: CustomEventProps)
   );
 });
 
-// Event型の更新
-interface Event {
-  event_id: number;
-  title: string;
-  abbreviation: string;
-  start_date: string;
-  end_date: string;
-  start: Date;
-  end: Date;
-  place: string;
-  owner: string;
-  ownerName: string;
-  genre: string;
-  description?: string;
-  repeat_id?: number | null;
-}
-
 export default function EventListPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
@@ -155,7 +139,9 @@ export default function EventListPage() {
       ownerName: userMap.get(event.owner) || '未設定',
       genre: event.genre,
       description: event.description,
-      repeat_id: event.repeat_id
+      repeat_id: event.repeat_id,
+      format: event.format,
+      url: event.url
     }));
 
     setEvents(formattedEvents);
@@ -187,19 +173,17 @@ export default function EventListPage() {
     fetchEvents(); // イベント一覧を再取得
   };
 
-  // 繰り返しイベントをフィルタリングする関数を改善
+  // イベントのフィルタリング部分を修正
   const filterRepeatingEvents = (events: Event[]) => {
-    // 前日の23:59:59を計算
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     yesterday.setHours(23, 59, 59);
     
-    // 前日23:59:59以降のイベントをフィルタリング
-    const futureEvents = events.filter(event => event.start > yesterday);
+    // start_dateを使用するように変更
+    const futureEvents = events.filter(event => new Date(event.start_date) > yesterday);
     
     if (showAllEvents) return futureEvents;
 
-    // repeat_idを使用してグループ化
     const eventGroups = futureEvents.reduce((groups, event) => {
       const groupKey = event.repeat_id ? `repeat_${event.repeat_id}` : `single_${event.event_id}`;
       if (!groups[groupKey]) {
@@ -211,9 +195,9 @@ export default function EventListPage() {
 
     return Object.values(eventGroups).map(group => {
       if (group.length === 1) return group[0];
-      // 同じrepeat_idを持つイベントの中で最も近い日付のものを返す
+      // start_dateを使用するように変更
       return group.reduce((nearest, event) => {
-        if (!nearest || event.start < nearest.start) return event;
+        if (!nearest || new Date(event.start_date) < new Date(nearest.start_date)) return event;
         return nearest;
       });
     });
@@ -233,34 +217,35 @@ export default function EventListPage() {
           <div className={`w-3.5 h-3.5 rounded-full ${!showAllEvents ? 'bg-white' : 'bg-gray-600'}`} />
         </button>
       </div>
-      {filterRepeatingEvents(events.sort((a, b) => a.start.getTime() - b.start.getTime()))
-        .map((event) => (
-          <div
-            key={event.event_id}
-            className="mb-4 p-4 bg-[#37373F] rounded-lg cursor-pointer hover:bg-[#404049] transition-colors"
-            onClick={() => handleEventClick(event)}
-          >
-            <div className="text-lg font-medium mb-2 flex items-center gap-2">
-              {event.genre === '1' && (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#8E93DA]" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              )}
-              {event.title}
-              {event.repeat_id && (
-                <span className="ml-2 text-sm text-gray-400">（繰り返し）</span>
-              )}
-            </div>
-            <div className="text-sm text-gray-400">
-              <div>場　所：{event.place || '未定'}</div>
-              <div>主催者：{event.ownerName}</div>
-              <div>日　時：
-                {format(event.start, 'M月d日 HH:mm', { locale: ja })} - 
-                {format(event.end, ' M月d日 HH:mm', { locale: ja })}
-              </div>
+      {filterRepeatingEvents(events.sort((a, b) => 
+        new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+      )).map((event) => (
+        <div
+          key={event.event_id}
+          className="mb-4 p-4 bg-[#37373F] rounded-lg cursor-pointer hover:bg-[#404049] transition-colors"
+          onClick={() => handleEventClick(event)}
+        >
+          <div className="text-lg font-medium mb-2 flex items-center gap-2">
+            {event.genre === '1' && (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#8E93DA]" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            )}
+            {event.title}
+            {event.repeat_id && (
+              <span className="ml-2 text-sm text-gray-400">（繰り返し）</span>
+            )}
+          </div>
+          <div className="text-sm text-gray-400">
+            <div>場　所：{event.place || '未定'}</div>
+            <div>主催者：{event.ownerName}</div>
+            <div>日　時：
+              {format(new Date(event.start_date), 'M月d日 HH:mm', { locale: ja })} - 
+              {format(new Date(event.end_date), ' M月d日 HH:mm', { locale: ja })}
             </div>
           </div>
-        ))}
+        </div>
+      ))}
     </div>
   );
 
@@ -306,8 +291,8 @@ export default function EventListPage() {
               <Calendar<Event>
                 localizer={localizer}
                 events={events}
-                startAccessor="start"
-                endAccessor="end"
+                startAccessor={(event) => new Date(event.start_date)}
+                endAccessor={(event) => new Date(event.end_date)}
                 culture='ja'
                 onSelectEvent={handleEventClick}
                 defaultView="month"
