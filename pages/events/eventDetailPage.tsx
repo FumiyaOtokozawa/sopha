@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../utils/supabaseClient';
 import Header from '../../components/Header';
@@ -11,6 +11,10 @@ import { Box, Avatar } from '@mui/material';
 import FooterMenu from '../../components/FooterMenu';
 import ChangeCircleIcon from '@mui/icons-material/ChangeCircle';
 import { enUS } from 'date-fns/locale';
+import { handleAttendanceConfirmation } from '../../utils/attendanceApprovalLogic';
+import Tooltip, { tooltipClasses, TooltipProps } from '@mui/material/Tooltip';
+import { styled } from '@mui/material/styles';
+import InfoIcon from '@mui/icons-material/Info';
 
 interface Event {
   event_id: number;
@@ -42,6 +46,112 @@ interface SupabaseEntry {
     namae: string;
   };
 }
+
+export const isConfirmationAllowed = (startDate: string): { isValid: boolean; message?: string } => {
+  const eventStartTime = new Date(startDate);
+  const now = new Date();
+  
+  const jstOffset = 9 * 60;
+  const eventStartTimeJST = new Date(eventStartTime.getTime() + (jstOffset * 60 * 1000));
+  const nowJST = new Date(now.getTime() + (jstOffset * 60 * 1000));
+
+  const timeDifference = nowJST.getTime() - eventStartTimeJST.getTime();
+  const hoursDifference = timeDifference / (1000 * 60 * 60);
+
+  if (timeDifference < 0) {
+    return {
+      isValid: false,
+      message: 'イベントはまだ開始していません'
+    };
+  }
+
+  if (hoursDifference > 24) {
+    return {
+      isValid: false,
+      message: 'イベント開始から24時間以上経過しているため、出席確定はできません'
+    };
+  }
+
+  return { isValid: true };
+};
+
+// カスタムTooltipの定義を追加
+const CustomTooltip = styled(({ className, ...props }: { className?: string } & TooltipProps) => (
+  <Tooltip {...props} classes={{ popper: className }} />
+))(() => ({
+  [`& .${tooltipClasses.tooltip}`]: {
+    backgroundColor: '#2D2D33',
+    color: '#FCFCFC',
+    maxWidth: 300,
+    fontSize: '0.875rem',
+    border: '1px solid #4A4B50',
+    borderRadius: '8px',
+    padding: '12px 16px',
+    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+  },
+  [`& .${tooltipClasses.arrow}`]: {
+    color: '#2D2D33',
+    '&::before': {
+      border: '1px solid #4A4B50',
+    },
+  },
+}));
+
+// カスタムTooltipコンポーネントを作成
+const TooltipButton = ({ 
+  message, 
+  isDisabled, 
+  onClick 
+}: { 
+  message?: string;
+  isDisabled: boolean;
+  onClick: () => void;
+}) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div className="relative w-full">
+      <button
+        onClick={() => {
+          if (!isDisabled) {
+            onClick();
+          }
+        }}
+        disabled={isDisabled}
+        className={`
+          w-full py-3 rounded font-bold flex items-center justify-center gap-2
+          ${!isDisabled 
+            ? 'bg-[#5b63d3] text-white hover:bg-opacity-80' 
+            : 'bg-gray-500 text-gray-300 cursor-not-allowed'}
+        `}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+        </svg>
+        出席を確定する
+      </button>
+      {isDisabled && message && (
+        <CustomTooltip
+          title={message}
+          placement="top"
+          arrow
+          open={showTooltip}
+          onClose={() => setShowTooltip(false)}
+        >
+          <button
+            onClick={() => {
+              setShowTooltip(true);
+              setTimeout(() => setShowTooltip(false), 2000);
+            }}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300"
+          >
+            <InfoIcon />
+          </button>
+        </CustomTooltip>
+      )}
+    </div>
+  );
+};
 
 export default function EventDetailPage() {
   const router = useRouter();
@@ -263,187 +373,22 @@ export default function EventDetailPage() {
     }
   };
 
-  const handleAttendanceConfirmation = async (): Promise<void> => {
+  const handleAttendanceConfirmationClick = async (): Promise<void> => {
     try {
-      console.log('出席確定処理開始');
+      const result = await handleAttendanceConfirmation(
+        supabase,
+        router.query.event_id,
+        event,
+        currentUserEmpNo
+      );
 
-      // 出席者（status=1）のみを取得
-      const { data: attendees, error: attendeesError } = await supabase
-        .from('EVENT_TEMP_ENTRY')
-        .select('emp_no, status')
-        .eq('event_id', router.query.event_id)
-        .eq('status', '1');  // status=1の出席予定者のみを取得
-
-      if (attendeesError) throw attendeesError;
-      console.log('取得した参加者データ:', attendees);
-
-      // 出席者のみを抽出
-      const presentAttendees = attendees?.map(a => a.emp_no) || [];
-      console.log('出席者:', presentAttendees);
-
-      // 1. EVENT_PAR_HISTORYの最新history_id取得
-      const { data: maxHistoryId, error: maxHistoryError } = await supabase
-        .from('EVENT_PAR_HISTORY')
-        .select('history_id')
-        .order('history_id', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (maxHistoryError && maxHistoryError.code !== 'PGRST116') throw maxHistoryError;
-      const nextHistoryId = (maxHistoryId?.history_id || 0) + 1;
-      console.log('次のhistory_id:', nextHistoryId);
-
-      // 出席履歴の追加
-      const { error: historyError } = await supabase
-        .from('EVENT_PAR_HISTORY')
-        .insert(
-          presentAttendees.map((emp_no, index) => ({
-            history_id: nextHistoryId + index,
-            emp_no: emp_no,
-            event_id: Number(router.query.event_id),
-            participated_at: new Date().toISOString().split('T')[0]
-          }))
-        );
-
-      if (historyError) throw historyError;
-      console.log('出席履歴追加完了');
-
-      // 2. EMP_CIZ_HISTORYの最新history_id取得
-      const { data: maxCizHistoryId, error: maxCizHistoryError } = await supabase
-        .from('EMP_CIZ_HISTORY')
-        .select('history_id')
-        .order('history_id', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (maxCizHistoryError && maxCizHistoryError.code !== 'PGRST116') throw maxCizHistoryError;
-      const nextCizHistoryId = (maxCizHistoryId?.history_id || 0) + 1;
-      console.log('次のCIZ履歴ID:', nextCizHistoryId);
-
-      // CIZポイントの履歴追加
-      const { error: cizHistoryError } = await supabase
-        .from('EMP_CIZ_HISTORY')
-        .insert(
-          presentAttendees.map((emp_no, index) => ({
-            history_id: nextCizHistoryId + index,
-            emp_no: emp_no,
-            change_type: 'add',
-            ciz: 1000,
-            event_id: Number(router.query.event_id),
-            reason: `${event?.title} 出席ポイント`,
-            created_at: new Date().toISOString(),
-            created_by: currentUserEmpNo?.toString()
-          }))
-        );
-
-      if (cizHistoryError) throw cizHistoryError;
-      console.log('CIZポイント履歴追加完了');
-
-      // CIZポイント履歴追加の後に、参加カウントの更新処理を追加
-      console.log('参加カウント更新開始');
-      for (const emp_no of presentAttendees) {
-        // 既存のカウントを取得
-        const { data: currentCount, error: countError } = await supabase
-          .from('EVENT_PARTICIPATION')
-          .select('official_count, unofficial_count')
-          .eq('emp_no', emp_no)
-          .single();
-
-        if (countError && countError.code !== 'PGRST116') throw countError;
-
-        const isOfficialEvent = event?.genre === '1';
-        console.log(`イベント種別: ${isOfficialEvent ? '公式' : '非公式'}`);
-
-        if (currentCount) {
-          // 既存レコードの更新
-          const { error: updateCountError } = await supabase
-            .from('EVENT_PARTICIPATION')
-            .update({
-              official_count: isOfficialEvent 
-                ? (currentCount.official_count || 0) + 1 
-                : currentCount.official_count,
-              unofficial_count: !isOfficialEvent 
-                ? (currentCount.unofficial_count || 0) + 1 
-                : currentCount.unofficial_count,
-              updated_at: new Date().toISOString().split('T')[0]
-            })
-            .eq('emp_no', emp_no);
-
-          if (updateCountError) throw updateCountError;
-          console.log(`社員番号 ${emp_no} の参加カウント更新完了`);
-        } else {
-          // 新規レコードの作成
-          const { error: insertCountError } = await supabase
-            .from('EVENT_PARTICIPATION')
-            .insert({
-              emp_no: emp_no,
-              official_count: isOfficialEvent ? 1 : 0,
-              unofficial_count: !isOfficialEvent ? 1 : 0,
-              updated_at: new Date().toISOString().split('T')[0]
-            });
-
-          if (insertCountError) throw insertCountError;
-          console.log(`社員番号 ${emp_no} の参加カウント新規作成完了`);
-        }
-      }
-      console.log('参加カウント更新完了');
-
-      // CIZポイントの更新
-      console.log('CIZポイント更新開始');
-      for (const emp_no of presentAttendees) {
-        const { data: currentCiz, error: cizError } = await supabase
-          .from('EMP_CIZ')
-          .select('total_ciz')
-          .eq('emp_no', emp_no)
-          .single();
-
-        if (cizError && cizError.code !== 'PGRST116') throw cizError;
-        console.log(`社員番号 ${emp_no} の現在のCIZ:`, currentCiz?.total_ciz);
-
-        if (currentCiz) {
-          // 既存レコードの更新
-          const { error: updateCizError } = await supabase
-            .from('EMP_CIZ')
-            .update({
-              total_ciz: (currentCiz.total_ciz || 0) + 1000,
-              updated_at: new Date().toISOString(),
-              updated_by: currentUserEmpNo?.toString()
-            })
-            .eq('emp_no', emp_no);
-
-          if (updateCizError) throw updateCizError;
-          console.log(`社員番号 ${emp_no} のCIZ更新完了`);
-        } else {
-          // 新規レコードの作成
-          const { error: insertCizError } = await supabase
-            .from('EMP_CIZ')
-            .insert({
-              emp_no: emp_no,
-              total_ciz: 1000,
-              updated_at: new Date().toISOString(),
-              updated_by: currentUserEmpNo?.toString()
-            });
-
-          if (insertCizError) throw insertCizError;
-          console.log(`社員番号 ${emp_no} のCIZ新規作成完了`);
-        }
-      }
-      console.log('CIZポイント更新完了');
-
-      // 出席者のステータスを11に更新
-      if (presentAttendees.length > 0) {
-        console.log('出席者のステータス更新開始');
-        const { error: updatePresentError } = await supabase
-          .from('EVENT_TEMP_ENTRY')
-          .update({ status: '11', updated_at: new Date().toISOString() })
-          .eq('event_id', router.query.event_id)
-          .in('emp_no', presentAttendees);
-
-        if (updatePresentError) throw updatePresentError;
-        console.log('出席者のステータス更新完了');
+      if (!result.success) {
+        // エラーではなく警告として表示
+        alert(result.message);
+        return;
       }
 
-      // 参加者一覧を再取得
+      // 成功時のみ参加者一覧を再取得
       const { data: updatedParticipants, error: participantsError } = await supabase
         .from('EVENT_TEMP_ENTRY')
         .select(`
@@ -466,16 +411,23 @@ export default function EventDetailPage() {
       })) || [];
 
       setParticipants(formattedParticipants);
-      console.log('参加者一覧の更新完了');
-
-      console.log('全ての処理が完了しました');
-      alert('出席を確定しました');
-
+      alert(result.message);
     } catch (error) {
       console.error('出席確定処理エラー:', error);
       alert('出席確定処理に失敗しました');
     }
   };
+
+  // ボタンの活性状態とメッセージを管理
+  const confirmationStatus = useMemo(() => {
+    if (!event?.start_date) {
+      return {
+        isValid: false,
+        message: 'イベントの開始日時が設定されていません'
+      };
+    }
+    return isConfirmationAllowed(event.start_date);
+  }, [event?.start_date]);
 
   if (!event) {
     return <div>読み込み中...</div>;
@@ -749,16 +701,11 @@ export default function EventDetailPage() {
       <div className="fixed bottom-16 left-0 right-0 bg-[#1D1D21] p-4 border-t border-gray-700">
         <div className="max-w-2xl mx-auto">
           {isOwner ? (
-            // 主催者用の出席確定ボタン
-            <button
-              onClick={handleAttendanceConfirmation}
-              className="w-full py-3 rounded bg-[#5b63d3] text-white font-bold hover:bg-opacity-80 flex items-center justify-center gap-2"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-              出席を確定する
-            </button>
+            <TooltipButton
+              message={!confirmationStatus.isValid ? confirmationStatus.message : undefined}
+              isDisabled={!confirmationStatus.isValid}
+              onClick={handleAttendanceConfirmationClick}
+            />
           ) : (
             <>
               {entryStatus ? (
