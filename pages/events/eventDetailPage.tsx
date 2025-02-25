@@ -15,13 +15,15 @@ import { handleAttendanceConfirmation } from '../../utils/attendanceApprovalLogi
 import Tooltip, { tooltipClasses, TooltipProps } from '@mui/material/Tooltip';
 import { styled } from '@mui/material/styles';
 import InfoIcon from '@mui/icons-material/Info';
+import EventEditForm from '../../components/EventEditForm';
 
 interface Event {
   event_id: number;
   title: string;
   start_date: string;
   end_date: string;
-  place: string;
+  venue_id: number;
+  venue_nm?: string;
   description?: string;
   owner: string;
   ownerName?: string;
@@ -29,6 +31,7 @@ interface Event {
   repeat_id?: number | null;
   format: 'offline' | 'online' | 'hybrid';
   url?: string;
+  abbreviation?: string;
 }
 
 interface EventParticipant {
@@ -165,6 +168,7 @@ export default function EventDetailPage() {
   const [currentUserEmpNo, setCurrentUserEmpNo] = useState<number | null>(null);
   const [entryStatus, setEntryStatus] = useState<'1' | '2' | '11' | null>(null);
   const [participants, setParticipants] = useState<EventParticipant[]>([]);
+  const [showDeleteOptions, setShowDeleteOptions] = useState(false);
 
   useEffect(() => {
     console.log('Router query:', router.query);
@@ -180,40 +184,32 @@ export default function EventDetailPage() {
         // イベント情報を取得
         const { data: eventData, error: eventError } = await supabase
           .from('EVENT_LIST')
-          .select('*')
+          .select(`
+            *,
+            venue:EVENT_VENUE!venue_id(venue_nm)
+          `)
           .eq('event_id', Number(router.query.event_id))
           .single();
 
         if (eventError) throw eventError;
 
-        // 現在のユーザー情報を取得
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('ユーザー情報が取得できません');
-
-        // ユーザーのemp_noを取得
-        const { data: userData, error: userError } = await supabase
-          .from('USER_INFO')
-          .select('emp_no')
-          .eq('email', user.email)
-          .single();
-
-        if (userError) throw userError;
-
         // オーナー情報を取得
-        const { data: ownerData, error: ownerError } = await supabase
+        const { data: ownerData } = await supabase
           .from('USER_INFO')
           .select('myoji, namae')
           .eq('emp_no', eventData.owner)
           .single();
 
-        if (!ownerError && ownerData) {
-          eventData.ownerName = `${ownerData.myoji} ${ownerData.namae}`;
-        }
+        const formattedEvent = {
+          ...eventData,
+          venue_nm: eventData.venue?.venue_nm,
+          ownerName: ownerData ? `${ownerData.myoji} ${ownerData.namae}` : undefined
+        };
 
-        setEvent(eventData);
-        setEditedEvent(eventData);
-        setIsOwner(userData.emp_no === eventData.owner);
-        setCurrentUserEmpNo(userData.emp_no);
+        setEvent(formattedEvent);
+        setEditedEvent(formattedEvent);
+        setIsOwner(true);
+        setCurrentUserEmpNo(eventData.owner);
 
       } catch (error) {
         console.error('エラー:', error);
@@ -280,23 +276,38 @@ export default function EventDetailPage() {
     fetchParticipants();
   }, [router.query, currentUserEmpNo]);
 
+  // 編集ボタンを追加
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  // 編集キャンセルボタンのハンドラー
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditedEvent(event);
+    setError('');
+  };
+
+  // 保存ボタンのハンドラー
   const handleSave = async () => {
     if (!editedEvent) return;
 
     try {
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('EVENT_LIST')
         .update({
           title: editedEvent.title,
           start_date: editedEvent.start_date,
           end_date: editedEvent.end_date,
-          place: editedEvent.place,
+          venue_id: editedEvent.venue_id,
           description: editedEvent.description,
-          genre: editedEvent.genre
+          genre: editedEvent.genre,
+          format: editedEvent.format,
+          url: editedEvent.url,
         })
-        .eq('event_id', Number(router.query.event_id));
+        .eq('event_id', editedEvent.event_id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
       setEvent(editedEvent);
       setIsEditing(false);
@@ -431,16 +442,65 @@ export default function EventDetailPage() {
     return isConfirmationAllowed(event.start_date);
   }, [event?.start_date]);
 
+  // 削除ハンドラーを追加
+  const handleDelete = async (deleteType: 'single' | 'all' | 'future') => {
+    if (!event) return;
+
+    // 削除確認メッセージを設定
+    const confirmMessages = {
+      single: '本当にこのイベントを削除しますか？',
+      all: '本当に全ての繰り返しイベントを削除しますか？',
+      future: '本当にこのイベントと以降のイベントを全て削除しますか？'
+    };
+
+    // 確認ダイアログを表示
+    if (!window.confirm(confirmMessages[deleteType])) {
+      return;
+    }
+
+    try {
+      if (deleteType === 'single') {
+        const { error } = await supabase
+          .from('EVENT_LIST')
+          .update({ act_kbn: false })
+          .eq('event_id', event.event_id);
+        
+        if (error) throw error;
+      } else if (deleteType === 'all') {
+        const { error } = await supabase
+          .from('EVENT_LIST')
+          .update({ act_kbn: false })
+          .eq('repeat_id', event.repeat_id);
+        
+        if (error) throw error;
+      } else if (deleteType === 'future') {
+        const { error } = await supabase
+          .from('EVENT_LIST')
+          .update({ act_kbn: false })
+          .eq('repeat_id', event.repeat_id)
+          .gte('start_date', event.start_date);
+        
+        if (error) throw error;
+      }
+
+      router.push('/events/eventListPage');
+    } catch (error) {
+      console.error('削除エラー:', error);
+      setError('イベントの削除に失敗しました');
+    }
+  };
+
   if (!event) {
     return <div>読み込み中...</div>;
   }
 
   return (
     <Box sx={{ pb: 7 }}>
-      <div>
+      <div className="min-h-screen flex flex-col">
         <Header />
-        <div className="p-4">
+        <div className="flex-1 p-4">
           <div className="max-w-2xl mx-auto">
+            {/* 主催者メッセージ */}
             {isOwner && (
               <div className="mb-4 bg-[#8E93DA] bg-opacity-10 border border-[#8E93DA] rounded-lg p-3 flex items-center justify-center">
                 <div className="flex items-center gap-2">
@@ -451,14 +511,75 @@ export default function EventDetailPage() {
                 </div>
               </div>
             )}
-            <div className="bg-[#2D2D33] rounded-lg p-6">
-              {error && (
-                <div className="mb-4 text-red-500">{error}</div>
+
+            <div className="bg-[#2D2D33] rounded-lg">
+              {/* 編集・削除ボタン */}
+              {isOwner && !isEditing && (
+                <div className="p-4 border-b border-gray-700 flex justify-end gap-2">
+                  <button
+                    onClick={() => {
+                      if (event?.repeat_id) {
+                        setShowDeleteOptions(!showDeleteOptions);
+                      } else {
+                        handleDelete('single');
+                      }
+                    }}
+                    className="px-4 py-2 rounded bg-red-500 text-white hover:bg-opacity-80 flex items-center gap-2 relative"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    削除
+                    {showDeleteOptions && event?.repeat_id && (
+                      <div className="absolute right-0 top-12 w-72 bg-[#2D2D33] rounded-lg shadow-lg border border-gray-700 z-50">
+                        <div className="p-3 space-y-2">
+                          <button
+                            onClick={() => handleDelete('single')}
+                            className="w-full p-2 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
+                          >
+                            このイベントのみを削除
+                          </button>
+                          <button
+                            onClick={() => handleDelete('future')}
+                            className="w-full p-2 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
+                          >
+                            このイベントと以降のイベントを削除
+                          </button>
+                          <button
+                            onClick={() => handleDelete('all')}
+                            className="w-full p-2 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
+                          >
+                            全ての繰り返しイベントを削除
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleEdit}
+                    className="px-4 py-2 rounded bg-[#4A4B50] text-[#FCFCFC] hover:bg-opacity-80 flex items-center gap-2"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                    編集
+                  </button>
+                </div>
               )}
 
-              <div className="space-y-4">
-                {!isEditing ? (
-                  <div className="space-y-4 text-[#FCFCFC]">
+              {/* イベント詳細内容 */}
+              <div className="p-6">
+                {/* 編集フォーム */}
+                {isEditing ? (
+                  <EventEditForm
+                    event={event}
+                    onSave={handleSave}
+                    onCancel={handleCancel}
+                    editedEvent={editedEvent!}
+                    setEditedEvent={setEditedEvent}
+                  />
+                ) : (
+                  <div className="space-y-4">
                     <div className="space-y-2">
                       <h2 className="text-xl font-bold flex items-center gap-2">
                         {event.genre === '1' && (
@@ -483,7 +604,7 @@ export default function EventDetailPage() {
                       </div>
 
                       <div className="text-sm text-gray-300">
-                        at {event.place || '未定'}
+                        at {event.venue_nm || '未定'}
                       </div>
                       
                       <p className="text-sm text-gray-400">主催者：{event.ownerName}</p>
@@ -622,163 +743,72 @@ export default function EventDetailPage() {
                       </div>
                     </div>
                   </div>
-                ) : (
-                  // 編集フォーム
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1 text-[#FCFCFC]">
-                        タイトル<span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={editedEvent?.title}
-                        onChange={(e) => setEditedEvent(prev => ({ ...prev!, title: e.target.value }))}
-                        className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC]"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-1 text-[#FCFCFC]">
-                        場所<span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={editedEvent?.place}
-                        onChange={(e) => setEditedEvent(prev => ({ ...prev!, place: e.target.value }))}
-                        className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC]"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-1 text-[#FCFCFC]">
-                        説明
-                      </label>
-                      <textarea
-                        value={editedEvent?.description}
-                        onChange={(e) => setEditedEvent(prev => ({ ...prev!, description: e.target.value }))}
-                        className="w-full bg-[#1D1D21] rounded p-2 h-32 text-[#FCFCFC]"
-                      />
-                    </div>
-
-                    <div className="flex gap-4">
-                      <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>
-                        <div className="flex-1">
-                          <label className="block text-sm font-medium mb-1 text-[#FCFCFC]">
-                            開始日時<span className="text-red-500">*</span>
-                          </label>
-                          <DateTimePicker
-                            value={new Date(editedEvent?.start_date || '')}
-                            onChange={(date) => setEditedEvent(prev => ({ ...prev!, start_date: date?.toISOString() || '' }))}
-                            sx={{
-                              width: '100%',
-                              '& .MuiInputBase-root': {
-                                backgroundColor: '#1D1D21',
-                                color: '#FCFCFC',
-                              }
-                            }}
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <label className="block text-sm font-medium mb-1 text-[#FCFCFC]">
-                            終了日時<span className="text-red-500">*</span>
-                          </label>
-                          <DateTimePicker
-                            value={new Date(editedEvent?.end_date || '')}
-                            onChange={(date) => setEditedEvent(prev => ({ ...prev!, end_date: date?.toISOString() || '' }))}
-                            sx={{
-                              width: '100%',
-                              '& .MuiInputBase-root': {
-                                backgroundColor: '#1D1D21',
-                                color: '#FCFCFC',
-                              }
-                            }}
-                          />
-                        </div>
-                      </LocalizationProvider>
-                    </div>
-
-                    <div className="flex justify-end gap-4 mt-6">
-                      <button
-                        onClick={() => setIsEditing(false)}
-                        className="px-4 py-2 rounded bg-[#4A4B50] text-[#FCFCFC] hover:bg-opacity-80"
-                      >
-                        キャンセル
-                      </button>
-                      <button
-                        onClick={handleSave}
-                        className="px-4 py-2 rounded bg-[#8E93DA] text-black font-bold hover:bg-opacity-80"
-                      >
-                        保存
-                      </button>
-                    </div>
-                  </div>
                 )}
               </div>
             </div>
           </div>
         </div>
-      </div>
-      
-      {/* 出席・欠席ボタンを画面下部に固定 */}
-      <div className="fixed bottom-16 left-0 right-0 bg-[#1D1D21] p-4 border-t border-gray-700">
-        <div className="max-w-2xl mx-auto">
-          {isOwner ? (
-            <TooltipButton
-              message={!confirmationStatus.isValid ? confirmationStatus.message : undefined}
-              isDisabled={!confirmationStatus.isValid}
-              onClick={handleAttendanceConfirmationClick}
-            />
-          ) : (
-            <>
-              {entryStatus ? (
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <div 
-                      className={`
-                        text-xl font-bold py-3 rounded-lg text-center w-full
-                        ${entryStatus === '1' 
-                          ? 'bg-green-600 bg-opacity-20 text-green-500' 
-                          : entryStatus === '2' 
-                            ? 'bg-red-600 bg-opacity-20 text-red-500'
-                            : 'bg-blue-600 bg-opacity-20 text-blue-500'
-                        }
-                      `}
-                    >
-                      {entryStatus === '1' ? '出席予定' : entryStatus === '2' ? '欠席予定' : '出席済み'}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => setEntryStatus(null)}
-                    className="text-gray-300 hover:text-white transition-colors duration-200"
-                    aria-label="ステータスを変更"
-                  >
-                    <ChangeCircleIcon sx={{ fontSize: 40 }} />
-                  </button>
-                </div>
+
+        {/* 出席・欠席ボタンを画面下部に固定 */}
+        {!isEditing && (
+          <div className="sticky bottom-16 left-0 right-0 bg-[#1D1D21] p-4 border-t border-gray-700 z-50">
+            <div className="max-w-2xl mx-auto">
+              {isOwner ? (
+                <TooltipButton
+                  message={!confirmationStatus.isValid ? confirmationStatus.message : undefined}
+                  isDisabled={!confirmationStatus.isValid}
+                  onClick={handleAttendanceConfirmationClick}
+                />
               ) : (
-                <div className="flex justify-between gap-4">
-                  <button
-                    onClick={() => handleEventEntry('1')}
-                    className="px-8 py-3 rounded bg-green-600 text-white font-bold hover:bg-opacity-80 flex-1"
-                  >
-                    出席
-                  </button>
-                  <button
-                    onClick={() => handleEventEntry('2')}
-                    className="px-8 py-3 rounded bg-red-600 text-white font-bold hover:bg-opacity-80 flex-1"
-                  >
-                    欠席
-                  </button>
-                </div>
+                <>
+                  {entryStatus ? (
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <div 
+                          className={`
+                            text-xl font-bold py-3 rounded-lg text-center w-full
+                            ${entryStatus === '1' 
+                              ? 'bg-green-600 bg-opacity-20 text-green-500' 
+                              : entryStatus === '2' 
+                                ? 'bg-red-600 bg-opacity-20 text-red-500'
+                                : 'bg-blue-600 bg-opacity-20 text-blue-500'
+                            }
+                          `}
+                        >
+                          {entryStatus === '1' ? '出席予定' : entryStatus === '2' ? '欠席予定' : '出席済み'}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setEntryStatus(null)}
+                        className="text-gray-300 hover:text-white transition-colors duration-200"
+                        aria-label="ステータスを変更"
+                      >
+                        <ChangeCircleIcon sx={{ fontSize: 40 }} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between gap-4">
+                      <button
+                        onClick={() => handleEventEntry('1')}
+                        className="px-8 py-3 rounded bg-green-600 text-white font-bold hover:bg-opacity-80 flex-1"
+                      >
+                        出席
+                      </button>
+                      <button
+                        onClick={() => handleEventEntry('2')}
+                        className="px-8 py-3 rounded bg-red-600 text-white font-bold hover:bg-opacity-80 flex-1"
+                      >
+                        欠席
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
+        <FooterMenu />
       </div>
-      
-      <FooterMenu />
     </Box>
   );
 } 

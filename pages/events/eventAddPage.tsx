@@ -9,12 +9,14 @@ import { ja } from 'date-fns/locale';
 import { Box } from '@mui/material';
 import FooterMenu from '../../components/FooterMenu';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import PlaceSelectModal from '../../components/PlaceSelectModal';
 
 interface EventForm {
   title: string;
   start: Date | null;
   end: Date | null;
-  place: string;
+  venue_id: number | null;
+  venue_nm: string;
   description?: string;
   genre: string;
   isRecurring: boolean;
@@ -31,7 +33,8 @@ const EventAddPage = () => {
     title: '',
     start: null,
     end: null,
-    place: '',
+    venue_id: null,
+    venue_nm: '',
     description: '',
     genre: '0',
     isRecurring: false,
@@ -42,6 +45,7 @@ const EventAddPage = () => {
     url: '',
   });
   const [error, setError] = useState<string>('');
+  const [isPlaceModalOpen, setIsPlaceModalOpen] = useState(false);
 
   // ポータル用のdivをマウント時に作成
   useEffect(() => {
@@ -63,7 +67,7 @@ const EventAddPage = () => {
     e.preventDefault();
     setError('');
 
-    if (!formData.title || !formData.start || !formData.end || !formData.place) {
+    if (!formData.title || !formData.start || !formData.end || !formData.venue_id) {
       setError('必須項目を入力してください');
       return;
     }
@@ -119,7 +123,7 @@ const EventAddPage = () => {
             title: formData.title,
             start_date: new Date(currentStart.getTime() - (currentStart.getTimezoneOffset() * 60000)).toISOString(),
             end_date: new Date(currentEnd.getTime() - (currentEnd.getTimezoneOffset() * 60000)).toISOString(),
-            place: formData.place,
+            venue_id: formData.venue_id,
             description: formData.description,
             owner: userData.emp_no,
             created_by: userData.emp_no,
@@ -183,7 +187,7 @@ const EventAddPage = () => {
           title: formData.title,
           start_date: startDate ? new Date(startDate.getTime() - (startDate.getTimezoneOffset() * 60000)).toISOString() : null,
           end_date: endDate ? new Date(endDate.getTime() - (endDate.getTimezoneOffset() * 60000)).toISOString() : null,
-          place: formData.place,
+          venue_id: formData.venue_id,
           description: formData.description,
           owner: userData.emp_no,
           created_by: userData.emp_no,
@@ -220,6 +224,15 @@ const EventAddPage = () => {
     } else {
       setFormData({ ...formData, recurringEndDate: null });
     }
+  };
+
+  // 場所選択時のハンドラーを追加
+  const handlePlaceSelect = (venue: { id: number; name: string }) => {
+    setFormData({
+      ...formData,
+      venue_id: venue.id,
+      venue_nm: venue.name
+    });
   };
 
   return (
@@ -374,9 +387,11 @@ const EventAddPage = () => {
               </label>
               <input
                 type="text"
-                value={formData.place}
-                onChange={(e) => setFormData({...formData, place: e.target.value})}
-                className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
+                value={formData.venue_nm}
+                onClick={() => setIsPlaceModalOpen(true)}
+                readOnly
+                className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px] cursor-pointer"
+                placeholder="クリックして場所を選択"
                 required
               />
             </div>
@@ -497,6 +512,11 @@ const EventAddPage = () => {
         </form>
       </div>
       <FooterMenu />
+      <PlaceSelectModal
+        open={isPlaceModalOpen}
+        onClose={() => setIsPlaceModalOpen(false)}
+        onSelect={handlePlaceSelect}
+      />
     </Box>
   );
 };

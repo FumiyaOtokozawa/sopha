@@ -5,16 +5,14 @@ export interface Event {
   title: string;
   start_date: string;
   end_date: string;
-  place: string;
+  venue_id: number;
+  venue_nm?: string;
   description?: string;
   owner: string;
   ownerName?: string;
   genre: string;
   repeat_id?: number | null;
-  abbreviation: string;
   format: EventFormat;
   url?: string;
-  venue_latitude?: number;
-  venue_longitude?: number;
-  venue_radius?: number;
+  abbreviation?: string;
 } 

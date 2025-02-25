@@ -38,7 +38,7 @@
 | public      | ALL_USER_M          | emp_no                      | 1                | bigint                      | NO          | null                    | PK          |
 | public      | ALL_USER_M          | email                       | 2                | text                        | NO          | null                    | null        |
 | public      | ALL_USER_M          | act_kbn                     | 3                | boolean                     | YES         | null                    | null        |
-| public      | EMP_CIZ             | ciz_id                      | 1                | bigint                      | NO          | null                    | UQ, PK      |
+| public      | EMP_CIZ             | ciz_id                      | 1                | bigint                      | NO          | null                    | PK, UQ      |
 | public      | EMP_CIZ             | emp_no                      | 2                | bigint                      | NO          | null                    | FK          |
 | public      | EMP_CIZ             | total_ciz                   | 3                | bigint                      | NO          | null                    | null        |
 | public      | EMP_CIZ             | updated_at                  | 4                | timestamp without time zone | YES         | null                    | null        |
@@ -55,7 +55,6 @@
 | public      | EMP_CIZ_HISTORY     | act_kbn                     | 9                | boolean                     | NO          | true                    | null        |
 | public      | EVENT_LIST          | event_id                    | 1                | bigint                      | NO          | null                    | PK          |
 | public      | EVENT_LIST          | title                       | 2                | text                        | NO          | null                    | null        |
-| public      | EVENT_LIST          | place                       | 3                | text                        | YES         | null                    | null        |
 | public      | EVENT_LIST          | owner                       | 4                | bigint                      | YES         | null                    | null        |
 | public      | EVENT_LIST          | start_date                  | 5                | timestamp without time zone | YES         | null                    | null        |
 | public      | EVENT_LIST          | end_date                    | 6                | timestamp without time zone | YES         | null                    | null        |
@@ -70,9 +69,8 @@
 | public      | EVENT_LIST          | abbreviation                | 15               | text                        | YES         | null                    | null        |
 | public      | EVENT_LIST          | format                      | 16               | text                        | YES         | null                    | null        |
 | public      | EVENT_LIST          | url                         | 17               | text                        | YES         | null                    | null        |
-| public      | EVENT_LIST          | venue_latitude              | 18               | null                        | YES         | null                    | null        |
-| public      | EVENT_LIST          | venue_longitude             | 19               | null                        | YES         | null                    | null        |
 | public      | EVENT_LIST          | venue_radius                | 20               | bigint                      | YES         | null                    | null        |
+| public      | EVENT_LIST          | venue_id                    | 21               | bigint                      | YES         | null                    | null        |
 | public      | EVENT_PARTICIPATION | emp_no                      | 1                | bigint                      | NO          | null                    | FK, PK      |
 | public      | EVENT_PARTICIPATION | official_count              | 2                | bigint                      | NO          | null                    | null        |
 | public      | EVENT_PARTICIPATION | unofficial_count            | 3                | bigint                      | YES         | null                    | null        |
@@ -86,6 +84,11 @@
 | public      | EVENT_TEMP_ENTRY    | emp_no                      | 3                | bigint                      | YES         | null                    | FK          |
 | public      | EVENT_TEMP_ENTRY    | status                      | 4                | text                        | YES         | null                    | null        |
 | public      | EVENT_TEMP_ENTRY    | updated_at                  | 5                | timestamp without time zone | YES         | now()                   | null        |
+| public      | EVENT_VENUE         | venue_id                    | 1                | bigint                      | NO          | null                    | PK          |
+| public      | EVENT_VENUE         | venue_nm                    | 2                | text                        | NO          | null                    | null        |
+| public      | EVENT_VENUE         | address                     | 3                | text                        | YES         | null                    | null        |
+| public      | EVENT_VENUE         | latitude                    | 4                | null                        | YES         | null                    | null        |
+| public      | EVENT_VENUE         | longitude                   | 5                | null                        | YES         | null                    | null        |
 | public      | USER_INFO           | emp_no                      | 1                | bigint                      | NO          | null                    | UQ, PK      |
 | public      | USER_INFO           | myoji                       | 3                | text                        | YES         | null                    | null        |
 | public      | USER_INFO           | namae                       | 4                | text                        | YES         | null                    | null        |
