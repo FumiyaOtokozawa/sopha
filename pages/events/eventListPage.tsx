@@ -135,6 +135,7 @@ export default function EventListPage() {
       start: new Date(event.start_date),
       end: new Date(event.end_date),
       place: event.place,
+      venue_id: event.venue_id,
       owner: event.owner,
       ownerName: userMap.get(event.owner) || '未設定',
       genre: event.genre,
@@ -237,7 +238,7 @@ export default function EventListPage() {
             )}
           </div>
           <div className="text-sm text-gray-400">
-            <div>場　所：{event.place || '未定'}</div>
+            <div>場　所：{event.venue_nm || '未定'}</div>
             <div>主催者：{event.ownerName}</div>
             <div>日　時：
               {format(new Date(event.start_date), 'M月d日 HH:mm', { locale: ja })} - 

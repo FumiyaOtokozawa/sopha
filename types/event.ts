@@ -7,6 +7,7 @@ export interface Event {
   end_date: string;
   venue_id: number;
   venue_nm?: string;
+  place?: string;
   description?: string;
   owner: string;
   ownerName?: string;

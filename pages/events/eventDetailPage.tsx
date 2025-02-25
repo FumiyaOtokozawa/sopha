@@ -2,11 +2,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../utils/supabaseClient';
 import Header from '../../components/Header';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { ja } from 'date-fns/locale';
-import format from 'date-fns/format';
 import { Box, Avatar } from '@mui/material';
 import FooterMenu from '../../components/FooterMenu';
 import ChangeCircleIcon from '@mui/icons-material/ChangeCircle';
@@ -16,6 +11,7 @@ import Tooltip, { tooltipClasses, TooltipProps } from '@mui/material/Tooltip';
 import { styled } from '@mui/material/styles';
 import InfoIcon from '@mui/icons-material/Info';
 import EventEditForm from '../../components/EventEditForm';
+import { format } from 'date-fns';
 
 interface Event {
   event_id: number;
@@ -182,7 +178,7 @@ export default function EventDetailPage() {
 
       try {
         // イベント情報を取得
-        const { data: eventData, error: eventError } = await supabase
+        const { data: eventData } = await supabase
           .from('EVENT_LIST')
           .select(`
             *,
@@ -191,7 +187,7 @@ export default function EventDetailPage() {
           .eq('event_id', Number(router.query.event_id))
           .single();
 
-        if (eventError) throw eventError;
+        if (eventData.error) throw eventData.error;
 
         // オーナー情報を取得
         const { data: ownerData } = await supabase
@@ -442,47 +438,34 @@ export default function EventDetailPage() {
     return isConfirmationAllowed(event.start_date);
   }, [event?.start_date]);
 
-  // 削除ハンドラーを追加
   const handleDelete = async (deleteType: 'single' | 'all' | 'future') => {
     if (!event) return;
-
-    // 削除確認メッセージを設定
+    
     const confirmMessages = {
       single: '本当にこのイベントを削除しますか？',
       all: '本当に全ての繰り返しイベントを削除しますか？',
       future: '本当にこのイベントと以降のイベントを全て削除しますか？'
     };
 
-    // 確認ダイアログを表示
-    if (!window.confirm(confirmMessages[deleteType])) {
-      return;
-    }
+    if (!window.confirm(confirmMessages[deleteType])) return;
 
     try {
+      let query = supabase
+        .from('EVENT_LIST')
+        .update({ act_kbn: false });
+
       if (deleteType === 'single') {
-        const { error } = await supabase
-          .from('EVENT_LIST')
-          .update({ act_kbn: false })
-          .eq('event_id', event.event_id);
-        
-        if (error) throw error;
+        query = query.eq('event_id', event.event_id);
       } else if (deleteType === 'all') {
-        const { error } = await supabase
-          .from('EVENT_LIST')
-          .update({ act_kbn: false })
-          .eq('repeat_id', event.repeat_id);
-        
-        if (error) throw error;
+        query = query.eq('repeat_id', event.repeat_id);
       } else if (deleteType === 'future') {
-        const { error } = await supabase
-          .from('EVENT_LIST')
-          .update({ act_kbn: false })
+        query = query
           .eq('repeat_id', event.repeat_id)
           .gte('start_date', event.start_date);
-        
-        if (error) throw error;
       }
 
+      const { error } = await query;
+      if (error) throw error;
       router.push('/events/eventListPage');
     } catch (error) {
       console.error('削除エラー:', error);

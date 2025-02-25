@@ -1,14 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { ja } from 'date-fns/locale';
-import format from 'date-fns/format';
 import { Dialog } from '@mui/material';
 import { Event } from '../types/event';
 import { useRouter } from 'next/router';
-import { enUS } from 'date-fns/locale';
+import { format } from 'date-fns';
 
 interface EventDetailModalProps {
   event: Event | null;
@@ -20,7 +15,6 @@ interface EventDetailModalProps {
 export default function EventDetailModal({ event, open, onClose, onEventUpdated }: EventDetailModalProps) {
   const [error, setError] = useState<string>('');
   const [isOwner, setIsOwner] = useState(false);
-  const [showDeleteOptions, setShowDeleteOptions] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -65,56 +59,6 @@ export default function EventDetailModal({ event, open, onClose, onEventUpdated 
 
     checkOwner();
   }, [event]);
-
-  const handleDelete = async (deleteType: 'single' | 'all' | 'future') => {
-    if (!event) return;
-
-    // 削除確認メッセージを設定
-    const confirmMessages = {
-      single: '本当にこのイベントを削除しますか？',
-      all: '本当に全ての繰り返しイベントを削除しますか？',
-      future: '本当にこのイベントと以降のイベントを全て削除しますか？'
-    };
-
-    // 確認ダイアログを表示
-    if (!window.confirm(confirmMessages[deleteType])) {
-      return;
-    }
-
-    try {
-      if (deleteType === 'single') {
-        const { error } = await supabase
-          .from('EVENT_LIST')
-          .update({ act_kbn: false })
-          .eq('event_id', event.event_id);
-        
-        if (error) throw error;
-      } else if (deleteType === 'all') {
-        const { error } = await supabase
-          .from('EVENT_LIST')
-          .update({ act_kbn: false })
-          .eq('repeat_id', event.repeat_id);
-        
-        if (error) throw error;
-      } else if (deleteType === 'future') {
-        const { error } = await supabase
-          .from('EVENT_LIST')
-          .update({ act_kbn: false })
-          .eq('repeat_id', event.repeat_id)
-          .gte('start_date', event.start_date);
-        
-        if (error) throw error;
-      }
-
-      setShowDeleteOptions(false);  // 削除オプションのポップアップを閉じる
-      onEventUpdated();
-      onClose();
-      router.push('/events/eventListPage');
-    } catch (error) {
-      console.error('削除エラー:', error);
-      setError('イベントの削除に失敗しました');  // エラーメッセージを表示
-    }
-  };
 
   if (!event) return null;
 
@@ -163,13 +107,13 @@ export default function EventDetailModal({ event, open, onClose, onEventUpdated 
               <p className="text-gray-300">
                 <div className="flex items-center gap-2">
                   <div>
-                    {format(new Date(event.start_date), "yyyy/MM/dd (ccc) HH:mm", { locale: enUS })}
+                    {format(new Date(event.start_date), "yyyy/MM/dd (ccc) HH:mm")}
                   </div>
                   <div className="text-gray-300">→</div>
                   <div>
                     {format(new Date(event.start_date), 'yyyy/MM/dd') === format(new Date(event.end_date), 'yyyy/MM/dd')
-                      ? format(new Date(event.end_date), "HH:mm", { locale: enUS })
-                      : format(new Date(event.end_date), "yyyy/MM/dd (ccc) HH:mm", { locale: enUS })
+                      ? format(new Date(event.end_date), "HH:mm")
+                      : format(new Date(event.end_date), "yyyy/MM/dd (ccc) HH:mm")
                     }
                   </div>
                 </div>

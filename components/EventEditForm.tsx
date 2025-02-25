@@ -1,10 +1,6 @@
 import { useState } from 'react';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { ja } from 'date-fns/locale';
-import { Event } from '../types/event';
 import PlaceSelectModal from './PlaceSelectModal';
+import { Event } from '../types/event';
 
 interface EventEditFormProps {
   event: Event;
@@ -47,42 +43,30 @@ export default function EventEditForm({
       </div>
 
       <div className="flex gap-4">
-        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>
-          <div className="flex-1">
-            <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
-              開始日時<span className="text-red-500">*</span>
-            </label>
-            <DateTimePicker
-              value={new Date(editedEvent?.start_date || '')}
-              onChange={(date) => setEditedEvent({ ...editedEvent, start_date: date?.toISOString() || '' })}
-              sx={{
-                width: '100%',
-                '& .MuiInputBase-root': {
-                  backgroundColor: '#1D1D21',
-                  color: '#FCFCFC',
-                  height: '36px',
-                }
-              }}
-            />
-          </div>
-          <div className="flex-1">
-            <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
-              終了日時<span className="text-red-500">*</span>
-            </label>
-            <DateTimePicker
-              value={new Date(editedEvent?.end_date || '')}
-              onChange={(date) => setEditedEvent({ ...editedEvent, end_date: date?.toISOString() || '' })}
-              sx={{
-                width: '100%',
-                '& .MuiInputBase-root': {
-                  backgroundColor: '#1D1D21',
-                  color: '#FCFCFC',
-                  height: '36px',
-                }
-              }}
-            />
-          </div>
-        </LocalizationProvider>
+        <div className="flex-1">
+          <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
+            開始日時<span className="text-red-500">*</span>
+          </label>
+          <input
+            type="datetime-local"
+            value={editedEvent?.start_date}
+            onChange={(e) => setEditedEvent({ ...editedEvent, start_date: e.target.value })}
+            className="w-full bg-[#1D1D21] rounded p-1.5 text-[#FCFCFC] h-9"
+            required
+          />
+        </div>
+        <div className="flex-1">
+          <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
+            終了日時<span className="text-red-500">*</span>
+          </label>
+          <input
+            type="datetime-local"
+            value={editedEvent?.end_date}
+            onChange={(e) => setEditedEvent({ ...editedEvent, end_date: e.target.value })}
+            className="w-full bg-[#1D1D21] rounded p-1.5 text-[#FCFCFC] h-9"
+            required
+          />
+        </div>
       </div>
 
       <div>

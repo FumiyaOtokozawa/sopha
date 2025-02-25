@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Tabs, Tab, Box } from '@mui/material';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Tabs, Tab } from '@mui/material';
 import { supabase } from '../utils/supabaseClient';
 
 interface Venue {
@@ -44,14 +44,14 @@ const PlaceSelectModal = ({ open, onClose, onSelect }: PlaceSelectModalProps) =>
     );
 
     // 全ての会場を取得
-    const { data: venueData, error: venueError } = await supabase
+    const { data: venues } = await supabase
       .from('EVENT_VENUE')
       .select('*')
       .order('venue_nm');
 
-    if (venueData) {
+    if (venues) {
       // 会場データと使用回数を結合
-      const venuesWithCount = venueData.map(venue => ({
+      const venuesWithCount = venues.map(venue => ({
         ...venue,
         usage_count: usageCountMap.get(venue.venue_id) || 0
       }))
