@@ -3,20 +3,18 @@ import PlaceSelectModal from './PlaceSelectModal';
 import { Event } from '../types/event';
 
 interface EventEditFormProps {
-  event: Event;
   onSave: () => Promise<void>;
   onCancel: () => void;
   editedEvent: Event;
   setEditedEvent: (event: Event) => void;
 }
 
-export default function EventEditForm({
-  event,
+const EventEditForm: React.FC<EventEditFormProps> = ({
   onSave,
   onCancel,
   editedEvent,
   setEditedEvent,
-}: EventEditFormProps) {
+}) => {
   const [isPlaceModalOpen, setIsPlaceModalOpen] = useState(false);
 
   const handlePlaceSelect = (venue: { id: number; name: string }) => {
@@ -150,4 +148,6 @@ export default function EventEditForm({
       </div>
     </div>
   );
-} 
+}
+
+export default EventEditForm; 

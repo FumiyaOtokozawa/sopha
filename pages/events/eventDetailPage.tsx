@@ -160,7 +160,6 @@ export default function EventDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [editedEvent, setEditedEvent] = useState<Event | null>(null);
-  const [error, setError] = useState<string>('');
   const [currentUserEmpNo, setCurrentUserEmpNo] = useState<number | null>(null);
   const [entryStatus, setEntryStatus] = useState<'1' | '2' | '11' | null>(null);
   const [participants, setParticipants] = useState<EventParticipant[]>([]);
@@ -209,7 +208,6 @@ export default function EventDetailPage() {
 
       } catch (error) {
         console.error('エラー:', error);
-        setError('イベント情報の取得に失敗しました');
       }
     };
 
@@ -281,7 +279,6 @@ export default function EventDetailPage() {
   const handleCancel = () => {
     setIsEditing(false);
     setEditedEvent(event);
-    setError('');
   };
 
   // 保存ボタンのハンドラー
@@ -310,7 +307,6 @@ export default function EventDetailPage() {
       router.push('/events/eventListPage');
     } catch (error) {
       console.error('更新エラー:', error);
-      setError('イベントの更新に失敗しました');
     }
   };
 
@@ -469,7 +465,6 @@ export default function EventDetailPage() {
       router.push('/events/eventListPage');
     } catch (error) {
       console.error('削除エラー:', error);
-      setError('イベントの削除に失敗しました');
     }
   };
 
@@ -555,7 +550,6 @@ export default function EventDetailPage() {
                 {/* 編集フォーム */}
                 {isEditing ? (
                   <EventEditForm
-                    event={event}
                     onSave={handleSave}
                     onCancel={handleCancel}
                     editedEvent={editedEvent!}

@@ -5,15 +5,14 @@ import { Event } from '../types/event';
 import { useRouter } from 'next/router';
 import { format } from 'date-fns';
 
-interface EventDetailModalProps {
-  event: Event | null;
-  open: boolean;
+interface Props {
+  isOpen: boolean;
   onClose: () => void;
-  onEventUpdated: () => void;
+  eventId: string;
 }
 
-export default function EventDetailModal({ event, open, onClose, onEventUpdated }: EventDetailModalProps) {
-  const [error, setError] = useState<string>('');
+const EventDetailModal: React.FC<Props> = ({ isOpen, onClose, eventId }) => {
+  const [event] = useState<Event | null>(null);
   const [isOwner, setIsOwner] = useState(false);
   const router = useRouter();
 
@@ -29,7 +28,7 @@ export default function EventDetailModal({ event, open, onClose, onEventUpdated 
             *,
             venue:EVENT_VENUE!venue_id(venue_nm)
           `)
-          .eq('event_id', event.event_id)
+          .eq('event_id', eventId)
           .single();
 
         if (eventError) throw eventError;
@@ -58,13 +57,13 @@ export default function EventDetailModal({ event, open, onClose, onEventUpdated 
     };
 
     checkOwner();
-  }, [event]);
+  }, [event, eventId]);
 
   if (!event) return null;
 
   return (
     <Dialog
-      open={open}
+      open={isOpen}
       onClose={onClose}
       maxWidth="sm"
       fullWidth
@@ -85,9 +84,6 @@ export default function EventDetailModal({ event, open, onClose, onEventUpdated 
               <span className="text-[#8E93DA] font-medium">あなたが主催しているイベントです</span>
             </div>
           </div>
-        )}
-        {error && (
-          <div className="mb-4 text-red-500">{error}</div>
         )}
 
         <div className="space-y-4">
@@ -171,4 +167,6 @@ export default function EventDetailModal({ event, open, onClose, onEventUpdated 
       </div>
     </Dialog>
   );
-} 
+};
+
+export default EventDetailModal; 

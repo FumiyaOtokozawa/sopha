@@ -26,7 +26,7 @@ interface PlaceSelectModalProps {
 // コンポーネントの外で定義
 const LIBRARIES: Libraries = ['places'];
 
-const PlaceSelectModal = ({ open, onClose, onSelect }: PlaceSelectModalProps) => {
+const PlaceSelectModal: React.FC<PlaceSelectModalProps> = ({ open, onClose, onSelect }) => {
   const [tabValue, setTabValue] = useState(0);
   const [savedVenues, setSavedVenues] = useState<Venue[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -34,12 +34,10 @@ const PlaceSelectModal = ({ open, onClose, onSelect }: PlaceSelectModalProps) =>
   const [selectedPlace, setSelectedPlace] = useState<google.maps.places.PlaceResult | null>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
-  const [searchInputValue, setSearchInputValue] = useState('');
   const [markerPosition, setMarkerPosition] = useState<google.maps.LatLng | null>(null);
   const [venueName, setVenueName] = useState('');
 
   // LoadScriptをコンポーネントの外に移動するため、useMemoを使用
-  const [loadError, setLoadError] = useState<Error | null>(null);
   const [scriptLoaded, setScriptLoaded] = useState(false);
 
   // SearchBoxコンポーネントのスタイル定義
@@ -232,7 +230,7 @@ const PlaceSelectModal = ({ open, onClose, onSelect }: PlaceSelectModalProps) =>
         longitude: selectedPlace.geometry?.location?.lng()
       };
 
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('EVENT_VENUE')
         .insert([newVenue])
         .select()
@@ -333,7 +331,6 @@ const PlaceSelectModal = ({ open, onClose, onSelect }: PlaceSelectModalProps) =>
               googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}
               libraries={LIBRARIES}
               onLoad={() => setScriptLoaded(true)}
-              onError={(err) => setLoadError(err)}
             >
               {scriptLoaded && (
                 <>

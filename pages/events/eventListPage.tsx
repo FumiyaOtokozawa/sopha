@@ -169,11 +169,6 @@ export default function EventListPage() {
     setSelectedEvent(null);
   };
 
-  // イベント更新後の処理
-  const handleEventUpdated = () => {
-    fetchEvents(); // イベント一覧を再取得
-  };
-
   // イベントのフィルタリング部分を修正
   const filterRepeatingEvents = (events: Event[]) => {
     const yesterday = new Date();
@@ -328,10 +323,9 @@ export default function EventListPage() {
       <FooterMenu />
       
       <EventDetailModal
-        event={selectedEvent}
-        open={isModalOpen}
+        eventId={selectedEvent?.event_id.toString() || ''}
+        isOpen={isModalOpen}
         onClose={handleCloseModal}
-        onEventUpdated={handleEventUpdated}
       />
     </Box>
   );
