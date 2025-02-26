@@ -8,7 +8,3 @@
 いつかやらないといけないことメモ
 ・DBのポリシー設定
 
-
-EVENT_LISTテーブルのplaceをvenue_idに変更した（text型→int8型）
-EVENT_LISTテーブルのvenue_latitudeとvenue_longitudeを削除した
-
