@@ -60,8 +60,8 @@ export default function Header() {
             <p className="font-bold">
               {userInfo ? `${userInfo.myoji} ${userInfo.namae}` : "Loading..."}
             </p>
-            <p className="text-sm">
-              {userInfo ? `No.${userInfo.emp_no}` : ""}
+            <p className="text-sm text-[#FCFCFC]">
+              {userInfo ? `No.\u2068${userInfo.emp_no}\u2069` : ""}
             </p>
           </div>
         </div>

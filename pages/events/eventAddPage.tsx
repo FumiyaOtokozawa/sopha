@@ -400,14 +400,12 @@ const EventAddPage = () => {
             <div>
               <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
                 URL
-                {formData.format === 'online' && <span className="text-red-500">*</span>}
               </label>
               <input
                 type="url"
                 value={formData.url}
                 onChange={(e) => setFormData({...formData, url: e.target.value})}
                 className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
-                required={formData.format === 'online'}
                 placeholder="https://..."
               />
             </div>

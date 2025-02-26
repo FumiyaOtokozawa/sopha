@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, dateFnsLocalizer, ToolbarProps } from 'react-big-calendar';
 import format from 'date-fns/format';
 import parse from 'date-fns/parse';
@@ -96,60 +96,53 @@ export default function EventListPage() {
     className: `calendar-event ${event.genre === '1' ? 'official-event' : 'normal-event'}`
   }), []);
 
-  const fetchEvents = useCallback(async () => {
-    // 表示月の月初めと1年後の月末を計算
-    const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-    const endOfNextYear = new Date(currentMonth.getFullYear() + 1, currentMonth.getMonth(), 0, 23, 59, 59);
+  const fetchEvents = React.useCallback(async (date: Date) => {
+    try {
+      // 表示月の1週間前の日付を計算
+      const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
+      startDate.setDate(startDate.getDate() - 7);
 
-    // Supabaseからイベントデータを取得
-    const { data: eventData, error: eventError } = await supabase
-      .from('EVENT_LIST')
-      .select('*')
-      .eq('act_kbn', true)
-      .gte('start_date', startOfMonth.toISOString())
-      .lte('start_date', endOfNextYear.toISOString());  // 1年後までの期間に変更
+      // 3ヶ月後の月末を計算
+      const endDate = new Date(date.getFullYear(), date.getMonth() + 4, 0);
 
-    if (eventError) {
-      console.error('イベントの取得に失敗しました:', eventError);
-      return;
+      const { data: events, error } = await supabase
+        .from('EVENT_LIST')
+        .select(`
+          *,
+          venue:EVENT_VENUE!venue_id(venue_nm)
+        `)
+        .gte('start_date', startDate.toISOString())
+        .lte('start_date', endDate.toISOString())
+        .eq('act_kbn', true)
+        .order('start_date', { ascending: true });
+
+      if (error) throw error;
+
+      // イベントのオーナー情報を取得
+      const eventsWithOwner = await Promise.all(
+        events.map(async (event) => {
+          const { data: ownerData } = await supabase
+            .from('USER_INFO')
+            .select('myoji, namae')
+            .eq('emp_no', event.owner)
+            .single();
+
+          return {
+            ...event,
+            venue_nm: event.venue?.venue_nm,
+            ownerName: ownerData ? `${ownerData.myoji} ${ownerData.namae}` : undefined
+          };
+        })
+      );
+
+      setEvents(eventsWithOwner);
+    } catch (error) {
+      console.error('イベントの取得に失敗:', error);
     }
-
-    // ユーザー情報の一括取得
-    const uniqueOwners = [...new Set(eventData.map(event => event.owner))];
-    const { data: userData } = await supabase
-      .from('USER_INFO')
-      .select('emp_no, myoji, namae')
-      .in('emp_no', uniqueOwners);
-
-    // ユーザー情報をマップ化
-    const userMap = new Map(
-      userData?.map(user => [user.emp_no, `${user.myoji} ${user.namae}`])
-    );
-
-    const formattedEvents = eventData.map(event => ({
-      event_id: event.event_id,
-      title: event.title,
-      abbreviation: event.abbreviation,
-      start_date: event.start_date,
-      end_date: event.end_date,
-      start: new Date(event.start_date),
-      end: new Date(event.end_date),
-      place: event.place,
-      venue_id: event.venue_id,
-      owner: event.owner,
-      ownerName: userMap.get(event.owner) || '未設定',
-      genre: event.genre,
-      description: event.description,
-      repeat_id: event.repeat_id,
-      format: event.format,
-      url: event.url
-    }));
-
-    setEvents(formattedEvents);
-  }, [currentMonth]);
+  }, []);
 
   useEffect(() => {
-    fetchEvents();
+    fetchEvents(currentMonth);
   }, [currentMonth, fetchEvents]);
 
   // 月が変更されたときにイベントを再取得
@@ -159,6 +152,7 @@ export default function EventListPage() {
 
   // イベントをクリックした時の処理を修正
   const handleEventClick = (event: Event) => {
+    console.log('Event clicked:', event);
     setSelectedEvent(event);
     setIsModalOpen(true);
   };
@@ -244,6 +238,10 @@ export default function EventListPage() {
       ))}
     </div>
   );
+
+  useEffect(() => {
+    console.log('Modal state changed:', isModalOpen);
+  }, [isModalOpen]);
 
   return (
     <Box sx={{ pb: 7 }}>

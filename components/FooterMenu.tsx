@@ -63,6 +63,7 @@ export default function FooterMenu() {
           right: 0,
           bgcolor: '#2D2D2D',
           height: '64px', // 高さを固定
+          zIndex: 1000,  // z-indexを追加
         }} 
         elevation={3}
       >

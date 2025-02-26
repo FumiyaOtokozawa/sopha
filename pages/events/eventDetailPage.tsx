@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../utils/supabaseClient';
 import Header from '../../components/Header';
-import { Box, Avatar } from '@mui/material';
+import { Box, Avatar, Dialog } from '@mui/material';
 import FooterMenu from '../../components/FooterMenu';
 import ChangeCircleIcon from '@mui/icons-material/ChangeCircle';
 import { enUS } from 'date-fns/locale';
@@ -12,6 +12,7 @@ import { styled } from '@mui/material/styles';
 import InfoIcon from '@mui/icons-material/Info';
 import EventEditForm from '../../components/EventEditForm';
 import { format } from 'date-fns';
+import EventDetailModal from '../../components/EventDetailModal';
 
 interface Event {
   event_id: number;
@@ -163,17 +164,12 @@ export default function EventDetailPage() {
   const [currentUserEmpNo, setCurrentUserEmpNo] = useState<number | null>(null);
   const [entryStatus, setEntryStatus] = useState<'1' | '2' | '11' | null>(null);
   const [participants, setParticipants] = useState<EventParticipant[]>([]);
-  const [showDeleteOptions, setShowDeleteOptions] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    console.log('Router query:', router.query);
-    console.log('Event ID:', router.query.event_id);
-    
     const fetchEventAndCheckOwner = async () => {
-      if (!router.query.event_id) {
-        console.log('No event_id yet');
-        return;
-      }
+      if (!router.query.event_id) return;
 
       try {
         // イベント情報を取得
@@ -203,8 +199,51 @@ export default function EventDetailPage() {
 
         setEvent(formattedEvent);
         setEditedEvent(formattedEvent);
-        setIsOwner(true);
-        setCurrentUserEmpNo(eventData.owner);
+
+        // ログインユーザーの情報を取得
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: userData } = await supabase
+            .from('USER_INFO')
+            .select('emp_no')
+            .eq('email', user.email)
+            .single();
+          
+          if (userData) {
+            setIsOwner(userData.emp_no === eventData.owner);
+            setCurrentUserEmpNo(userData.emp_no);
+
+            // 参加者一覧を取得
+            const { data: participantsData, error: participantsError } = await supabase
+              .from('EVENT_TEMP_ENTRY')
+              .select(`
+                entry_id,
+                emp_no,
+                status,
+                USER_INFO!inner(myoji, namae)
+              `)
+              .eq('event_id', router.query.event_id)
+              .order('entry_id', { ascending: true });
+
+            if (participantsError) throw participantsError;
+
+            const formattedParticipants = (participantsData as unknown as SupabaseEntry[])?.map(entry => ({
+              entry_id: entry.entry_id,
+              emp_no: entry.emp_no,
+              myoji: entry.USER_INFO.myoji,
+              namae: entry.USER_INFO.namae,
+              status: entry.status
+            })) || [];
+
+            setParticipants(formattedParticipants);
+
+            // 現在のユーザーの参加ステータスを参加者一覧から取得
+            const userEntry = formattedParticipants.find(p => p.emp_no === userData.emp_no);
+            if (userEntry) {
+              setEntryStatus(userEntry.status);
+            }
+          }
+        }
 
       } catch (error) {
         console.error('エラー:', error);
@@ -212,63 +251,7 @@ export default function EventDetailPage() {
     };
 
     fetchEventAndCheckOwner();
-
-    // ユーザーの参加ステータスを取得
-    const fetchEntryStatus = async () => {
-      if (!currentUserEmpNo || !router.query.event_id) return;
-
-      try {
-        const { data: entry } = await supabase
-          .from('EVENT_TEMP_ENTRY')
-          .select('status')
-          .eq('event_id', router.query.event_id)
-          .eq('emp_no', currentUserEmpNo)
-          .single();
-
-        if (entry) {
-          setEntryStatus(entry.status as '1' | '2' | '11');
-        }
-      } catch (error) {
-        console.error('参加ステータスの取得に失敗:', error);
-      }
-    };
-
-    fetchEntryStatus();
-
-    // 参加者情報を取得
-    const fetchParticipants = async () => {
-      if (!router.query.event_id) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('EVENT_TEMP_ENTRY')
-          .select(`
-            entry_id,
-            emp_no,
-            status,
-            USER_INFO!inner(myoji, namae)
-          `)
-          .eq('event_id', router.query.event_id)
-          .order('entry_id', { ascending: true });
-
-        if (error) throw error;
-
-        const formattedParticipants = (data as unknown as SupabaseEntry[])?.map(entry => ({
-          entry_id: entry.entry_id,
-          emp_no: entry.emp_no,
-          myoji: entry.USER_INFO.myoji,
-          namae: entry.USER_INFO.namae,
-          status: entry.status
-        })) || [];
-
-        setParticipants(formattedParticipants);
-      } catch (error) {
-        console.error('参加者の取得に失敗:', error);
-      }
-    };
-
-    fetchParticipants();
-  }, [router.query, currentUserEmpNo]);
+  }, [router.query]);
 
   // 編集ボタンを追加
   const handleEdit = () => {
@@ -311,14 +294,34 @@ export default function EventDetailPage() {
   };
 
   const handleEventEntry = async (status: '1' | '2' | '11') => {
-    if (!currentUserEmpNo || !router.query.event_id) return;
+    if (!event) return;
 
     try {
+      // ログインユーザーの情報を取得
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('ユーザー情報が取得できません');
+        return;
+      }
+
+      // ユーザーのemp_noを取得
+      const { data: userData, error: userError } = await supabase
+        .from('USER_INFO')
+        .select('emp_no')
+        .eq('email', user.email)
+        .single();
+
+      if (userError) {
+        console.error('ユーザー情報の取得に失敗:', userError);
+        return;
+      }
+
+      // 既存のエントリーを確認
       const { data: existingEntry } = await supabase
         .from('EVENT_TEMP_ENTRY')
         .select('entry_id')
-        .eq('event_id', router.query.event_id)
-        .eq('emp_no', currentUserEmpNo)
+        .eq('event_id', event.event_id)
+        .eq('emp_no', userData.emp_no)
         .single();
 
       if (existingEntry) {
@@ -337,8 +340,8 @@ export default function EventDetailPage() {
         const { error: insertError } = await supabase
           .from('EVENT_TEMP_ENTRY')
           .insert({
-            event_id: Number(router.query.event_id),
-            emp_no: currentUserEmpNo,
+            event_id: event.event_id,
+            emp_no: userData.emp_no,
             status: status,
             updated_at: new Date().toISOString()
           });
@@ -346,11 +349,11 @@ export default function EventDetailPage() {
         if (insertError) throw insertError;
       }
 
-      // 成功時にステータスを更新
+      // ステータスを更新
       setEntryStatus(status);
 
       // 参加者一覧を再取得
-      const { data, error } = await supabase
+      const { data: updatedParticipants, error: participantsError } = await supabase
         .from('EVENT_TEMP_ENTRY')
         .select(`
           entry_id,
@@ -358,12 +361,12 @@ export default function EventDetailPage() {
           status,
           USER_INFO!inner(myoji, namae)
         `)
-        .eq('event_id', router.query.event_id)
+        .eq('event_id', event.event_id)
         .order('entry_id', { ascending: true });
 
-      if (error) throw error;
+      if (participantsError) throw participantsError;
 
-      const formattedParticipants = (data as unknown as SupabaseEntry[])?.map(entry => ({
+      const formattedParticipants = (updatedParticipants as unknown as SupabaseEntry[])?.map(entry => ({
         entry_id: entry.entry_id,
         emp_no: entry.emp_no,
         myoji: entry.USER_INFO.myoji,
@@ -372,9 +375,9 @@ export default function EventDetailPage() {
       })) || [];
 
       setParticipants(formattedParticipants);
-
+      
     } catch (error) {
-      console.error('ステータス登録エラー:', error);
+      console.error('エントリーの更新に失敗:', error);
     }
   };
 
@@ -497,41 +500,17 @@ export default function EventDetailPage() {
                   <button
                     onClick={() => {
                       if (event?.repeat_id) {
-                        setShowDeleteOptions(!showDeleteOptions);
+                        setShowDeleteDialog(true);
                       } else {
                         handleDelete('single');
                       }
                     }}
-                    className="px-4 py-2 rounded bg-red-500 text-white hover:bg-opacity-80 flex items-center gap-2 relative"
+                    className="px-4 py-2 rounded bg-red-500 text-white hover:bg-opacity-80 flex items-center gap-2"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
                     削除
-                    {showDeleteOptions && event?.repeat_id && (
-                      <div className="absolute right-0 top-12 w-72 bg-[#2D2D33] rounded-lg shadow-lg border border-gray-700 z-50">
-                        <div className="p-3 space-y-2">
-                          <button
-                            onClick={() => handleDelete('single')}
-                            className="w-full p-2 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
-                          >
-                            このイベントのみを削除
-                          </button>
-                          <button
-                            onClick={() => handleDelete('future')}
-                            className="w-full p-2 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
-                          >
-                            このイベントと以降のイベントを削除
-                          </button>
-                          <button
-                            onClick={() => handleDelete('all')}
-                            className="w-full p-2 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
-                          >
-                            全ての繰り返しイベントを削除
-                          </button>
-                        </div>
-                      </div>
-                    )}
                   </button>
                   <button
                     onClick={handleEdit}
@@ -620,69 +599,44 @@ export default function EventDetailPage() {
                     <div className="mt-8 pt-6 border-t border-gray-700">
                       <div className="flex flex-col gap-8">
                         {/* 出席予定と出席済みを横並びに */}
-                        <div className="flex gap-8">
-                          {/* 出席予定 */}
-                          <div className="flex-1">
-                            <h3 className="text-sm font-medium text-gray-400 mb-3">
-                              出席予定 ({participants.filter(p => p.status === '1').length})
-                            </h3>
-                            <div className="flex flex-wrap gap-2">
-                              {participants
-                                .filter(p => p.status === '1')
-                                .map(participant => (
-                                  <div
-                                    key={participant.entry_id}
-                                    className="flex items-center bg-green-600 bg-opacity-10 rounded-full px-3 py-1"
+                        <div className="flex-1">
+                          <h3 className="text-sm font-medium text-gray-400 mb-3">
+                            出席者 ({participants.filter(p => p.status === '1' || p.status === '11').length})
+                          </h3>
+                          <div className="flex flex-wrap gap-2">
+                            {participants
+                              .filter(p => p.status === '1' || p.status === '11')
+                              .map(participant => (
+                                <div
+                                  key={participant.entry_id}
+                                  className="flex items-center bg-green-600 bg-opacity-10 rounded-full px-3 py-1"
+                                >
+                                  <Avatar
+                                    sx={{
+                                      width: 20,
+                                      height: 20,
+                                      fontSize: '0.75rem',
+                                      bgcolor: 'rgba(34, 197, 94, 0.2)',
+                                      color: '#22c55e',
+                                    }}
                                   >
-                                    <Avatar
-                                      sx={{
-                                        width: 20,
-                                        height: 20,
-                                        fontSize: '0.75rem',
-                                        bgcolor: 'rgba(34, 197, 94, 0.2)',
-                                        color: '#22c55e',
-                                      }}
+                                    {participant.myoji[0]}
+                                  </Avatar>
+                                  <span className="ml-2 text-sm text-green-500">
+                                    {participant.myoji} {participant.namae}
+                                  </span>
+                                  {participant.status === '11' && (
+                                    <svg 
+                                      xmlns="http://www.w3.org/2000/svg" 
+                                      className="h-4 w-4 ml-1 text-blue-500" 
+                                      viewBox="0 0 20 20" 
+                                      fill="currentColor"
                                     >
-                                      {participant.myoji[0]}
-                                    </Avatar>
-                                    <span className="ml-2 text-sm text-green-500">
-                                      {participant.myoji} {participant.namae}
-                                    </span>
-                                  </div>
-                                ))}
-                            </div>
-                          </div>
-
-                          {/* 出席済み */}
-                          <div className="flex-1">
-                            <h3 className="text-sm font-medium text-gray-400 mb-3">
-                              出席済み ({participants.filter(p => p.status === '11').length})
-                            </h3>
-                            <div className="flex flex-wrap gap-2">
-                              {participants
-                                .filter(p => p.status === '11')
-                                .map(participant => (
-                                  <div
-                                    key={participant.entry_id}
-                                    className="flex items-center bg-blue-600 bg-opacity-10 rounded-full px-3 py-1"
-                                  >
-                                    <Avatar
-                                      sx={{
-                                        width: 20,
-                                        height: 20,
-                                        fontSize: '0.75rem',
-                                        bgcolor: 'rgba(37, 99, 235, 0.2)',
-                                        color: '#2563eb',
-                                      }}
-                                    >
-                                      {participant.myoji[0]}
-                                    </Avatar>
-                                    <span className="ml-2 text-sm text-blue-500">
-                                      {participant.myoji} {participant.namae}
-                                    </span>
-                                  </div>
-                                ))}
-                            </div>
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                  )}
+                                </div>
+                              ))}
                           </div>
                         </div>
 
@@ -785,6 +739,61 @@ export default function EventDetailPage() {
           </div>
         )}
         <FooterMenu />
+        <EventDetailModal 
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          eventId={event?.event_id?.toString() || ''}
+        />
+        <Dialog
+          open={showDeleteDialog}
+          onClose={() => setShowDeleteDialog(false)}
+          PaperProps={{
+            style: {
+              backgroundColor: '#2D2D33',
+              borderRadius: '0.5rem',
+              maxWidth: '20rem',
+            },
+          }}
+        >
+          <div className="p-4">
+            <h3 className="text-lg font-bold text-white mb-4">削除オプション</h3>
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  handleDelete('single');
+                  setShowDeleteDialog(false);
+                }}
+                className="w-full p-3 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
+              >
+                このイベントのみを削除
+              </button>
+              <button
+                onClick={() => {
+                  handleDelete('future');
+                  setShowDeleteDialog(false);
+                }}
+                className="w-full p-3 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
+              >
+                このイベントと以降のイベントを削除
+              </button>
+              <button
+                onClick={() => {
+                  handleDelete('all');
+                  setShowDeleteDialog(false);
+                }}
+                className="w-full p-3 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
+              >
+                全ての繰り返しイベントを削除
+              </button>
+            </div>
+            <button
+              onClick={() => setShowDeleteDialog(false)}
+              className="w-full mt-4 p-3 rounded bg-[#4A4B50] text-[#FCFCFC] hover:bg-opacity-80"
+            >
+              キャンセル
+            </button>
+          </div>
+        </Dialog>
       </div>
     </Box>
   );
