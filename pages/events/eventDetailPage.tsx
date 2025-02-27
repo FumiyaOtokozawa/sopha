@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../utils/supabaseClient';
 import Header from '../../components/Header';
@@ -103,11 +103,13 @@ const CustomTooltip = styled(({ className, ...props }: { className?: string } & 
 const TooltipButton = ({ 
   message, 
   isDisabled, 
-  onClick 
+  onClick,
+  children 
 }: { 
   message?: string;
   isDisabled: boolean;
   onClick: () => void;
+  children: React.ReactNode;
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
 
@@ -127,10 +129,7 @@ const TooltipButton = ({
             : 'bg-gray-500 text-gray-300 cursor-not-allowed'}
         `}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-        </svg>
-        出席を確定する
+        {children}
       </button>
       {isDisabled && message && (
         <CustomTooltip
@@ -155,6 +154,42 @@ const TooltipButton = ({
   );
 };
 
+// 開発環境用のモック位置情報
+const MOCK_POSITIONS = {
+  VENUE: { // 会場を想定した位置
+    latitude: 35.7030882,
+    longitude: 139.7701106
+  },
+  FAR: { // 会場から離れた位置
+    latitude: 35.6895014,
+    longitude: 139.7087834
+  }
+};
+
+// イベント期間内かどうかをチェックする関数
+const isWithinEventPeriod = (event: Event | null): boolean => {
+  if (!event?.start_date || !event?.end_date) return false;
+
+  // 現在時刻をJSTで取得（UTCからの変換は不要）
+  const nowJST = new Date();
+  
+  // データベースの日時をJSTとして扱う
+  const eventStart = new Date(event.start_date);
+  const eventEnd = new Date(event.end_date);
+
+  console.log('時間チェック:', {
+    現在時刻: format(nowJST, 'yyyy/MM/dd HH:mm:ss'),
+    開始時刻: format(eventStart, 'yyyy/MM/dd HH:mm:ss'),
+    終了時刻: format(eventEnd, 'yyyy/MM/dd HH:mm:ss'),
+    開始時刻より後か: nowJST >= eventStart,
+    終了時刻より前か: nowJST <= eventEnd,
+    生の開始時刻: event.start_date,
+    生の終了時刻: event.end_date
+  });
+
+  return nowJST >= eventStart && nowJST <= eventEnd;
+};
+
 export default function EventDetailPage() {
   const router = useRouter();
   const [event, setEvent] = useState<Event | null>(null);
@@ -166,6 +201,9 @@ export default function EventDetailPage() {
   const [participants, setParticipants] = useState<EventParticipant[]>([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [useMockLocation, setUseMockLocation] = useState(false);
+  const [mockLocationType, setMockLocationType] = useState<'VENUE' | 'FAR'>('VENUE');
 
   useEffect(() => {
     const fetchEventAndCheckOwner = async () => {
@@ -381,22 +419,94 @@ export default function EventDetailPage() {
     }
   };
 
-  const handleAttendanceConfirmationClick = async (): Promise<void> => {
+  // 位置情報を取得して出席確認を行う関数
+  const handleConfirmAttendance = async () => {
     try {
+      setIsGettingLocation(true);
+
+      // 位置情報の取得（開発環境用のモック機能を追加）
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        if (process.env.NODE_ENV === 'development' && useMockLocation) {
+          // モックの位置情報を返す
+          const mockPosition = {
+            coords: {
+              latitude: MOCK_POSITIONS[mockLocationType].latitude,
+              longitude: MOCK_POSITIONS[mockLocationType].longitude,
+              accuracy: 10,
+              altitude: null,
+              altitudeAccuracy: null,
+              heading: null,
+              speed: null
+            },
+            timestamp: Date.now()
+          } as GeolocationPosition;
+
+          console.log('モック位置情報:', {
+            latitude: mockPosition.coords.latitude,
+            longitude: mockPosition.coords.longitude,
+            type: mockLocationType
+          });
+
+          resolve(mockPosition);
+          return;
+        }
+
+        if (!navigator.geolocation) {
+          reject(new Error('このブラウザは位置情報をサポートしていません'));
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            console.log('取得した位置情報:', {
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              accuracy: pos.coords.accuracy
+            });
+            resolve(pos);
+          },
+          (error) => {
+            console.error('位置情報取得エラー:', {
+              code: error.code,
+              message: error.message
+            });
+            switch(error.code) {
+              case error.PERMISSION_DENIED:
+                reject(new Error('位置情報の使用が許可されていません。ブラウザの設定をご確認ください'));
+                break;
+              case error.POSITION_UNAVAILABLE:
+                reject(new Error('位置情報を取得できませんでした'));
+                break;
+              case error.TIMEOUT:
+                reject(new Error('位置情報の取得がタイムアウトしました'));
+                break;
+              default:
+                reject(error);
+            }
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          }
+        );
+      });
+
+      // 出席確認処理の実行
       const result = await handleAttendanceConfirmation(
         supabase,
         router.query.event_id,
         event,
-        currentUserEmpNo
+        currentUserEmpNo,
+        position
       );
 
       if (!result.success) {
-        // エラーではなく警告として表示
         alert(result.message);
         return;
       }
 
-      // 成功時のみ参加者一覧を再取得
+      // 成功時の処理（参加者一覧の更新など）
       const { data: updatedParticipants, error: participantsError } = await supabase
         .from('EVENT_TEMP_ENTRY')
         .select(`
@@ -408,7 +518,11 @@ export default function EventDetailPage() {
         .eq('event_id', router.query.event_id)
         .order('entry_id', { ascending: true });
 
-      if (participantsError) throw participantsError;
+      if (participantsError) {
+        console.error('参加者一覧の更新に失敗:', participantsError);
+        alert('参加者一覧の更新に失敗しました');
+        return;
+      }
 
       const formattedParticipants = (updatedParticipants as unknown as SupabaseEntry[])?.map(entry => ({
         entry_id: entry.entry_id,
@@ -419,23 +533,19 @@ export default function EventDetailPage() {
       })) || [];
 
       setParticipants(formattedParticipants);
+      setEntryStatus('11'); // 出席済みステータスに更新
       alert(result.message);
+
     } catch (error) {
-      console.error('出席確定処理エラー:', error);
-      alert('出席確定処理に失敗しました');
+      if (error instanceof Error) {
+        alert(error.message);
+      } else {
+        alert('予期せぬエラーが発生しました');
+      }
+    } finally {
+      setIsGettingLocation(false);
     }
   };
-
-  // ボタンの活性状態とメッセージを管理
-  const confirmationStatus = useMemo(() => {
-    if (!event?.start_date) {
-      return {
-        isValid: false,
-        message: 'イベントの開始日時が設定されていません'
-      };
-    }
-    return isConfirmationAllowed(event.start_date);
-  }, [event?.start_date]);
 
   const handleDelete = async (deleteType: 'single' | 'all' | 'future') => {
     if (!event) return;
@@ -684,50 +794,77 @@ export default function EventDetailPage() {
         {!isEditing && (
           <div className="sticky bottom-16 left-0 right-0 bg-[#1D1D21] p-4 border-t border-gray-700 z-50">
             <div className="max-w-2xl mx-auto">
-              {isOwner ? (
-                <TooltipButton
-                  message={!confirmationStatus.isValid ? confirmationStatus.message : undefined}
-                  isDisabled={!confirmationStatus.isValid}
-                  onClick={handleAttendanceConfirmationClick}
-                />
-              ) : (
+              {!isOwner && (
                 <>
                   {entryStatus ? (
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <div 
-                          className={`
-                            text-xl font-bold py-3 rounded-lg text-center w-full
-                            ${entryStatus === '1' 
-                              ? 'bg-green-600 bg-opacity-20 text-green-500' 
-                              : entryStatus === '2' 
-                                ? 'bg-red-600 bg-opacity-20 text-red-500'
-                                : 'bg-blue-600 bg-opacity-20 text-blue-500'
-                            }
-                          `}
-                        >
-                          {entryStatus === '1' ? '出席予定' : entryStatus === '2' ? '欠席予定' : '出席済み'}
+                    <>
+                      {/* 仮出席状態の時のみ本出席ボタンを表示 */}
+                      {entryStatus === '1' && (
+                        <div className="flex-1 mb-4">
+                          <TooltipButton
+                            onClick={handleConfirmAttendance}
+                            isDisabled={isGettingLocation || !isWithinEventPeriod(event)}
+                            message={!isWithinEventPeriod(event) ? 'イベントの開催時間外です' : undefined}
+                          >
+                            {isGettingLocation ? (
+                              <>
+                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                位置情報を確認中...
+                              </>
+                            ) : (
+                              <>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                                本出席を確定する
+                              </>
+                            )}
+                          </TooltipButton>
                         </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <div 
+                            className={`
+                              text-xl font-bold h-12 flex items-center justify-center rounded-lg w-full
+                              ${entryStatus === '1' 
+                                ? 'bg-green-600 bg-opacity-20 text-green-500' 
+                                : entryStatus === '2' 
+                                  ? 'bg-red-600 bg-opacity-20 text-red-500'
+                                  : 'bg-blue-600 bg-opacity-20 text-blue-500'
+                              }
+                            `}
+                          >
+                            {entryStatus === '1' ? '出席予定' : entryStatus === '2' ? '欠席予定' : '出席済み'}
+                          </div>
+                        </div>
+                        {/* 出席済み（status='11'）以外の場合のみステータス変更ボタンを表示 */}
+                        {entryStatus !== '11' && (
+                          <button
+                            onClick={() => setEntryStatus(null)}
+                            className="text-gray-300 hover:text-white transition-colors duration-200"
+                            aria-label="ステータスを変更"
+                          >
+                            <ChangeCircleIcon sx={{ fontSize: 40 }} />
+                          </button>
+                        )}
                       </div>
-                      <button
-                        onClick={() => setEntryStatus(null)}
-                        className="text-gray-300 hover:text-white transition-colors duration-200"
-                        aria-label="ステータスを変更"
-                      >
-                        <ChangeCircleIcon sx={{ fontSize: 40 }} />
-                      </button>
-                    </div>
+                    </>
                   ) : (
                     <div className="flex justify-between gap-4">
                       <button
                         onClick={() => handleEventEntry('1')}
-                        className="px-8 py-3 rounded bg-green-600 text-white font-bold hover:bg-opacity-80 flex-1"
+                        className="h-12 px-8 rounded bg-green-600 text-white font-bold hover:bg-opacity-80 flex-1"
                       >
                         出席
                       </button>
                       <button
                         onClick={() => handleEventEntry('2')}
-                        className="px-8 py-3 rounded bg-red-600 text-white font-bold hover:bg-opacity-80 flex-1"
+                        className="h-12 px-8 rounded bg-red-600 text-white font-bold hover:bg-opacity-80 flex-1"
                       >
                         欠席
                       </button>
@@ -794,6 +931,29 @@ export default function EventDetailPage() {
             </button>
           </div>
         </Dialog>
+        {/* 開発環境の場合のみモック切り替えボタンを表示 */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="fixed top-4 right-4 z-50 space-y-2">
+            <button
+              onClick={() => setUseMockLocation(!useMockLocation)}
+              className={`
+                w-full px-4 py-2 rounded text-sm
+                ${useMockLocation ? 'bg-green-500' : 'bg-gray-500'}
+                text-white
+              `}
+            >
+              モック位置情報: {useMockLocation ? 'ON' : 'OFF'}
+            </button>
+            {useMockLocation && (
+              <button
+                onClick={() => setMockLocationType(type => type === 'VENUE' ? 'FAR' : 'VENUE')}
+                className="w-full px-4 py-2 rounded text-sm bg-blue-500 text-white"
+              >
+                現在の位置: {mockLocationType === 'VENUE' ? '会場近く' : '会場から遠い'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </Box>
   );

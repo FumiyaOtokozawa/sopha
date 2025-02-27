@@ -13,28 +13,41 @@ const IndexPage = () => {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (user) {
-        // USER_ROLEテーブルからuser_idに基づいてroleを取得
-        const { data, error } = await supabase
-          .from("USER_ROLE")
-          .select("role")
-          .eq("user_id", user.id)
+      if (user?.email) {
+        // まずUSER_INFOテーブルからemailに基づいてemp_noを取得
+        const { data: userData, error: userError } = await supabase
+          .from("USER_INFO")
+          .select("emp_no")
+          .eq("email", user.email)
           .single();
 
-        if (error || !data) {
-          console.error("Role retrieval error:", error);
-          router.push("/loginPage"); // エラー時はログイン画面に戻す
+        if (userError || !userData) {
+          console.error("User info retrieval error:", userError);
+          router.push("/loginPage");
+          return;
+        }
+
+        // 次にUSER_ROLEテーブルからemp_noに基づいてroleを取得
+        const { data: roleData, error: roleError } = await supabase
+          .from("USER_ROLE")
+          .select("role")
+          .eq("emp_no", userData.emp_no)
+          .single();
+
+        if (roleError || !roleData) {
+          console.error("Role retrieval error:", roleError);
+          router.push("/loginPage");
           return;
         }
 
         // roleに基づくリダイレクト
-        if (data.role === 0) {
+        if (roleData.role === "0") {
           router.push("/employeePages/empMainPage"); // employeeのリダイレクト先
-        } else if (data.role === 1) {
+        } else if (roleData.role === "1") {
           router.push("/adminPages/admMainPage"); // adminのリダイレクト先
         }
       } else {
-        // ミドグインの場合はログインページへリダイレクト
+        // 未ログインの場合はログインページへリダイレクト
         router.push("/loginPage");
       }
     };

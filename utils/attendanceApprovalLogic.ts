@@ -5,6 +5,8 @@ interface Event {
   title: string;
   genre: string;
   start_date: string;
+  end_date?: string;
+  venue_id?: number;
 }
 
 interface ValidationResult {
@@ -12,11 +14,41 @@ interface ValidationResult {
   message?: string;
 }
 
+interface Venue {
+  latitude: number;
+  longitude: number;
+}
+
+// 2点間の距離を計算する関数（ヘイバーサイン公式）
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371e3; // 地球の半径（メートル）
+  const φ1 = lat1 * Math.PI/180;
+  const φ2 = lat2 * Math.PI/180;
+  const Δφ = (lat2-lat1) * Math.PI/180;
+  const Δλ = (lon2-lon1) * Math.PI/180;
+
+  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+          Math.cos(φ1) * Math.cos(φ2) *
+          Math.sin(Δλ/2) * Math.sin(Δλ/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  return R * c; // メートル単位での距離
+};
+
+// JSTの現在時刻を取得するユーティリティ関数
+const getCurrentJSTISOString = () => {
+  const now = new Date();
+  const jstOffset = 9 * 60; // JSTは+9時間
+  const jstDate = new Date(now.getTime() + (jstOffset * 60 * 1000));
+  return jstDate.toISOString();
+};
+
 export const handleAttendanceConfirmation = async (
   supabase: SupabaseClient,
   eventId: string | string[] | undefined,
   event: Event | null,
-  currentUserEmpNo: number | null
+  currentUserEmpNo: number | null,
+  currentPosition: GeolocationPosition
 ): Promise<{ success: boolean; message?: string }> => {
   try {
     console.log('出席確定処理開始');
@@ -37,6 +69,118 @@ export const handleAttendanceConfirmation = async (
       return {
         success: false,
         message: validationResult.message
+      };
+    }
+
+    // イベント会場の位置情報を取得
+    const { data: venueData, error: venueError } = await supabase
+      .from('EVENT_VENUE')
+      .select('latitude, longitude, venue_nm')
+      .eq('venue_id', event?.venue_id)
+      .single();
+
+    if (venueError) throw venueError;
+
+    console.log('イベント会場の位置情報:', {
+      venue_name: venueData.venue_nm,
+      latitude: venueData.latitude,
+      longitude: venueData.longitude
+    });
+
+    // 位置情報チェック
+    const distance = calculateDistance(
+      currentPosition.coords.latitude,
+      currentPosition.coords.longitude,
+      venueData.latitude,
+      venueData.longitude
+    );
+
+    console.log('位置情報の計算結果:', {
+      distance: Math.round(distance), // メートル単位で小数点以下を四捨五入
+      isWithinRange: distance <= 100,
+      currentPosition: {
+        latitude: currentPosition.coords.latitude,
+        longitude: currentPosition.coords.longitude
+      }
+    });
+
+    if (distance > 100) {
+      return {
+        success: false,
+        message: 'イベント会場から離れすぎています（100m以内に近づいてください）'
+      };
+    }
+
+    // イベント開催期間チェック
+    const now = new Date();
+    const jstOffset = 9 * 60; // JSTは+9時間
+    const nowJST = new Date(now.getTime() + (jstOffset * 60 * 1000));
+
+    console.log('イベント開催時間の詳細:', {
+      開始時刻_生データ: event?.start_date,
+      終了時刻_生データ: event?.end_date,
+      現在時刻_UTC: now.toISOString(),
+      現在時刻_JST: nowJST.toISOString()
+    });
+
+    // 文字列から日付を作成する際にタイムゾーンを考慮
+    const parseJSTDate = (dateString: string | undefined) => {
+      if (!dateString) {
+        throw new Error('日時が設定されていません');
+      }
+      
+      try {
+        let date: Date;
+        if (dateString.includes('T')) {
+          // ISO形式の場合、UTCとして解釈されるのでJSTに変換
+          const utcDate = new Date(dateString);
+          date = new Date(utcDate.getTime() + (jstOffset * 60 * 1000));
+        } else {
+          // スラッシュ形式の場合、既にJSTとして解釈
+          const [datePart, timePart] = dateString.split(' ');
+          const [year, month, day] = datePart.split('/').map(Number);
+          const [hours, minutes, seconds] = timePart.split(':').map(Number);
+          date = new Date(year, month - 1, day, hours, minutes, seconds);
+        }
+
+        if (isNaN(date.getTime())) {
+          throw new Error('不正な日時形式です');
+        }
+
+        console.log('日時パース結果:', {
+          入力: dateString,
+          パース後_ISO: date.toISOString(),
+          パース後_JST: date.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })
+        });
+
+        return date;
+      } catch (error) {
+        throw new Error(`日時のパースに失敗しました: ${dateString}`);
+      }
+    };
+
+    try {
+      const eventStartJST = parseJSTDate(event?.start_date);
+      const eventEndJST = parseJSTDate(event?.end_date);
+
+      console.log('時間チェック:', {
+        現在時刻: nowJST.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
+        開始時刻: eventStartJST.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
+        終了時刻: eventEndJST.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }),
+        開始時刻より後か: nowJST >= eventStartJST,
+        終了時刻より前か: nowJST <= eventEndJST
+      });
+
+      if (nowJST < eventStartJST || nowJST > eventEndJST) {
+        return {
+          success: false,
+          message: 'イベントの開催時間外です'
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'イベントの日時情報が不正です'
       };
     }
 
@@ -74,51 +218,31 @@ export const handleAttendanceConfirmation = async (
     const nextHistoryId = (maxHistoryId?.history_id || 0) + 1;
     console.log('次のhistory_id:', nextHistoryId);
 
-    // 出席履歴の追加
+    // 2. EVENT_PAR_HISTORYに出席履歴を追加
     const { error: historyError } = await supabase
       .from('EVENT_PAR_HISTORY')
-      .insert(
-        presentAttendees.map((emp_no, index) => ({
-          history_id: nextHistoryId + index,
-          emp_no: emp_no,
-          event_id: Number(eventId),
-          participated_at: new Date().toISOString().split('T')[0]
-        }))
-      );
+      .insert({
+        history_id: nextHistoryId,
+        event_id: eventId,
+        emp_no: currentUserEmpNo,
+        participated_at: getCurrentJSTISOString() // 日付のみから時間も含む形式に変更
+      });
 
     if (historyError) throw historyError;
     console.log('出席履歴追加完了');
 
-    // 2. EMP_CIZ_HISTORYの最新history_id取得
-    const { data: maxCizHistoryId, error: maxCizHistoryError } = await supabase
-      .from('EMP_CIZ_HISTORY')
-      .select('history_id')
-      .order('history_id', { ascending: false })
-      .limit(1)
-      .single();
+    // 3. EVENT_TEMP_ENTRYのステータスを更新
+    const { error: updateError } = await supabase
+      .from('EVENT_TEMP_ENTRY')
+      .update({
+        status: '11',
+        updated_at: getCurrentJSTISOString() // timestamp without time zone型
+      })
+      .eq('event_id', eventId)
+      .eq('emp_no', currentUserEmpNo);
 
-    if (maxCizHistoryError && maxCizHistoryError.code !== 'PGRST116') throw maxCizHistoryError;
-    const nextCizHistoryId = (maxCizHistoryId?.history_id || 0) + 1;
-    console.log('次のCIZ履歴ID:', nextCizHistoryId);
-
-    // CIZポイントの履歴追加
-    const { error: cizHistoryError } = await supabase
-      .from('EMP_CIZ_HISTORY')
-      .insert(
-        presentAttendees.map((emp_no, index) => ({
-          history_id: nextCizHistoryId + index,
-          emp_no: emp_no,
-          change_type: 'add',
-          ciz: 1000,
-          event_id: Number(eventId),
-          reason: `${event?.title} 出席ポイント`,
-          created_at: new Date().toISOString(),
-          created_by: currentUserEmpNo?.toString()
-        }))
-      );
-
-    if (cizHistoryError) throw cizHistoryError;
-    console.log('CIZポイント履歴追加完了');
+    if (updateError) throw updateError;
+    console.log('出席者のステータス更新完了');
 
     // 参加カウントの更新
     console.log('参加カウント更新開始');
@@ -145,7 +269,7 @@ export const handleAttendanceConfirmation = async (
             unofficial_count: !isOfficialEvent 
               ? (currentCount.unofficial_count || 0) + 1 
               : currentCount.unofficial_count,
-            updated_at: new Date().toISOString().split('T')[0]
+            updated_at: getCurrentJSTISOString() // 日付のみから時間も含む形式に変更
           })
           .eq('emp_no', emp_no);
 
@@ -159,7 +283,7 @@ export const handleAttendanceConfirmation = async (
             emp_no: emp_no,
             official_count: isOfficialEvent ? 1 : 0,
             unofficial_count: !isOfficialEvent ? 1 : 0,
-            updated_at: new Date().toISOString().split('T')[0]
+            updated_at: getCurrentJSTISOString() // 日付のみから時間も含む形式に変更
           });
 
         if (insertCountError) throw insertCountError;
@@ -186,7 +310,7 @@ export const handleAttendanceConfirmation = async (
           .from('EMP_CIZ')
           .update({
             total_ciz: (currentCiz.total_ciz || 0) + 1000,
-            updated_at: new Date().toISOString(),
+            updated_at: getCurrentJSTISOString(),
             updated_by: currentUserEmpNo?.toString()
           })
           .eq('emp_no', emp_no);
@@ -200,28 +324,42 @@ export const handleAttendanceConfirmation = async (
           .insert({
             emp_no: emp_no,
             total_ciz: 1000,
-            updated_at: new Date().toISOString(),
+            updated_at: getCurrentJSTISOString(),
             updated_by: currentUserEmpNo?.toString()
           });
 
         if (insertCizError) throw insertCizError;
         console.log(`社員番号 ${emp_no} のCIZ新規作成完了`);
       }
+
+      // CIZポイント履歴の追加
+      const { data: maxCizHistoryId, error: maxCizHistoryError } = await supabase
+        .from('EMP_CIZ_HISTORY')
+        .select('history_id')
+        .order('history_id', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (maxCizHistoryError && maxCizHistoryError.code !== 'PGRST116') throw maxCizHistoryError;
+      const nextCizHistoryId = (maxCizHistoryId?.history_id || 0) + 1;
+
+      const { error: cizHistoryError } = await supabase
+        .from('EMP_CIZ_HISTORY')
+        .insert({
+          history_id: nextCizHistoryId,
+          emp_no: emp_no,
+          change_type: 'add',
+          ciz: 1000,
+          event_id: Number(eventId),
+          reason: `${event?.title} 出席ポイント`,
+          created_at: getCurrentJSTISOString(), // timestamp without time zone型なので、時間も含めて保存
+          created_by: currentUserEmpNo?.toString()
+        });
+
+      if (cizHistoryError) throw cizHistoryError;
+      console.log(`社員番号 ${emp_no} のCIZポイント履歴追加完了`);
     }
     console.log('CIZポイント更新完了');
-
-    // 出席者のステータスを11に更新
-    if (presentAttendees.length > 0) {
-      console.log('出席者のステータス更新開始');
-      const { error: updatePresentError } = await supabase
-        .from('EVENT_TEMP_ENTRY')
-        .update({ status: '11', updated_at: new Date().toISOString() })
-        .eq('event_id', eventId)
-        .in('emp_no', presentAttendees);
-
-      if (updatePresentError) throw updatePresentError;
-      console.log('出席者のステータス更新完了');
-    }
 
     console.log('全ての処理が完了しました');
 

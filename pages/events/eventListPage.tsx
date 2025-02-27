@@ -96,15 +96,60 @@ export default function EventListPage() {
     className: `calendar-event ${event.genre === '1' ? 'official-event' : 'normal-event'}`
   }), []);
 
-  const fetchEvents = React.useCallback(async (date: Date) => {
+  // キャッシュ用のステート
+  const [eventCache, setEventCache] = useState<{
+    [key: string]: {
+      events: Event[];
+      timestamp: number;
+      range: { start: string; end: string };
+    };
+  }>({});
+
+  // キャッシュキーを生成する関数
+  const getCacheKey = (date: Date, viewType: 'calendar' | 'list') => {
+    return `${date.getFullYear()}-${date.getMonth()}-${viewType}`;
+  };
+
+  // isCacheValid 関数をuseCallbackでメモ化
+  const isCacheValid = React.useCallback((cacheKey: string, startDate: Date, endDate: Date) => {
+    const cache = eventCache[cacheKey];
+    if (!cache) return false;
+
+    const cacheExpiration = 15 * 60 * 1000;
+    const now = Date.now();
+    
+    if (now - cache.timestamp > cacheExpiration) return false;
+
+    const cacheStart = new Date(cache.range.start);
+    const cacheEnd = new Date(cache.range.end);
+    return cacheStart <= startDate && cacheEnd >= endDate;
+  }, [eventCache]);
+
+  const fetchEvents = React.useCallback(async (date: Date, viewType: 'calendar' | 'list') => {
     try {
-      // 表示月の1週間前の日付を計算
-      const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
-      startDate.setDate(startDate.getDate() - 7);
+      let startDate: Date;
+      let endDate: Date;
 
-      // 3ヶ月後の月末を計算
-      const endDate = new Date(date.getFullYear(), date.getMonth() + 4, 0);
+      if (viewType === 'calendar') {
+        startDate = new Date(date.getFullYear(), date.getMonth(), 1);
+        startDate.setDate(startDate.getDate() - 7);
+        endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+        endDate.setDate(endDate.getDate() + 7);
+      } else {
+        startDate = new Date(date.getFullYear(), date.getMonth(), 1);
+        endDate = new Date(date.getFullYear(), date.getMonth() + 4, 0);
+      }
 
+      const cacheKey = getCacheKey(date, viewType);
+
+      // キャッシュが有効な場合はキャッシュを使用
+      if (isCacheValid(cacheKey, startDate, endDate)) {
+        console.log('キャッシュからイベントを取得');
+        setEvents(eventCache[cacheKey].events);
+        return;
+      }
+
+      console.log('DBからイベントを取得');
       const { data: events, error } = await supabase
         .from('EVENT_LIST')
         .select(`
@@ -118,7 +163,6 @@ export default function EventListPage() {
 
       if (error) throw error;
 
-      // イベントのオーナー情報を取得
       const eventsWithOwner = await Promise.all(
         events.map(async (event) => {
           const { data: ownerData } = await supabase
@@ -135,15 +179,39 @@ export default function EventListPage() {
         })
       );
 
+      // キャッシュを更新
+      setEventCache(prev => ({
+        ...prev,
+        [cacheKey]: {
+          events: eventsWithOwner,
+          timestamp: Date.now(),
+          range: {
+            start: startDate.toISOString(),
+            end: endDate.toISOString()
+          }
+        }
+      }));
+
       setEvents(eventsWithOwner);
     } catch (error) {
       console.error('イベントの取得に失敗:', error);
     }
+  }, [eventCache, isCacheValid]);
+
+  // キャッシュをクリアする関数
+  const clearEventCache = () => {
+    setEventCache({});
+  };
+
+  // 15分ごとにキャッシュをクリア
+  useEffect(() => {
+    const interval = setInterval(clearEventCache, 15 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    fetchEvents(currentMonth);
-  }, [currentMonth, fetchEvents]);
+    fetchEvents(currentMonth, view);
+  }, [currentMonth, fetchEvents, view]);
 
   // 月が変更されたときにイベントを再取得
   const handleMonthChange = (date: Date) => {
@@ -165,12 +233,12 @@ export default function EventListPage() {
 
   // イベントのフィルタリング部分を修正
   const filterRepeatingEvents = (events: Event[]) => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    yesterday.setHours(23, 59, 59);
+    // 今日の0時0分0秒を設定
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
-    // start_dateを使用するように変更
-    const futureEvents = events.filter(event => new Date(event.start_date) > yesterday);
+    // start_dateを使用して今日の0時以降のイベントをフィルタリング
+    const futureEvents = events.filter(event => new Date(event.start_date) >= today);
     
     if (showAllEvents) return futureEvents;
 
@@ -185,7 +253,6 @@ export default function EventListPage() {
 
     return Object.values(eventGroups).map(group => {
       if (group.length === 1) return group[0];
-      // start_dateを使用するように変更
       return group.reduce((nearest, event) => {
         if (!nearest || new Date(event.start_date) < new Date(nearest.start_date)) return event;
         return nearest;
@@ -243,6 +310,12 @@ export default function EventListPage() {
     console.log('Modal state changed:', isModalOpen);
   }, [isModalOpen]);
 
+  // ビュー切り替え時にイベントを再取得
+  const handleViewChange = (newView: 'calendar' | 'list') => {
+    setView(newView);
+    fetchEvents(currentMonth, newView);
+  };
+
   return (
     <Box sx={{ pb: 7 }}>
       <div>
@@ -263,7 +336,7 @@ export default function EventListPage() {
               className={`flex-1 py-2 rounded-md transition-colors ${
                 view === 'calendar' ? 'bg-[#5b63d3] text-white' : 'text-gray-400 hover:text-white'
               }`}
-              onClick={() => setView('calendar')}
+              onClick={() => handleViewChange('calendar')}
             >
               カレンダー
             </button>
@@ -271,7 +344,7 @@ export default function EventListPage() {
               className={`flex-1 py-2 rounded-md transition-colors ${
                 view === 'list' ? 'bg-[#5b63d3] text-white' : 'text-gray-400 hover:text-white'
               }`}
-              onClick={() => setView('list')}
+              onClick={() => handleViewChange('list')}
             >
               予定リスト
             </button>
