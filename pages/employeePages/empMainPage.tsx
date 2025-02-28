@@ -266,9 +266,8 @@ const EmpMainPage = () => {
       <Header />
       
       <div className="p-4">
-        <div className="w-full max-w-xl mx-auto space-y-4">
-          <div className="bg-[#2f3033] rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold mb-4 text-[#FCFCFC]">Total Points</h2>
+        <div className="w-full max-w-xl mx-auto space-y-3">
+          <div className="bg-[#2f3033] rounded-lg shadow-md p-4">
             <div className="text-right">
               <div className="text-[#FCFCFC] text-4xl font-bold mb-2">
                 {points !== null ? points.toLocaleString() : "..."} <span className="text-2xl">ciz</span>
@@ -287,20 +286,22 @@ const EmpMainPage = () => {
             </div>
           </div>
 
-          <div className="bg-[#2f3033] rounded-lg shadow-md p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-[#FCFCFC]">History</h2>
+          <div className="bg-[#2f3033] rounded-lg shadow-md p-4 py-2 flex flex-col h-[calc(100vh-335px)]">
+            <div className="flex justify-center items-center mb-2">
               <Tabs 
                 value={activeTab}
                 onChange={handleTabChange}
+                variant="fullWidth"
                 sx={{
                   minHeight: '32px',
+                  width: '95%',
                   '& .MuiTab-root': {
                     minHeight: '32px',
                     padding: '6px 16px',
                     color: '#FCFCFC',
                     fontSize: '0.875rem',
                     textTransform: 'none',
+                    fontWeight: 'medium',
                   },
                   '& .Mui-selected': {
                     color: '#8E93DA !important',
@@ -315,7 +316,7 @@ const EmpMainPage = () => {
               </Tabs>
             </div>
 
-            <div className="h-[calc(100vh-500px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
+            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
               {activeTab === 'points' ? (
                 <div className="space-y-2">
                   {historyList.length === 0 ? (
@@ -329,21 +330,21 @@ const EmpMainPage = () => {
 
                         return (
                           <div
-                            key={item.history_id}
-                            className="bg-[#404040] px-4 py-3 rounded-md"
+                            key={`history-${item.history_id}`}
+                            className="bg-[#404040] px-3 py-2 rounded-md"
                           >
                             <div className="flex justify-between items-center">
                               <div className="flex-1 mr-4">
-                                <p className="text-sm sm:text-base font-medium break-all text-[#FCFCFC] leading-relaxed">
+                                <p className="text-xs xs:text-sm sm:text-base font-medium break-all text-[#FCFCFC] leading-relaxed">
                                   {item.reason}
                                 </p>
-                                <p className="text-xs sm:text-sm text-gray-400 mt-1.5">
+                                <p className="text-[10px] xs:text-xs sm:text-sm text-gray-400 mt-1.5">
                                   {formatDate(item.created_at)}
                                 </p>
                               </div>
-                              <div className={`${colorClass} text-lg sm:text-xl font-bold flex-shrink-0 ml-2`}>
+                              <div className={`${colorClass} text-base xs:text-lg sm:text-xl font-bold flex-shrink-0 ml-2`}>
                                 {sign}
-                                {item.ciz.toLocaleString()} <span className="text-sm sm:text-base font-medium">ciz</span>
+                                {item.ciz.toLocaleString()} <span className="text-xs xs:text-sm sm:text-base font-medium">ciz</span>
                               </div>
                             </div>
                           </div>
@@ -351,11 +352,11 @@ const EmpMainPage = () => {
                       })}
                       
                       {hasMorePoints && (
-                        <div className="flex justify-center mt-6 mb-2">
+                        <div className="flex justify-center mt-4 mb-1">
                           <button
                             onClick={handleLoadMore}
                             disabled={isLoadingMore}
-                            className="bg-[#363636] text-[#FCFCFC] py-2.5 rounded-md text-sm font-medium hover:bg-[#404040] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 w-full"
+                            className="bg-[#363636] text-[#FCFCFC] py-2.5 rounded-md text-xs xs:text-sm font-medium hover:bg-[#404040] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 w-full"
                           >
                             {isLoadingMore ? (
                               <span className="flex items-center justify-center gap-2">
@@ -379,19 +380,19 @@ const EmpMainPage = () => {
                     <>
                       {participationHistory.map((item) => (
                         <div
-                          key={item.history_id}
-                          className="bg-[#404040] px-4 py-3 rounded-md"
+                          key={`event-${item.history_id}`}
+                          className="bg-[#404040] px-3 py-2 rounded-md"
                         >
                           <div className="flex justify-between items-center">
                             <div className="flex-1 mr-4">
-                              <p className="text-sm sm:text-base font-medium break-all text-[#FCFCFC] leading-relaxed">
+                              <p className="text-xs xs:text-sm sm:text-base font-medium break-all text-[#FCFCFC] leading-relaxed">
                                 {item.EVENT_LIST.title}
                               </p>
-                              <p className="text-xs sm:text-sm text-gray-400 mt-1.5">
+                              <p className="text-[10px] xs:text-xs sm:text-sm text-gray-400 mt-1.5">
                                 {formatDate(item.participated_at)}
                               </p>
                             </div>
-                            <div className={`text-sm font-medium ${
+                            <div className={`text-xs xs:text-sm font-medium ${
                               item.EVENT_LIST.genre === '1' ? 'text-blue-400' : 'text-green-400'
                             }`}>
                               {item.EVENT_LIST.genre === '1' ? '公式' : '非公式'}
@@ -401,11 +402,11 @@ const EmpMainPage = () => {
                       ))}
                       
                       {hasMoreEvents && (
-                        <div className="flex justify-center mt-6 mb-2">
+                        <div className="flex justify-center mt-4 mb-1">
                           <button
                             onClick={handleLoadMore}
                             disabled={isLoadingMore}
-                            className="bg-[#363636] text-[#FCFCFC] py-2.5 rounded-md text-sm font-medium hover:bg-[#404040] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 w-full"
+                            className="bg-[#363636] text-[#FCFCFC] py-2.5 rounded-md text-xs xs:text-sm font-medium hover:bg-[#404040] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 w-full"
                           >
                             {isLoadingMore ? (
                               <span className="flex items-center justify-center gap-2">
