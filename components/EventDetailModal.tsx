@@ -4,7 +4,7 @@ import { Dialog } from '@mui/material';
 import { Event } from '../types/event';
 import { useRouter } from 'next/router';
 import { format } from 'date-fns';
-import { enUS, ja } from 'date-fns/locale';
+import { ja } from 'date-fns/locale';
 
 interface Props {
   isOpen: boolean;

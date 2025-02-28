@@ -5,7 +5,7 @@ import Header from '../../components/Header';
 import { Box, Avatar, Dialog } from '@mui/material';
 import FooterMenu from '../../components/FooterMenu';
 import ChangeCircleIcon from '@mui/icons-material/ChangeCircle';
-import { enUS, ja } from 'date-fns/locale';
+import { ja } from 'date-fns/locale';
 import { handleAttendanceConfirmation } from '../../utils/attendanceApprovalLogic';
 import Tooltip, { tooltipClasses, TooltipProps } from '@mui/material/Tooltip';
 import { styled } from '@mui/material/styles';
@@ -25,7 +25,6 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckIcon from '@mui/icons-material/Check';
 import VerifiedIcon from '@mui/icons-material/Verified';
-import NoteIcon from '@mui/icons-material/Note';
 
 interface Event {
   event_id: number;
@@ -359,7 +358,7 @@ const EventDetailPage: React.FC = () => {
       const existingParticipant = existingParticipantIndex >= 0 ? participants[existingParticipantIndex] : null;
 
       // 参加者リストを先に更新（楽観的更新）
-      let updatedParticipants = [...participants];
+      const updatedParticipants = [...participants];
       
       // JSTの現在時刻を取得
       const now = new Date();

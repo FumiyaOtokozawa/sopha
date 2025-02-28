@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../utils/supabaseClient';
 import Header from '../../components/Header';
 import Image from 'next/image';
-import { Box, CircularProgress, Fade, Chip, TextField, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel } from '@mui/material';
+import { Box, CircularProgress, Fade, TextField, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel } from '@mui/material';
 import FooterMenu from '../../components/FooterMenu';
 import BadgeIcon from '@mui/icons-material/Badge';
 import EmailIcon from '@mui/icons-material/Email';
@@ -100,9 +100,9 @@ const EmpProfilePage = () => {
       // 更新成功後、表示を更新
       setProfile(editedProfile);
       setIsEditing(false);
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
       console.error("更新エラー:", error);
-      setError(error.message || "プロフィールの更新に失敗しました");
+      setError(error instanceof Error ? error.message : "プロフィールの更新に失敗しました");
     } finally {
       setIsSaving(false);
     }
