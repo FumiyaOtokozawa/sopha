@@ -13,6 +13,19 @@ import InfoIcon from '@mui/icons-material/Info';
 import EventEditForm from '../../components/EventEditForm';
 import { format } from 'date-fns';
 import EventDetailModal from '../../components/EventDetailModal';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import PersonIcon from '@mui/icons-material/Person';
+import LinkIcon from '@mui/icons-material/Link';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
+import GroupIcon from '@mui/icons-material/Group';
+import DeleteIcon from '@mui/icons-material/Delete';
+import EditIcon from '@mui/icons-material/Edit';
+import CheckIcon from '@mui/icons-material/Check';
+import VerifiedIcon from '@mui/icons-material/Verified';
+import NoteIcon from '@mui/icons-material/Note';
 
 interface Event {
   event_id: number;
@@ -124,7 +137,7 @@ const TooltipButton = ({
         }}
         disabled={isDisabled}
         className={`
-          w-full py-3 rounded font-bold flex items-center justify-center gap-2
+          w-full h-12 rounded-xl font-bold flex items-center justify-center gap-2
           ${!isDisabled 
             ? 'bg-[#5b63d3] text-white hover:bg-opacity-80' 
             : 'bg-gray-500 text-gray-300 cursor-not-allowed'}
@@ -648,11 +661,6 @@ const EventDetailPage: React.FC = () => {
             {isOwner && (
               <div className="mb-4 bg-[#8E93DA]/20 border border-[#8E93DA]/40 rounded-xl p-3 flex items-center justify-center transform hover:scale-[1.02] transition-all duration-300">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-[#8E93DA]/30 rounded-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#8E93DA]" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 2a1 1 0 00-1 1v1.323l-3.954 1.582A1 1 0 004 6.868V16a1 1 0 001 1h10a1 1 0 001-1V6.868a1 1 0 00-1.046-.963L11 4.323V3a1 1 0 00-1-1H10zm4 8V7L9 5v1h2v1H9v1h2v1H9v1h6z" clipRule="evenodd" />
-                    </svg>
-                  </div>
                   <span className="text-[#8E93DA] font-medium">あなたが主催しているイベントです</span>
                 </div>
               </div>
@@ -672,18 +680,14 @@ const EventDetailPage: React.FC = () => {
                     }}
                     className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all duration-300 flex items-center gap-1.5 group"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform group-hover:rotate-12 transition-transform duration-300" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
+                    <DeleteIcon className="h-4 w-4 transform group-hover:rotate-12 transition-transform duration-300" fontSize="small" />
                     削除
                   </button>
                   <button
                     onClick={handleEdit}
                     className="px-3 py-1.5 rounded-lg bg-[#4A4B50]/50 text-[#FCFCFC] hover:bg-[#4A4B50]/70 transition-all duration-300 flex items-center gap-1.5 group"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform group-hover:rotate-45 transition-transform duration-300" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                    </svg>
+                    <EditIcon className="h-4 w-4 transform group-hover:rotate-45 transition-transform duration-300" fontSize="small" />
                     編集
                   </button>
                 </div>
@@ -703,21 +707,17 @@ const EventDetailPage: React.FC = () => {
                     <div className="space-y-4">
                       <div className="flex items-start gap-4">
                         <div className="flex-1">
-                          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-3 text-white">
+                          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2 text-white">
                             {event.genre === '1' && (
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#8E93DA]" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                              </svg>
+                              <VerifiedIcon className="h-6 w-7 text-[#8E93DA]" />
                             )}
                             {event.title}
                           </h2>
                           
                           {/* 日程表示 */}
                           <div className="mt-3 flex items-center gap-2">
-                            <div className="p-1.5 bg-[#37373F] rounded-lg">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#8E93DA]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
+                            <div className="p-2 bg-[#37373F] rounded-lg">
+                              <CalendarMonthIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
                             </div>
                             <div className="text-gray-300 text-sm">
                               {(() => {
@@ -757,11 +757,8 @@ const EventDetailPage: React.FC = () => {
                           </div>
 
                           <div className="mt-2 flex items-center gap-2">
-                            <div className="p-1.5 bg-[#37373F] rounded-lg">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#8E93DA]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                              </svg>
+                            <div className="p-2 bg-[#37373F] rounded-lg">
+                              <LocationOnIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
                             </div>
                             <div className="relative flex items-center gap-2">
                               <span className="text-gray-300 text-sm">{event.venue_nm || '未定'}</span>
@@ -771,10 +768,7 @@ const EventDetailPage: React.FC = () => {
                                   className="text-gray-400 hover:text-white flex items-center justify-center p-1 rounded-full hover:bg-[#4A4B50]/50 transition-all"
                                   title="住所をコピー"
                                 >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M8 2a1 1 0 000 2h2a1 1 0 100-2H8z" />
-                                    <path d="M3 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v6h-4.586l1.293-1.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L10.414 13H15v3a2 2 0 01-2 2H5a2 2 0 01-2-2V5zM15 11h2a1 1 0 110 2h-2v-2z" />
-                                  </svg>
+                                  <ContentCopyIcon className="h-4 w-4" fontSize="small" />
                                 </button>
                               )}
                               {isCopied && (
@@ -786,20 +780,16 @@ const EventDetailPage: React.FC = () => {
                           </div>
                           
                           <div className="mt-2 flex items-center gap-2">
-                            <div className="p-1.5 bg-[#37373F] rounded-lg">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#8E93DA]" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                              </svg>
+                            <div className="p-2 bg-[#37373F] rounded-lg">
+                              <PersonIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
                             </div>
                             <span className="text-gray-300 text-sm">{event.ownerName}</span>
                           </div>
                           
                           {event.url && (
                             <div className="mt-2 flex items-center gap-2">
-                              <div className="p-1.5 bg-[#37373F] rounded-lg">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#8E93DA]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                </svg>
+                              <div className="p-2 bg-[#37373F] rounded-lg">
+                                <LinkIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
                               </div>
                               <a 
                                 href={event.url}
@@ -829,9 +819,7 @@ const EventDetailPage: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="bg-[#37373F]/50 rounded-xl p-3 border border-[#4A4B50]/30">
                             <h3 className="text-xs font-medium text-gray-300 mb-2 flex items-center gap-2">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-green-500" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-                              </svg>
+                              <GroupIcon className="h-3 w-3 text-green-500" fontSize="small" />
                               <span className="text-green-400">出席者</span>
                               <span className="bg-green-500/20 text-green-400 text-xs px-1.5 py-0.5 rounded-full">
                                 {participants.filter(p => p.status === '1' || p.status === '11').length}
@@ -860,14 +848,10 @@ const EventDetailPage: React.FC = () => {
                                       {participant.myoji} {participant.namae}
                                     </span>
                                     {participant.status === '11' && (
-                                      <svg 
-                                        xmlns="http://www.w3.org/2000/svg" 
-                                        className="h-4 w-4 ml-1 text-blue-500" 
-                                        viewBox="0 0 20 20" 
-                                        fill="currentColor"
-                                      >
-                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                      </svg>
+                                      <CheckCircleIcon 
+                                        className="h-4 w-4 ml-1 text-blue-500"
+                                        fontSize="small"
+                                      />
                                     )}
                                   </div>
                                 ))}
@@ -876,9 +860,7 @@ const EventDetailPage: React.FC = () => {
 
                           <div className="bg-[#37373F]/50 rounded-xl p-3 border border-[#4A4B50]/30">
                             <h3 className="text-xs font-medium text-gray-300 mb-2 flex items-center gap-2">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                              </svg>
+                              <CancelIcon className="h-3 w-3 text-red-500" fontSize="small" />
                               <span className="text-red-400">欠席予定</span>
                               <span className="bg-red-500/20 text-red-400 text-xs px-1.5 py-0.5 rounded-full">
                                 {participants.filter(p => p.status === '2').length}
@@ -945,9 +927,7 @@ const EventDetailPage: React.FC = () => {
                               </>
                             ) : (
                               <>
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                </svg>
+                                <CheckIcon className="h-5 w-5" />
                                 <span className="ml-2">本出席を確定する</span>
                               </>
                             )}
@@ -959,7 +939,7 @@ const EventDetailPage: React.FC = () => {
                         <div className="flex-1">
                           <div 
                             className={`
-                              text-xl font-bold h-12 flex items-center justify-center rounded-xl w-full
+                              text-lg font-bold h-12 flex items-center justify-center rounded-xl w-full
                               ${entryStatus === '1' 
                                 ? 'bg-green-600/30 text-green-400' 
                                 : entryStatus === '2' 
@@ -974,7 +954,7 @@ const EventDetailPage: React.FC = () => {
                         {entryStatus !== '11' && (
                           <button
                             onClick={() => setEntryStatus(null)}
-                            className="p-3 rounded-xl bg-[#37373F] text-gray-300 hover:bg-[#4A4B50] hover:text-white transition-all duration-300"
+                            className="p-2 rounded-xl bg-[#37373F] text-gray-300 hover:bg-[#4A4B50] hover:text-white transition-all duration-300"
                             aria-label="ステータスを変更"
                           >
                             <ChangeCircleIcon sx={{ fontSize: 32 }} />
@@ -988,18 +968,14 @@ const EventDetailPage: React.FC = () => {
                         onClick={() => handleEventEntry('1')}
                         className="h-12 px-8 rounded-xl bg-gradient-to-r from-green-600 to-green-500 text-white font-bold hover:opacity-90 transition-opacity duration-300 flex-1 flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
+                        <CheckIcon className="h-5 w-5" />
                         出席
                       </button>
                       <button
                         onClick={() => handleEventEntry('2')}
                         className="h-12 px-8 rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white font-bold hover:opacity-90 transition-opacity duration-300 flex-1 flex items-center justify-center gap-2 shadow-lg shadow-red-600/20"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                        </svg>
+                        <CancelIcon className="h-5 w-5" />
                         欠席
                       </button>
                     </div>
