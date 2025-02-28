@@ -1,7 +1,7 @@
 ---
-description: Sophaプロジェクトのコーディング規約とガイドライン
+description: "Sophaプロジェクトのコーディング規約とガイドライン"
 globs: 
-alwaysApply: true
+alwaysApply: false
 ---
 常に日本語で返答する
 
