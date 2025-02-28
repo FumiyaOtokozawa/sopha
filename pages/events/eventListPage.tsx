@@ -140,6 +140,15 @@ export default function EventListPage() {
         endDate = new Date(date.getFullYear(), date.getMonth() + 4, 0);
       }
 
+      // 取得期間のログを出力
+      console.log(`イベント取得期間 (${viewType}): `, {
+        startDate: startDate.toISOString(),
+        startDateFormatted: format(startDate, 'yyyy年MM月dd日', { locale: ja }),
+        endDate: endDate.toISOString(),
+        endDateFormatted: format(endDate, 'yyyy年MM月dd日', { locale: ja }),
+        currentMonth: format(date, 'yyyy年MM月', { locale: ja })
+      });
+
       const cacheKey = getCacheKey(date, viewType);
 
       // キャッシュが有効な場合はキャッシュを使用
@@ -240,6 +249,25 @@ export default function EventListPage() {
     // start_dateを使用して今日の0時以降のイベントをフィルタリング
     const futureEvents = events.filter(event => new Date(event.start_date) >= today);
     
+    // フィルタリング後のイベント数と期間範囲をログ出力
+    if (futureEvents.length > 0) {
+      const sortedEvents = [...futureEvents].sort((a, b) => 
+        new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+      );
+      const firstEvent = sortedEvents[0];
+      const lastEvent = sortedEvents[sortedEvents.length - 1];
+      
+      console.log('フィルタリング後のイベント情報:', {
+        totalEvents: events.length,
+        futureEvents: futureEvents.length,
+        firstEventDate: firstEvent ? format(new Date(firstEvent.start_date), 'yyyy年MM月dd日', { locale: ja }) : 'なし',
+        lastEventDate: lastEvent ? format(new Date(lastEvent.start_date), 'yyyy年MM月dd日', { locale: ja }) : 'なし',
+        today: format(today, 'yyyy年MM月dd日', { locale: ja })
+      });
+    } else {
+      console.log('フィルタリング後のイベント情報: イベントなし');
+    }
+    
     if (showAllEvents) return futureEvents;
 
     const eventGroups = futureEvents.reduce((groups, event) => {
@@ -251,13 +279,22 @@ export default function EventListPage() {
       return groups;
     }, {} as { [key: string]: Event[] });
 
-    return Object.values(eventGroups).map(group => {
+    const filteredEvents = Object.values(eventGroups).map(group => {
       if (group.length === 1) return group[0];
       return group.reduce((nearest, event) => {
         if (!nearest || new Date(event.start_date) < new Date(nearest.start_date)) return event;
         return nearest;
       });
     });
+
+    // 繰り返しイベントのフィルタリング結果をログ出力
+    console.log('繰り返しイベントフィルタリング後:', {
+      繰り返しグループ数: Object.keys(eventGroups).length,
+      フィルタリング前のイベント数: futureEvents.length,
+      フィルタリング後のイベント数: filteredEvents.length
+    });
+
+    return filteredEvents;
   };
 
   // EventListコンポーネントの表示を改善
@@ -312,6 +349,9 @@ export default function EventListPage() {
 
   // ビュー切り替え時にイベントを再取得
   const handleViewChange = (newView: 'calendar' | 'list') => {
+    console.log(`ビュー切り替え: ${view} -> ${newView}`, {
+      currentMonth: format(currentMonth, 'yyyy年MM月', { locale: ja })
+    });
     setView(newView);
     fetchEvents(currentMonth, newView);
   };

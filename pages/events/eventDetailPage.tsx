@@ -5,7 +5,7 @@ import Header from '../../components/Header';
 import { Box, Avatar, Dialog } from '@mui/material';
 import FooterMenu from '../../components/FooterMenu';
 import ChangeCircleIcon from '@mui/icons-material/ChangeCircle';
-import { enUS } from 'date-fns/locale';
+import { enUS, ja } from 'date-fns/locale';
 import { handleAttendanceConfirmation } from '../../utils/attendanceApprovalLogic';
 import Tooltip, { tooltipClasses, TooltipProps } from '@mui/material/Tooltip';
 import { styled } from '@mui/material/styles';
@@ -21,6 +21,7 @@ interface Event {
   end_date: string;
   venue_id: number;
   venue_nm?: string;
+  venue_address?: string;
   description?: string;
   owner: string;
   ownerName?: string;
@@ -190,7 +191,7 @@ const isWithinEventPeriod = (event: Event | null): boolean => {
   return nowJST >= eventStart && nowJST <= eventEnd;
 };
 
-export default function EventDetailPage() {
+const EventDetailPage: React.FC = () => {
   const router = useRouter();
   const [event, setEvent] = useState<Event | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -204,6 +205,7 @@ export default function EventDetailPage() {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [useMockLocation, setUseMockLocation] = useState(false);
   const [mockLocationType, setMockLocationType] = useState<'VENUE' | 'FAR'>('VENUE');
+  const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
     const fetchEventAndCheckOwner = async () => {
@@ -215,7 +217,7 @@ export default function EventDetailPage() {
           .from('EVENT_LIST')
           .select(`
             *,
-            venue:EVENT_VENUE!venue_id(venue_nm)
+            venue:EVENT_VENUE!venue_id(venue_nm, address)
           `)
           .eq('event_id', Number(router.query.event_id))
           .single();
@@ -232,6 +234,7 @@ export default function EventDetailPage() {
         const formattedEvent = {
           ...eventData,
           venue_nm: eventData.venue?.venue_nm,
+          venue_address: eventData.venue?.address,
           ownerName: ownerData ? `${ownerData.myoji} ${ownerData.namae}` : undefined
         };
 
@@ -332,66 +335,77 @@ export default function EventDetailPage() {
   };
 
   const handleEventEntry = async (status: '1' | '2' | '11') => {
-    if (!event) return;
+    if (!event || !currentUserEmpNo) return;
 
     try {
-      // ログインユーザーの情報を取得
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error('ユーザー情報が取得できません');
-        return;
+      // 先にUIを更新して体感速度を向上
+      setEntryStatus(status);
+
+      // 既存の参加者リストから自分のエントリーを探す
+      const existingParticipantIndex = participants.findIndex(p => p.emp_no === currentUserEmpNo);
+      const existingParticipant = existingParticipantIndex >= 0 ? participants[existingParticipantIndex] : null;
+
+      // 参加者リストを先に更新（楽観的更新）
+      let updatedParticipants = [...participants];
+      
+      // JSTの現在時刻を取得
+      const now = new Date();
+      const jstDate = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+      const jstDateString = jstDate.toISOString();
+
+      if (existingParticipant) {
+        // 既存の参加者情報を更新
+        updatedParticipants[existingParticipantIndex] = {
+          ...existingParticipant,
+          status: status
+        };
+      } else if (currentUserEmpNo) {
+        // 現在のユーザー情報を取得
+        const { data: userData } = await supabase
+          .from('USER_INFO')
+          .select('myoji, namae')
+          .eq('emp_no', currentUserEmpNo)
+          .single();
+
+        if (userData) {
+          // 新しい参加者として追加（仮のentry_idを設定）
+          updatedParticipants.push({
+            entry_id: -1, // 仮のID（バックエンドで実際のIDが生成される）
+            emp_no: currentUserEmpNo,
+            myoji: userData.myoji,
+            namae: userData.namae,
+            status: status
+          });
+        }
       }
 
-      // ユーザーのemp_noを取得
-      const { data: userData, error: userError } = await supabase
-        .from('USER_INFO')
-        .select('emp_no')
-        .eq('email', user.email)
-        .single();
+      // UIを先に更新
+      setParticipants(updatedParticipants);
 
-      if (userError) {
-        console.error('ユーザー情報の取得に失敗:', userError);
-        return;
-      }
-
-      // 既存のエントリーを確認
-      const { data: existingEntry } = await supabase
-        .from('EVENT_TEMP_ENTRY')
-        .select('entry_id')
-        .eq('event_id', event.event_id)
-        .eq('emp_no', userData.emp_no)
-        .single();
-
-      if (existingEntry) {
+      // バックグラウンドでデータベース更新を実行
+      if (existingParticipant) {
         // 既存のエントリーを更新
-        const { error: updateError } = await supabase
+        await supabase
           .from('EVENT_TEMP_ENTRY')
           .update({
             status: status,
-            updated_at: new Date().toISOString()
+            updated_at: jstDateString
           })
-          .eq('entry_id', existingEntry.entry_id);
-
-        if (updateError) throw updateError;
+          .eq('entry_id', existingParticipant.entry_id);
       } else {
         // 新規エントリーを作成
-        const { error: insertError } = await supabase
+        await supabase
           .from('EVENT_TEMP_ENTRY')
           .insert({
             event_id: event.event_id,
-            emp_no: userData.emp_no,
+            emp_no: currentUserEmpNo,
             status: status,
-            updated_at: new Date().toISOString()
+            updated_at: jstDateString
           });
-
-        if (insertError) throw insertError;
       }
 
-      // ステータスを更新
-      setEntryStatus(status);
-
-      // 参加者一覧を再取得
-      const { data: updatedParticipants, error: participantsError } = await supabase
+      // エラーが発生しなければ、最新の参加者リストを非同期で取得（UIブロックなし）
+      supabase
         .from('EVENT_TEMP_ENTRY')
         .select(`
           entry_id,
@@ -400,22 +414,25 @@ export default function EventDetailPage() {
           USER_INFO!inner(myoji, namae)
         `)
         .eq('event_id', event.event_id)
-        .order('entry_id', { ascending: true });
-
-      if (participantsError) throw participantsError;
-
-      const formattedParticipants = (updatedParticipants as unknown as SupabaseEntry[])?.map(entry => ({
-        entry_id: entry.entry_id,
-        emp_no: entry.emp_no,
-        myoji: entry.USER_INFO.myoji,
-        namae: entry.USER_INFO.namae,
-        status: entry.status
-      })) || [];
-
-      setParticipants(formattedParticipants);
+        .order('entry_id', { ascending: true })
+        .then(({ data, error }) => {
+          if (!error && data) {
+            const formattedParticipants = (data as unknown as SupabaseEntry[])?.map(entry => ({
+              entry_id: entry.entry_id,
+              emp_no: entry.emp_no,
+              myoji: entry.USER_INFO.myoji,
+              namae: entry.USER_INFO.namae,
+              status: entry.status
+            })) || [];
+            
+            setParticipants(formattedParticipants);
+          }
+        });
       
     } catch (error) {
       console.error('エントリーの更新に失敗:', error);
+      // エラーが発生した場合は元の状態に戻す
+      setEntryStatus(null);
     }
   };
 
@@ -581,32 +598,70 @@ export default function EventDetailPage() {
     }
   };
 
+  // 住所をクリップボードにコピーする関数
+  const copyToClipboard = (text: string) => {
+    if (!text || text === '未定') return;
+    
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text)
+        .then(() => {
+          setIsCopied(true);
+          setTimeout(() => setIsCopied(false), 2000);
+        })
+        .catch(err => {
+          console.error('コピーに失敗しました:', err);
+        });
+    } else {
+      // フォールバック方法（セキュアコンテキストでない場合）
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      
+      try {
+        document.execCommand('copy');
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      } catch (err) {
+        console.error('コピーに失敗しました:', err);
+      }
+      
+      document.body.removeChild(textArea);
+    }
+  };
+
   if (!event) {
     return <div>読み込み中...</div>;
   }
 
   return (
     <Box sx={{ pb: 7 }}>
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#1D1D21] to-[#2D2D33]">
         <Header />
-        <div className="flex-1 p-4">
+        <div className="flex-1 p-3 md:p-4">
           <div className="max-w-2xl mx-auto">
             {/* 主催者メッセージ */}
             {isOwner && (
-              <div className="mb-4 bg-[#8E93DA] bg-opacity-10 border border-[#8E93DA] rounded-lg p-3 flex items-center justify-center">
+              <div className="mb-4 bg-[#8E93DA]/20 border border-[#8E93DA]/40 rounded-xl p-3 flex items-center justify-center transform hover:scale-[1.02] transition-all duration-300">
                 <div className="flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#8E93DA]" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 2a1 1 0 00-1 1v1.323l-3.954 1.582A1 1 0 004 6.868V16a1 1 0 001 1h10a1 1 0 001-1V6.868a1 1 0 00-1.046-.963L11 4.323V3a1 1 0 00-1-1H10zm4 8V7L9 5v1h2v1H9v1h2v1H9v1h6z" clipRule="evenodd" />
-                  </svg>
+                  <div className="p-1.5 bg-[#8E93DA]/30 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#8E93DA]" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 2a1 1 0 00-1 1v1.323l-3.954 1.582A1 1 0 004 6.868V16a1 1 0 001 1h10a1 1 0 001-1V6.868a1 1 0 00-1.046-.963L11 4.323V3a1 1 0 00-1-1H10zm4 8V7L9 5v1h2v1H9v1h2v1H9v1h6z" clipRule="evenodd" />
+                    </svg>
+                  </div>
                   <span className="text-[#8E93DA] font-medium">あなたが主催しているイベントです</span>
                 </div>
               </div>
             )}
 
-            <div className="bg-[#2D2D33] rounded-lg">
+            <div className="bg-[#2D2D33] rounded-2xl shadow-xl border border-[#3D3D45]">
               {/* 編集・削除ボタン */}
               {isOwner && !isEditing && (
-                <div className="p-4 border-b border-gray-700 flex justify-end gap-2">
+                <div className="p-3 md:p-4 border-b border-gray-700/70 flex justify-end gap-2">
                   <button
                     onClick={() => {
                       if (event?.repeat_id) {
@@ -615,18 +670,18 @@ export default function EventDetailPage() {
                         handleDelete('single');
                       }
                     }}
-                    className="px-4 py-2 rounded bg-red-500 text-white hover:bg-opacity-80 flex items-center gap-2"
+                    className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all duration-300 flex items-center gap-1.5 group"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform group-hover:rotate-12 transition-transform duration-300" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
                     </svg>
                     削除
                   </button>
                   <button
                     onClick={handleEdit}
-                    className="px-4 py-2 rounded bg-[#4A4B50] text-[#FCFCFC] hover:bg-opacity-80 flex items-center gap-2"
+                    className="px-3 py-1.5 rounded-lg bg-[#4A4B50]/50 text-[#FCFCFC] hover:bg-[#4A4B50]/70 transition-all duration-300 flex items-center gap-1.5 group"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transform group-hover:rotate-45 transition-transform duration-300" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                     </svg>
                     編集
@@ -635,8 +690,7 @@ export default function EventDetailPage() {
               )}
 
               {/* イベント詳細内容 */}
-              <div className="p-6">
-                {/* 編集フォーム */}
+              <div className="p-4 md:p-5">
                 {isEditing ? (
                   <EventEditForm
                     onSave={handleSave}
@@ -645,140 +699,216 @@ export default function EventDetailPage() {
                     setEditedEvent={setEditedEvent}
                   />
                 ) : (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <h2 className="text-xl font-bold flex items-center gap-2">
-                        {event.genre === '1' && (
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-[#8E93DA]" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                        )}
-                        {event.title}
-                      </h2>
-                      
-                      <div className="flex items-center gap-2 text-gray-300 text-sm">
-                        <div>
-                          {format(new Date(event.start_date), "yyyy/MM/dd (ccc) HH:mm", { locale: enUS })}
-                        </div>
-                        <div className="text-gray-300">→</div>
-                        <div>
-                          {format(new Date(event.start_date), 'yyyy/MM/dd') === format(new Date(event.end_date), 'yyyy/MM/dd')
-                            ? format(new Date(event.end_date), "HH:mm", { locale: enUS })
-                            : format(new Date(event.end_date), "yyyy/MM/dd (ccc) HH:mm", { locale: enUS })
-                          }
-                        </div>
-                      </div>
-
-                      <div className="text-sm text-gray-300">
-                        at {event.venue_nm || '未定'}
-                      </div>
-                      
-                      <p className="text-sm text-gray-400">主催者：{event.ownerName}</p>
-                    </div>
-
-                    <div>
-                      <h3 className="font-medium mb-1">開催形式</h3>
-                      <p className="text-gray-300">
-                        {event.format === 'offline' ? 'オフライン' :
-                         event.format === 'online' ? 'オンライン' : 'ハイブリッド'}
-                      </p>
-                    </div>
-
-                    {event.url && (
-                      <div>
-                        <h3 className="font-medium mb-1">参加URL</h3>
-                        <a 
-                          href={event.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-400 hover:underline"
-                        >
-                          {event.url}
-                        </a>
-                      </div>
-                    )}
-
-                    {event.description && (
-                      <div className="mt-6 pt-4 border-t border-gray-700">
-                        <p className="text-gray-300 whitespace-pre-wrap">
-                          {event.description}
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="mt-8 pt-6 border-t border-gray-700">
-                      <div className="flex flex-col gap-8">
-                        {/* 出席予定と出席済みを横並びに */}
+                  <div className="space-y-8">
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-4">
                         <div className="flex-1">
-                          <h3 className="text-sm font-medium text-gray-400 mb-3">
-                            出席者 ({participants.filter(p => p.status === '1' || p.status === '11').length})
-                          </h3>
-                          <div className="flex flex-wrap gap-2">
-                            {participants
-                              .filter(p => p.status === '1' || p.status === '11')
-                              .map(participant => (
-                                <div
-                                  key={participant.entry_id}
-                                  className="flex items-center bg-green-600 bg-opacity-10 rounded-full px-3 py-1"
+                          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-3 text-white">
+                            {event.genre === '1' && (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#8E93DA]" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                            {event.title}
+                          </h2>
+                          
+                          {/* 日程表示 */}
+                          <div className="mt-3 flex items-center gap-2">
+                            <div className="p-1.5 bg-[#37373F] rounded-lg">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#8E93DA]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                            <div className="text-gray-300 text-sm">
+                              {(() => {
+                                const startDate = new Date(event.start_date);
+                                const endDate = new Date(event.end_date);
+                                const isSameDay = 
+                                  startDate.getFullYear() === endDate.getFullYear() &&
+                                  startDate.getMonth() === endDate.getMonth() &&
+                                  startDate.getDate() === endDate.getDate();
+                                
+                                if (isSameDay) {
+                                  return (
+                                    <>
+                                      {format(startDate, "yyyy年MM月dd日", { locale: ja })}
+                                      <span className="ml-1">({format(startDate, "E", { locale: ja })})</span>
+                                      {" "}
+                                      {format(startDate, "HH:mm")} → {format(endDate, "HH:mm")}
+                                    </>
+                                  );
+                                } else {
+                                  return (
+                                    <>
+                                      {format(startDate, "yyyy年MM月dd日", { locale: ja })}
+                                      <span className="ml-1">({format(startDate, "E", { locale: ja })})</span>
+                                      {" "}
+                                      {format(startDate, "HH:mm")} → 
+                                      {" "}
+                                      {format(endDate, "yyyy年MM月dd日", { locale: ja })}
+                                      <span className="ml-1">({format(endDate, "E", { locale: ja })})</span>
+                                      {" "}
+                                      {format(endDate, "HH:mm")}
+                                    </>
+                                  );
+                                }
+                              })()}
+                            </div>
+                          </div>
+
+                          <div className="mt-2 flex items-center gap-2">
+                            <div className="p-1.5 bg-[#37373F] rounded-lg">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#8E93DA]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                            </div>
+                            <div className="relative flex items-center gap-2">
+                              <span className="text-gray-300 text-sm">{event.venue_nm || '未定'}</span>
+                              {event.venue_address && (
+                                <button 
+                                  onClick={() => copyToClipboard(event.venue_address || '')}
+                                  className="text-gray-400 hover:text-white flex items-center justify-center p-1 rounded-full hover:bg-[#4A4B50]/50 transition-all"
+                                  title="住所をコピー"
                                 >
-                                  <Avatar
-                                    sx={{
-                                      width: 20,
-                                      height: 20,
-                                      fontSize: '0.75rem',
-                                      bgcolor: 'rgba(34, 197, 94, 0.2)',
-                                      color: '#22c55e',
-                                    }}
-                                  >
-                                    {participant.myoji[0]}
-                                  </Avatar>
-                                  <span className="ml-2 text-sm text-green-500">
-                                    {participant.myoji} {participant.namae}
-                                  </span>
-                                  {participant.status === '11' && (
-                                    <svg 
-                                      xmlns="http://www.w3.org/2000/svg" 
-                                      className="h-4 w-4 ml-1 text-blue-500" 
-                                      viewBox="0 0 20 20" 
-                                      fill="currentColor"
-                                    >
-                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                    </svg>
-                                  )}
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M8 2a1 1 0 000 2h2a1 1 0 100-2H8z" />
+                                    <path d="M3 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v6h-4.586l1.293-1.293a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L10.414 13H15v3a2 2 0 01-2 2H5a2 2 0 01-2-2V5zM15 11h2a1 1 0 110 2h-2v-2z" />
+                                  </svg>
+                                </button>
+                              )}
+                              {isCopied && (
+                                <div className="absolute top-0 left-full ml-2 px-2 py-1 bg-green-500 text-white text-xs rounded-md whitespace-nowrap">
+                                  住所をコピーしました
                                 </div>
-                              ))}
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="mt-2 flex items-center gap-2">
+                            <div className="p-1.5 bg-[#37373F] rounded-lg">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#8E93DA]" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <span className="text-gray-300 text-sm">{event.ownerName}</span>
+                          </div>
+                          
+                          {event.url && (
+                            <div className="mt-2 flex items-center gap-2">
+                              <div className="p-1.5 bg-[#37373F] rounded-lg">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-[#8E93DA]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                </svg>
+                              </div>
+                              <a 
+                                href={event.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#8E93DA] hover:underline break-all text-sm"
+                              >
+                                {event.url}
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* イベント詳細説明を上に移動 */}
+                      {event.description && (
+                        <div className="mt-4 pt-4 border-t border-gray-700/70">
+                          <div className="bg-[#37373F] rounded-xl p-4">
+                            <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">
+                              {event.description}
+                            </p>
                           </div>
                         </div>
+                      )}
 
-                        {/* 欠席予定を下に配置 */}
-                        <div className="w-full">
-                          <h3 className="text-sm font-medium text-gray-400 mb-3">
-                            欠席予定 ({participants.filter(p => p.status === '2').length})
-                          </h3>
-                          <div className="flex flex-wrap gap-2">
-                            {participants
-                              .filter(p => p.status === '2')
-                              .map(participant => (
-                                <div
-                                  key={participant.entry_id}
-                                  className="flex items-center bg-red-600 bg-opacity-10 rounded-full px-3 py-1"
-                                >
-                                  <Avatar
-                                    sx={{
-                                      width: 20,
-                                      height: 20,
-                                      fontSize: '0.75rem',
-                                      bgcolor: 'rgba(239, 68, 68, 0.2)',
-                                      color: '#ef4444',
-                                    }}
+                      <div className="mt-4 pt-4 border-t border-gray-700/70">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="bg-[#37373F]/50 rounded-xl p-3 border border-[#4A4B50]/30">
+                            <h3 className="text-xs font-medium text-gray-300 mb-2 flex items-center gap-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                              </svg>
+                              <span className="text-green-400">出席者</span>
+                              <span className="bg-green-500/20 text-green-400 text-xs px-1.5 py-0.5 rounded-full">
+                                {participants.filter(p => p.status === '1' || p.status === '11').length}
+                              </span>
+                            </h3>
+                            <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
+                              {participants
+                                .filter(p => p.status === '1' || p.status === '11')
+                                .map(participant => (
+                                  <div
+                                    key={participant.entry_id}
+                                    className="flex items-center bg-green-600/20 rounded-full px-2 py-1 group hover:bg-green-600/30 transition-all duration-300"
                                   >
-                                    {participant.myoji[0]}
-                                  </Avatar>
-                                  <span className="ml-2 text-sm text-red-500">
-                                    {participant.myoji} {participant.namae}
-                                  </span>
-                                </div>
-                              ))}
+                                    <Avatar
+                                      sx={{
+                                        width: 20,
+                                        height: 20,
+                                        fontSize: '0.65rem',
+                                        bgcolor: 'rgba(34, 197, 94, 0.3)',
+                                        color: '#22c55e',
+                                      }}
+                                    >
+                                      {participant.myoji[0]}
+                                    </Avatar>
+                                    <span className="ml-1.5 text-xs text-green-500 group-hover:text-green-400 transition-colors duration-300">
+                                      {participant.myoji} {participant.namae}
+                                    </span>
+                                    {participant.status === '11' && (
+                                      <svg 
+                                        xmlns="http://www.w3.org/2000/svg" 
+                                        className="h-4 w-4 ml-1 text-blue-500" 
+                                        viewBox="0 0 20 20" 
+                                        fill="currentColor"
+                                      >
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                      </svg>
+                                    )}
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+
+                          <div className="bg-[#37373F]/50 rounded-xl p-3 border border-[#4A4B50]/30">
+                            <h3 className="text-xs font-medium text-gray-300 mb-2 flex items-center gap-2">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                              </svg>
+                              <span className="text-red-400">欠席予定</span>
+                              <span className="bg-red-500/20 text-red-400 text-xs px-1.5 py-0.5 rounded-full">
+                                {participants.filter(p => p.status === '2').length}
+                              </span>
+                            </h3>
+                            <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
+                              {participants
+                                .filter(p => p.status === '2')
+                                .map(participant => (
+                                  <div
+                                    key={participant.entry_id}
+                                    className="flex items-center bg-red-600/20 rounded-full px-2 py-1 group hover:bg-red-600/30 transition-all duration-300"
+                                  >
+                                    <Avatar
+                                      sx={{
+                                        width: 20,
+                                        height: 20,
+                                        fontSize: '0.65rem',
+                                        bgcolor: 'rgba(239, 68, 68, 0.3)',
+                                        color: '#ef4444',
+                                      }}
+                                    >
+                                      {participant.myoji[0]}
+                                    </Avatar>
+                                    <span className="ml-1.5 text-xs text-red-500 group-hover:text-red-400 transition-colors duration-300">
+                                      {participant.myoji} {participant.namae}
+                                    </span>
+                                  </div>
+                                ))}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -792,15 +922,14 @@ export default function EventDetailPage() {
 
         {/* 出席・欠席ボタンを画面下部に固定 */}
         {!isEditing && (
-          <div className="sticky bottom-16 left-0 right-0 bg-[#1D1D21] p-4 border-t border-gray-700 z-50">
-            <div className="max-w-2xl mx-auto">
+          <div className="sticky bottom-16 left-0 right-0 bg-[#1D1D21] border-t border-gray-700/70 z-50">
+            <div className="max-w-2xl mx-auto p-3">
               {!isOwner && (
                 <>
                   {entryStatus ? (
                     <>
-                      {/* 仮出席状態の時のみ本出席ボタンを表示 */}
                       {entryStatus === '1' && (
-                        <div className="flex-1 mb-4">
+                        <div className="flex-1 mb-3">
                           <TooltipButton
                             onClick={handleConfirmAttendance}
                             isDisabled={isGettingLocation || !isWithinEventPeriod(event)}
@@ -812,60 +941,65 @@ export default function EventDetailPage() {
                                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
-                                位置情報を確認中...
+                                <span className="ml-2">位置情報を確認中...</span>
                               </>
                             ) : (
                               <>
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                 </svg>
-                                本出席を確定する
+                                <span className="ml-2">本出席を確定する</span>
                               </>
                             )}
                           </TooltipButton>
                         </div>
                       )}
                       
-                      <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center justify-between gap-3">
                         <div className="flex-1">
                           <div 
                             className={`
-                              text-xl font-bold h-12 flex items-center justify-center rounded-lg w-full
+                              text-xl font-bold h-12 flex items-center justify-center rounded-xl w-full
                               ${entryStatus === '1' 
-                                ? 'bg-green-600 bg-opacity-20 text-green-500' 
+                                ? 'bg-green-600/30 text-green-400' 
                                 : entryStatus === '2' 
-                                  ? 'bg-red-600 bg-opacity-20 text-red-500'
-                                  : 'bg-blue-600 bg-opacity-20 text-blue-500'
+                                  ? 'bg-red-600/30 text-red-400'
+                                  : 'bg-blue-600/30 text-blue-400'
                               }
                             `}
                           >
                             {entryStatus === '1' ? '出席予定' : entryStatus === '2' ? '欠席予定' : '出席済み'}
                           </div>
                         </div>
-                        {/* 出席済み（status='11'）以外の場合のみステータス変更ボタンを表示 */}
                         {entryStatus !== '11' && (
                           <button
                             onClick={() => setEntryStatus(null)}
-                            className="text-gray-300 hover:text-white transition-colors duration-200"
+                            className="p-3 rounded-xl bg-[#37373F] text-gray-300 hover:bg-[#4A4B50] hover:text-white transition-all duration-300"
                             aria-label="ステータスを変更"
                           >
-                            <ChangeCircleIcon sx={{ fontSize: 40 }} />
+                            <ChangeCircleIcon sx={{ fontSize: 32 }} />
                           </button>
                         )}
                       </div>
                     </>
                   ) : (
-                    <div className="flex justify-between gap-4">
+                    <div className="flex justify-between gap-3">
                       <button
                         onClick={() => handleEventEntry('1')}
-                        className="h-12 px-8 rounded bg-green-600 text-white font-bold hover:bg-opacity-80 flex-1"
+                        className="h-12 px-8 rounded-xl bg-gradient-to-r from-green-600 to-green-500 text-white font-bold hover:opacity-90 transition-opacity duration-300 flex-1 flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
                       >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
                         出席
                       </button>
                       <button
                         onClick={() => handleEventEntry('2')}
-                        className="h-12 px-8 rounded bg-red-600 text-white font-bold hover:bg-opacity-80 flex-1"
+                        className="h-12 px-8 rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white font-bold hover:opacity-90 transition-opacity duration-300 flex-1 flex items-center justify-center gap-2 shadow-lg shadow-red-600/20"
                       >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                        </svg>
                         欠席
                       </button>
                     </div>
@@ -887,8 +1021,9 @@ export default function EventDetailPage() {
           PaperProps={{
             style: {
               backgroundColor: '#2D2D33',
-              borderRadius: '0.5rem',
+              borderRadius: '1rem',
               maxWidth: '20rem',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
             },
           }}
         >
@@ -900,7 +1035,7 @@ export default function EventDetailPage() {
                   handleDelete('single');
                   setShowDeleteDialog(false);
                 }}
-                className="w-full p-3 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
+                className="w-full p-2.5 text-left rounded-lg bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
               >
                 このイベントのみを削除
               </button>
@@ -909,7 +1044,7 @@ export default function EventDetailPage() {
                   handleDelete('future');
                   setShowDeleteDialog(false);
                 }}
-                className="w-full p-3 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
+                className="w-full p-2.5 text-left rounded-lg bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
               >
                 このイベントと以降のイベントを削除
               </button>
@@ -918,14 +1053,14 @@ export default function EventDetailPage() {
                   handleDelete('all');
                   setShowDeleteDialog(false);
                 }}
-                className="w-full p-3 text-left rounded bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
+                className="w-full p-2.5 text-left rounded-lg bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
               >
                 全ての繰り返しイベントを削除
               </button>
             </div>
             <button
               onClick={() => setShowDeleteDialog(false)}
-              className="w-full mt-4 p-3 rounded bg-[#4A4B50] text-[#FCFCFC] hover:bg-opacity-80"
+              className="w-full mt-4 p-2.5 rounded-lg bg-[#4A4B50] text-[#FCFCFC] hover:bg-opacity-80 transition-all duration-300"
             >
               キャンセル
             </button>
@@ -957,4 +1092,6 @@ export default function EventDetailPage() {
       </div>
     </Box>
   );
-} 
+};
+
+export default EventDetailPage; 
