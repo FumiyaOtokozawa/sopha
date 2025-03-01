@@ -2,11 +2,15 @@
 .custom-calendar {
   color: #ffffff;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* ツールバーのスタイル */
 .custom-calendar .rbc-toolbar {
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   display: flex;
   justify-content: flex-end;
   align-items: center;
@@ -73,10 +77,12 @@
   background-color: #2d2d33;
   border-radius: 12px;
   overflow: hidden;
+  flex: 1;
 }
 
 .custom-calendar .rbc-month-row {
   border-bottom: none;
+  min-height: 90px;
 }
 
 .custom-calendar .rbc-day-bg + .rbc-day-bg {
@@ -148,7 +154,8 @@
   background-color: #5b63d3;
   border: none;
   border-radius: 4px;
-  padding-top: 2px;
+  padding-top: 1px;
+  padding-bottom: 1px;
   padding-left: 4px;
   padding-right: 4px;
   font-size: 0.5rem !important;
@@ -158,6 +165,7 @@
   text-overflow: clip;
   overflow: hidden;
   white-space: nowrap;
+  line-height: 1.2;
 }
 
 .custom-calendar .rbc-event.rbc-selected {
@@ -167,6 +175,24 @@
 /* イベントの行のスタイル */
 .custom-calendar .rbc-row-segment {
   padding: 0 2px;
+  margin-bottom: 1px;
+}
+
+/* イベントの「他 X 件」表示のスタイル */
+.custom-calendar .rbc-show-more {
+  font-size: 0.7rem;
+  color: #5b63d3;
+  background-color: transparent;
+  padding-left:3px;
+  margin-top: 1px;
+}
+
+/* カスタムイベントコンポーネントのスタイル */
+.custom-calendar .text-sm.truncate {
+  font-size: 0.7rem;
+  line-height: 1.1;
+  max-height: 1.1em;
+  overflow: hidden;
 }
 
 /* 予定リスト表示のスタイル */
@@ -303,7 +329,7 @@
   .custom-calendar .rbc-event *,
   .custom-calendar .rbc-event-content,
   .custom-calendar .rbc-event-label {
-    font-size: 0.75rem !important;
+    font-size: 0.7rem !important;
     padding-top: 1 !important;
     padding-bottom: 1 !important;
     line-height: 1.2 !important;
@@ -312,12 +338,84 @@
 
   /* イベントコンテナのサイズも調整 */
   .custom-calendar .rbc-event-content {
-    height: 1.1em !important;
+    height: 1.2em !important;
   }
 
   /* ヘッダー（曜日）のフォントサイズも調整 */
   .custom-calendar .rbc-header {
     font-size: 0.75rem;
     padding: 4px 2px;
+  }
+}
+
+/* カレンダーの行が適切に表示されるようにする */
+.custom-calendar .rbc-month-view,
+.custom-calendar .rbc-time-view,
+.custom-calendar .rbc-agenda-view {
+  overflow-y: auto;
+}
+
+.custom-calendar .rbc-calendar {
+  height: 100% !important;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ポップアップ表示のスタイル - グローバルに適用 */
+body .rbc-overlay {
+  background-color: #2d2d33 !important;
+  border: 1px solid #3f3f46 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  padding: 12px !important;
+  z-index: 1000 !important;
+  min-width: 280px !important; /* ポップアップの最小幅を設定 */
+  max-width: 90vw !important; /* 画面幅の90%を超えないように */
+  transform: translateY(-100%) !important; /* 上部に表示するための変換 */
+  margin-bottom: 10px !important; /* 「他 X 件」との間隔 */
+}
+
+body .rbc-overlay-header {
+  display: none !important;
+}
+
+body .rbc-overlay .rbc-event {
+  margin: 2px 0 !important;
+  padding: 4px 4px !important;
+  background-color: #5b63d3 !important;
+  border-radius: 6px !important;
+  min-height: 44px !important; /* タップしやすい最小高さ */
+  display: flex !important;
+  align-items: center !important;
+  color: white !important;
+}
+
+body .rbc-overlay .rbc-event:hover {
+  background-color: #404049 !important;
+}
+
+/* ポップアップ内のイベントテキストを見やすく */
+body .rbc-overlay .rbc-event .rbc-event-content {
+  font-size: 1.5rem !important;
+  line-height: 1.4 !important;
+  height: auto !important;
+  white-space: normal !important; /* テキストを折り返し可能に */
+  overflow: visible !important;
+  color: white !important;
+}
+
+/* スマホ表示時のポップアップ調整 */
+@media (max-width: 640px) {
+  body .rbc-overlay {
+    min-width: 25px !important;
+    max-width: 95vw !important;
+    padding: 10px !important;
+  }
+  
+  body .rbc-overlay .rbc-event {
+    padding: 1px 12px !important;
+    min-height: 30px !important;
   }
 } 

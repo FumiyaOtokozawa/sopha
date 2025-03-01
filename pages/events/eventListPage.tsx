@@ -77,7 +77,7 @@ interface CustomEventProps {
 
 const CustomEvent = React.memo(function CustomEvent({ event }: CustomEventProps) {
   return (
-    <div className="text-sm truncate">
+    <div className="text-sm truncate" style={{ fontSize: '0.7rem', lineHeight: '1.1' }}>
       {event.abbreviation || event.title}
     </div>
   );
@@ -85,12 +85,15 @@ const CustomEvent = React.memo(function CustomEvent({ event }: CustomEventProps)
 
 export default function EventListPage() {
   const [events, setEvents] = useState<Event[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [view, setView] = useState<'calendar' | 'list'>('calendar');
   const [showAllEvents, setShowAllEvents] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const router = useRouter();
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [isFetchingEvents, setIsFetchingEvents] = useState(false); // イベント取得中フラグ
+  const [isFilteringEvents, setIsFilteringEvents] = useState(false); // フィルタリング中フラグ
 
   const eventStyleGetter = React.useCallback((event: Event) => ({
     className: `calendar-event ${event.genre === '1' ? 'official-event' : 'normal-event'}`
@@ -107,7 +110,14 @@ export default function EventListPage() {
 
   // キャッシュキーを生成する関数
   const getCacheKey = (date: Date, viewType: 'calendar' | 'list') => {
-    return `${date.getFullYear()}-${date.getMonth()}-${viewType}`;
+    if (viewType === 'calendar') {
+      // カレンダー表示の場合は年月を含める
+      return `${date.getFullYear()}-${date.getMonth()}-${viewType}`;
+    } else {
+      // リスト表示の場合は現在の日付を含める（日本時間基準）
+      const today = new Date();
+      return `${today.getFullYear()}-${today.getMonth()}-${today.getDate()}-${viewType}`;
+    }
   };
 
   // isCacheValid 関数をuseCallbackでメモ化
@@ -115,38 +125,76 @@ export default function EventListPage() {
     const cache = eventCache[cacheKey];
     if (!cache) return false;
 
+    // キャッシュの有効期限（15分）
     const cacheExpiration = 15 * 60 * 1000;
     const now = Date.now();
     
-    if (now - cache.timestamp > cacheExpiration) return false;
+    // キャッシュが有効期限切れの場合
+    if (now - cache.timestamp > cacheExpiration) {
+      console.log('キャッシュが有効期限切れ');
+      return false;
+    }
 
+    // キャッシュの範囲が要求範囲をカバーしているか確認
     const cacheStart = new Date(cache.range.start);
     const cacheEnd = new Date(cache.range.end);
-    return cacheStart <= startDate && cacheEnd >= endDate;
+    const isValid = cacheStart <= startDate && cacheEnd >= endDate;
+    
+    console.log('キャッシュ有効性チェック:', {
+      キャッシュキー: cacheKey,
+      キャッシュ有効: isValid,
+      キャッシュ期間: `${format(cacheStart, 'yyyy/MM/dd')} - ${format(cacheEnd, 'yyyy/MM/dd')}`,
+      要求期間: `${format(startDate, 'yyyy/MM/dd')} - ${format(endDate, 'yyyy/MM/dd')}`
+    });
+    
+    return isValid;
   }, [eventCache]);
 
   const fetchEvents = React.useCallback(async (date: Date, viewType: 'calendar' | 'list') => {
+    // 既に取得中の場合は実行しない
+    if (isFetchingEvents) {
+      console.log('イベント取得中のため、リクエストをスキップします');
+      return;
+    }
+    
     try {
+      console.log(`イベント取得開始: view=${viewType}, month=${format(date, 'yyyy年MM月', { locale: ja })}`);
+      setIsFetchingEvents(true);
+      
       let startDate: Date;
       let endDate: Date;
 
       if (viewType === 'calendar') {
+        // カレンダー表示の場合：当月の1日から末日まで
         startDate = new Date(date.getFullYear(), date.getMonth(), 1);
-        startDate.setDate(startDate.getDate() - 7);
         endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-        endDate.setDate(endDate.getDate() + 7);
       } else {
-        startDate = new Date(date.getFullYear(), date.getMonth(), 1);
-        endDate = new Date(date.getFullYear(), date.getMonth() + 4, 0);
+        // 予定リスト表示の場合：システム日付のJST 0時から1ヶ月先まで
+        const today = new Date();
+        
+        // JST基準の0時に設定
+        // 現在の日付を取得し、時間を0時に設定
+        today.setHours(0, 0, 0, 0);
+        
+        // JSTとローカル時間のオフセットを計算（ミリ秒単位）
+        // JSTは UTC+9
+        const jstOffset = 9 * 60 * 60 * 1000; // 9時間をミリ秒に変換
+        const localOffset = today.getTimezoneOffset() * 60 * 1000; // ローカルとUTCの差（分）をミリ秒に変換
+        
+        // ローカル時間の0時からJST 0時に調整
+        const jstMidnight = new Date(today.getTime() - localOffset + jstOffset);
+        startDate = jstMidnight;
+        
+        // 1ヶ月後の日付を計算
+        const oneMonthLater = new Date(jstMidnight);
+        oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
+        endDate = oneMonthLater;
       }
 
-      // 取得期間のログを出力
+      // 取得期間のログを出力（簡略化）
       console.log(`イベント取得期間 (${viewType}): `, {
-        startDate: startDate.toISOString(),
-        startDateFormatted: format(startDate, 'yyyy年MM月dd日', { locale: ja }),
-        endDate: endDate.toISOString(),
-        endDateFormatted: format(endDate, 'yyyy年MM月dd日', { locale: ja }),
-        currentMonth: format(date, 'yyyy年MM月', { locale: ja })
+        startDate: format(startDate, 'yyyy年MM月dd日 HH:mm:ss', { locale: ja }),
+        endDate: format(endDate, 'yyyy年MM月dd日 HH:mm:ss', { locale: ja })
       });
 
       const cacheKey = getCacheKey(date, viewType);
@@ -154,7 +202,8 @@ export default function EventListPage() {
       // キャッシュが有効な場合はキャッシュを使用
       if (isCacheValid(cacheKey, startDate, endDate)) {
         console.log('キャッシュからイベントを取得');
-        setEvents(eventCache[cacheKey].events);
+        const cachedEvents = eventCache[cacheKey].events;
+        setEvents(cachedEvents);
         return;
       }
 
@@ -201,11 +250,14 @@ export default function EventListPage() {
         }
       }));
 
+      console.log(`イベント取得完了: ${eventsWithOwner.length}件`);
       setEvents(eventsWithOwner);
     } catch (error) {
       console.error('イベントの取得に失敗:', error);
+    } finally {
+      setIsFetchingEvents(false);
     }
-  }, [eventCache, isCacheValid]);
+  }, [eventCache, isCacheValid, isFetchingEvents]);
 
   // キャッシュをクリアする関数
   const clearEventCache = () => {
@@ -217,10 +269,6 @@ export default function EventListPage() {
     const interval = setInterval(clearEventCache, 15 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
-
-  useEffect(() => {
-    fetchEvents(currentMonth, view);
-  }, [currentMonth, fetchEvents, view]);
 
   // 月が変更されたときにイベントを再取得
   const handleMonthChange = (date: Date) => {
@@ -240,37 +288,12 @@ export default function EventListPage() {
     setSelectedEvent(null);
   };
 
-  // イベントのフィルタリング部分を修正
-  const filterRepeatingEvents = (events: Event[]) => {
-    // 今日の0時0分0秒を設定
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // start_dateを使用して今日の0時以降のイベントをフィルタリング
-    const futureEvents = events.filter(event => new Date(event.start_date) >= today);
-    
-    // フィルタリング後のイベント数と期間範囲をログ出力
-    if (futureEvents.length > 0) {
-      const sortedEvents = [...futureEvents].sort((a, b) => 
-        new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
-      );
-      const firstEvent = sortedEvents[0];
-      const lastEvent = sortedEvents[sortedEvents.length - 1];
-      
-      console.log('フィルタリング後のイベント情報:', {
-        totalEvents: events.length,
-        futureEvents: futureEvents.length,
-        firstEventDate: firstEvent ? format(new Date(firstEvent.start_date), 'yyyy年MM月dd日', { locale: ja }) : 'なし',
-        lastEventDate: lastEvent ? format(new Date(lastEvent.start_date), 'yyyy年MM月dd日', { locale: ja }) : 'なし',
-        today: format(today, 'yyyy年MM月dd日', { locale: ja })
-      });
-    } else {
-      console.log('フィルタリング後のイベント情報: イベントなし');
-    }
-    
-    if (showAllEvents) return futureEvents;
+  // イベントのフィルタリング関数
+  const filterRepeatingEvents = React.useCallback((eventsToFilter: Event[]) => {
+    if (showAllEvents) return eventsToFilter;
 
-    const eventGroups = futureEvents.reduce((groups, event) => {
+    // 繰り返しイベントのフィルタリング
+    const eventGroups = eventsToFilter.reduce((groups, event) => {
       const groupKey = event.repeat_id ? `repeat_${event.repeat_id}` : `single_${event.event_id}`;
       if (!groups[groupKey]) {
         groups[groupKey] = [];
@@ -279,7 +302,7 @@ export default function EventListPage() {
       return groups;
     }, {} as { [key: string]: Event[] });
 
-    const filteredEvents = Object.values(eventGroups).map(group => {
+    const groupedEvents = Object.values(eventGroups).map(group => {
       if (group.length === 1) return group[0];
       return group.reduce((nearest, event) => {
         if (!nearest || new Date(event.start_date) < new Date(nearest.start_date)) return event;
@@ -287,73 +310,171 @@ export default function EventListPage() {
       });
     });
 
-    // 繰り返しイベントのフィルタリング結果をログ出力
-    console.log('繰り返しイベントフィルタリング後:', {
-      繰り返しグループ数: Object.keys(eventGroups).length,
-      フィルタリング前のイベント数: futureEvents.length,
-      フィルタリング後のイベント数: filteredEvents.length
-    });
+    return groupedEvents;
+  }, [showAllEvents]);
 
-    return filteredEvents;
-  };
+  // eventsまたはshowAllEventsが変更されたときにフィルタリングを実行
+  useEffect(() => {
+    if (events.length === 0) {
+      setFilteredEvents([]);
+      setIsFilteringEvents(false);
+      return;
+    }
+
+    // フィルタリング開始
+    setIsFilteringEvents(true);
+
+    // 非同期処理としてフィルタリングを実行（UIブロックを防止）
+    const performFiltering = async () => {
+      // 少し遅延を入れて、状態の更新が反映されるようにする
+      await new Promise(resolve => setTimeout(resolve, 10));
+      
+      const sorted = [...events].sort((a, b) => 
+        new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+      );
+      
+      const filtered = filterRepeatingEvents(sorted);
+      
+      // フィルタリング結果のログ（簡略化）
+      console.log('フィルタリング結果:', {
+        元のイベント数: events.length,
+        フィルタリング後: filtered.length,
+        繰り返し表示: showAllEvents ? 'すべて表示' : '最初のみ表示'
+      });
+      
+      setFilteredEvents(filtered);
+      setIsFilteringEvents(false);
+    };
+
+    performFiltering();
+  }, [events, showAllEvents, filterRepeatingEvents]);
 
   // EventListコンポーネントの表示を改善
-  const EventList = () => (
-    <div className="bg-[#2d2d33] rounded-lg p-2 sm:p-3 md:p-4">
-      <div className="mb-2 sm:mb-3 md:mb-4 flex justify-end">
-        <button
-          className={`px-2 sm:px-3 md:px-4 py-0.5 sm:py-0.75 md:py-1 rounded-md transition-colors text-xs sm:text-sm flex items-center gap-1 sm:gap-2 ${
-            !showAllEvents ? 'bg-[#5b63d3] text-white' : 'bg-[#37373F] text-gray-400 hover:text-white'
-          }`}
-          onClick={() => setShowAllEvents(!showAllEvents)}
-        >
-          <span>繰り返しイベントを非表示</span>
-          <div className={`w-2.5 sm:w-3 md:w-3.5 h-2.5 sm:h-3 md:h-3.5 rounded-full ${!showAllEvents ? 'bg-white' : 'bg-gray-600'}`} />
-        </button>
-      </div>
-      {filterRepeatingEvents(events.sort((a, b) => 
-        new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
-      )).map((event) => (
-        <div
-          key={event.event_id}
-          className="mb-2 sm:mb-3 md:mb-4 p-2 sm:p-3 md:p-4 bg-[#37373F] rounded-md sm:rounded-lg cursor-pointer hover:bg-[#404049] transition-colors"
-          onClick={() => handleEventClick(event)}
-        >
-          <div className="text-base sm:text-lg font-medium mb-1 sm:mb-2 flex items-center gap-1 sm:gap-2">
-            {event.genre === '1' && (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 text-[#8E93DA]" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-            )}
-            {event.title}
-            {event.repeat_id && (
-              <span className="ml-1 sm:ml-2 text-xs sm:text-sm text-gray-400">（繰り返し）</span>
-            )}
-          </div>
-          <div className="text-xs sm:text-sm text-gray-400">
-            <div>場　所：{event.venue_nm || '未定'}</div>
-            <div>主催者：{event.ownerName}</div>
-            <div>日　時：
-              {format(new Date(event.start_date), 'M月d日 HH:mm', { locale: ja })} - 
-              {format(new Date(event.end_date), ' M月d日 HH:mm', { locale: ja })}
+  const EventList = () => {
+    // ローディング表示
+    if (isFilteringEvents || isFetchingEvents) {
+      return (
+        <div className="bg-[#2d2d33] rounded-lg p-4 flex flex-col items-center justify-center" style={{ minHeight: '200px' }}>
+          <div className="w-8 h-8 border-t-2 border-b-2 border-[#8E93DA] rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-400">読み込み中...</p>
+        </div>
+      );
+    }
+
+    // イベントがない場合
+    if (filteredEvents.length === 0) {
+      return (
+        <div className="bg-[#2d2d33] rounded-lg p-4 flex flex-col items-center justify-center" style={{ minHeight: '200px' }}>
+          <p className="text-gray-400">表示するイベントがありません</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-[#2d2d33] rounded-lg p-2 sm:p-3 md:p-4 h-full overflow-y-auto">
+        <div className="mb-2 sm:mb-3 md:mb-4 flex justify-end">
+          <button
+            className={`px-2 sm:px-3 md:px-4 py-0.5 sm:py-0.75 md:py-1 rounded-md transition-colors text-xs sm:text-sm flex items-center gap-1 sm:gap-2 ${
+              !showAllEvents ? 'bg-[#5b63d3] text-white' : 'bg-[#37373F] text-gray-400 hover:text-white'
+            }`}
+            onClick={() => setShowAllEvents(!showAllEvents)}
+          >
+            <span>繰り返しイベントを非表示</span>
+            <div className={`w-2.5 sm:w-3 md:w-3.5 h-2.5 sm:h-3 md:h-3.5 rounded-full ${!showAllEvents ? 'bg-white' : 'bg-gray-600'}`} />
+          </button>
+        </div>
+        {filteredEvents.map((event) => (
+          <div
+            key={event.event_id}
+            className="mb-2 sm:mb-3 md:mb-4 p-2 sm:p-3 md:p-4 bg-[#37373F] rounded-md sm:rounded-lg cursor-pointer hover:bg-[#404049] transition-colors"
+            onClick={() => handleEventClick(event)}
+          >
+            <div className="text-base sm:text-lg font-medium mb-1 sm:mb-2 flex items-center gap-1 sm:gap-2">
+              {event.genre === '1' && (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 text-[#8E93DA]" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              )}
+              {event.title}
+              {event.repeat_id && (
+                <span className="ml-1 sm:ml-2 text-xs sm:text-sm text-gray-400">（繰り返し）</span>
+              )}
+            </div>
+            <div className="text-xs sm:text-sm text-gray-400">
+              <div>場　所：{event.venue_nm || '未定'}</div>
+              <div>主催者：{event.ownerName}</div>
+              <div>日　時：
+                {format(new Date(event.start_date), 'M月d日 HH:mm', { locale: ja })} - 
+                {format(new Date(event.end_date), ' M月d日 HH:mm', { locale: ja })}
+              </div>
             </div>
           </div>
-        </div>
-      ))}
-    </div>
-  );
-
-  useEffect(() => {
-    console.log('Modal state changed:', isModalOpen);
-  }, [isModalOpen]);
+        ))}
+      </div>
+    );
+  };
 
   // ビュー切り替え時にイベントを再取得
   const handleViewChange = (newView: 'calendar' | 'list') => {
-    console.log(`ビュー切り替え: ${view} -> ${newView}`, {
-      currentMonth: format(currentMonth, 'yyyy年MM月', { locale: ja })
-    });
+    if (view === newView) return; // 同じビューの場合は何もしない
+    
+    console.log(`ビュー切り替え: ${view} -> ${newView}`);
+    // ビュー切り替え時にフィルタリング中フラグをリセット
+    setIsFilteringEvents(true);
     setView(newView);
-    fetchEvents(currentMonth, newView);
+  };
+
+  // viewまたはcurrentMonthが変更されたときにイベントを取得
+  useEffect(() => {
+    fetchEvents(currentMonth, view);
+  }, [currentMonth, view, fetchEvents]);
+
+  // カレンダー表示用のコンポーネント
+  const CalendarView = () => {
+    if (isFetchingEvents) {
+      return (
+        <div className="bg-[#2d2d33] rounded-lg p-4 flex flex-col items-center justify-center" style={{ minHeight: '200px' }}>
+          <div className="w-8 h-8 border-t-2 border-b-2 border-[#8E93DA] rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-400">カレンダーを読み込み中...</p>
+        </div>
+      );
+    }
+
+    return (
+      <Calendar<Event>
+        localizer={localizer}
+        events={events}
+        startAccessor={(event) => new Date(event.start_date)}
+        endAccessor={(event) => new Date(event.end_date)}
+        culture='ja'
+        onSelectEvent={handleEventClick}
+        defaultView="month"
+        views={['month']}
+        onNavigate={handleMonthChange}
+        components={{
+          toolbar: CustomToolbar,
+          event: CustomEvent  // メモ化したコンポーネントを使用
+        }}
+        eventPropGetter={eventStyleGetter}
+        messages={{
+          date: '日付',
+          time: '時間',
+          event: 'イベント',
+          allDay: '終日',
+          week: '週',
+          day: '日',
+          month: '月',
+          previous: '前へ',
+          next: '次へ',
+          today: '今日',
+          showMore: total => `他 ${total} 件`
+        }}
+        className="custom-calendar"
+        popup={true}
+        popupOffset={{ x: 10, y: -20 }}
+        length={1}  // 1日あたりに表示するイベントの最大数を1件に制限
+      />
+    );
   };
 
   return (
@@ -371,63 +492,49 @@ export default function EventListPage() {
             </button>
           </div>
 
-          <div className="bg-[#2d2d33] rounded-lg p-2 flex gap-2 mb-4">
-            <button
-              className={`flex-1 py-2 rounded-md transition-colors ${
-                view === 'calendar' ? 'bg-[#5b63d3] text-white' : 'text-gray-400 hover:text-white'
-              }`}
-              onClick={() => handleViewChange('calendar')}
-            >
-              カレンダー
-            </button>
-            <button
-              className={`flex-1 py-2 rounded-md transition-colors ${
-                view === 'list' ? 'bg-[#5b63d3] text-white' : 'text-gray-400 hover:text-white'
-              }`}
-              onClick={() => handleViewChange('list')}
-            >
-              予定リスト
-            </button>
+          <div className="mb-4">
+            <div className="flex justify-center items-center">
+              <div className="w-full border-b border-gray-600">
+                <div className="flex">
+                  <button
+                    className={`flex-1 py-2 px-4 text-sm font-medium transition-colors ${
+                      view === 'calendar' 
+                        ? 'text-[#8E93DA]' 
+                        : 'text-[#FCFCFC] hover:text-gray-300'
+                    } relative`}
+                    onClick={() => handleViewChange('calendar')}
+                  >
+                    カレンダー
+                    {view === 'calendar' && (
+                      <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#8E93DA]"></span>
+                    )}
+                  </button>
+                  <button
+                    className={`flex-1 py-2 px-4 text-sm font-medium transition-colors ${
+                      view === 'list' 
+                        ? 'text-[#8E93DA]' 
+                        : 'text-[#FCFCFC] hover:text-gray-300'
+                    } relative`}
+                    onClick={() => handleViewChange('list')}
+                  >
+                    予定リスト
+                    {view === 'list' && (
+                      <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#8E93DA]"></span>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
+
           <div style={{ 
-            height: '67.5vh',  // 画面の高さの75%を使用
-            overflow: 'auto',
-            maxHeight: 'calc(100vh - 12rem)'  // 最大高さを設定（ヘッダー・フッター分を考慮）
+            height: 'calc(100vh - 18rem)',  // フッターより上の位置までの高さ
+            minHeight: '50vh', // 最小高さを設定
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'  // 外側のコンテナはオーバーフローを隠す
           }}>
-            {view === 'calendar' ? (
-              <Calendar<Event>
-                localizer={localizer}
-                events={events}
-                startAccessor={(event) => new Date(event.start_date)}
-                endAccessor={(event) => new Date(event.end_date)}
-                culture='ja'
-                onSelectEvent={handleEventClick}
-                defaultView="month"
-                views={['month']}
-                onNavigate={handleMonthChange}
-                components={{
-                  toolbar: CustomToolbar,
-                  event: CustomEvent  // メモ化したコンポーネントを使用
-                }}
-                eventPropGetter={eventStyleGetter}
-                messages={{
-                  date: '日付',
-                  time: '時間',
-                  event: 'イベント',
-                  allDay: '終日',
-                  week: '週',
-                  day: '日',
-                  month: '月',
-                  previous: '前へ',
-                  next: '次へ',
-                  today: '今日',
-                  showMore: total => `他 ${total} 件`
-                }}
-                className="custom-calendar"
-              />
-            ) : (
-              <EventList />
-            )}
+            {view === 'calendar' ? <CalendarView /> : <EventList />}
           </div>
         </div>
       </div>
