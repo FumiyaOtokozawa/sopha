@@ -256,7 +256,7 @@ export const handleAttendanceConfirmation = async (
       if (countError && countError.code !== 'PGRST116') throw countError;
 
       const isOfficialEvent = event?.genre === '1';
-      console.log(`イベント種別: ${isOfficialEvent ? '公式' : '非公式'}`);
+      console.log(`イベント種別: ${isOfficialEvent ? '公式' : '有志'}`);
 
       if (currentCount) {
         // 既存レコードの更新

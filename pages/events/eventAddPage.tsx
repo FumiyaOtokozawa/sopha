@@ -10,6 +10,8 @@ import { Box } from '@mui/material';
 import FooterMenu from '../../components/FooterMenu';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import PlaceSelectModal from '../../components/PlaceSelectModal';
+import UserSelectModal from '../../components/UserSelectModal';
+import type { User } from '../../types/user';
 
 interface EventForm {
   title: string;
@@ -25,6 +27,7 @@ interface EventForm {
   abbreviation: string;
   format: 'offline' | 'online' | 'hybrid';
   url?: string;
+  participants: User[];
 }
 
 const EventAddPage = () => {
@@ -43,9 +46,11 @@ const EventAddPage = () => {
     abbreviation: '',
     format: 'offline',
     url: '',
+    participants: [],
   });
   const [error, setError] = useState<string>('');
   const [isPlaceModalOpen, setIsPlaceModalOpen] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
 
   // ポータル用のdivをマウント時に作成
   useEffect(() => {
@@ -59,8 +64,18 @@ const EventAddPage = () => {
 
   // 省略名のバリデーション関数を追加
   const validateAbbreviation = (value: string): boolean => {
-    const length = [...value].length; // 文字列を配列に分解して長さを取得
-    return length <= 3;
+    // バイト数を計算（全角文字は2バイト、半角文字は1バイト）
+    let byteCount = 0;
+    for (let i = 0; i < value.length; i++) {
+      const charCode = value.charCodeAt(i);
+      // 半角文字（ASCII文字とカタカナ）は1バイト、それ以外は2バイト
+      if ((charCode >= 0x0001 && charCode <= 0x007e) || (charCode >= 0xff61 && charCode <= 0xff9f)) {
+        byteCount += 1;
+      } else {
+        byteCount += 2;
+      }
+    }
+    return byteCount <= 6;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,7 +93,7 @@ const EventAddPage = () => {
     }
 
     if (formData.abbreviation && !validateAbbreviation(formData.abbreviation)) {
-      setError('省略名は全角3文字以内で入力してください');
+      setError('省略名は合計6バイト以内で入力してください（全角文字は2バイト、半角文字は1バイト）');
       return;
     }
 
@@ -118,6 +133,11 @@ const EventAddPage = () => {
         let currentEnd = new Date(formData.end.getTime());
         const endDate = new Date(formData.recurringEndDate.getTime());
         
+        // 自分自身（ログインユーザー）を除外した運営メンバーリストを作成
+        const filteredParticipants = formData.participants.filter(p => p.emp_no !== userData.emp_no);
+        // 社員番号をカンマ区切りのテキストに変換
+        const memberString = filteredParticipants.length > 0 ? filteredParticipants.map(p => p.emp_no).join(',') + ',' : '';
+        
         while (currentStart <= endDate) {
           events.push({
             title: formData.title,
@@ -134,6 +154,7 @@ const EventAddPage = () => {
             abbreviation: formData.abbreviation,
             format: formData.format,
             url: formData.url,
+            manage_member: memberString,
           });
 
           // 次の日付を計算
@@ -163,7 +184,7 @@ const EventAddPage = () => {
 
           const { error: insertError } = await supabase
             .from('EVENT_LIST')
-            .insert({ ...event, event_id: nextEventId });
+            .insert(event);
 
           if (insertError) throw insertError;
         }
@@ -182,6 +203,11 @@ const EventAddPage = () => {
           ? maxEventData[0].event_id + 1 
           : 1;
 
+        // 自分自身（ログインユーザー）を除外した運営メンバーリストを作成
+        const filteredParticipants = formData.participants.filter(p => p.emp_no !== userData.emp_no);
+        // 社員番号をカンマ区切りのテキストに変換
+        const memberString = filteredParticipants.length > 0 ? filteredParticipants.map(p => p.emp_no).join(',') + ',' : '';
+
         const eventData = {
           event_id: nextEventId,
           title: formData.title,
@@ -198,6 +224,7 @@ const EventAddPage = () => {
           abbreviation: formData.abbreviation,
           format: formData.format,
           url: formData.url,
+          manage_member: memberString,
         };
 
         const { error: insertError } = await supabase
@@ -234,6 +261,25 @@ const EventAddPage = () => {
       venue_nm: venue.name
     });
   };
+  
+  // ユーザー選択時のハンドラーを追加
+  const handleUserSelect = (user: User) => {
+    // 既に追加されているユーザーは追加しない
+    if (!formData.participants.some(p => p.emp_no === user.emp_no)) {
+      setFormData({
+        ...formData,
+        participants: [...formData.participants, user]
+      });
+    }
+  };
+  
+  // 参加者削除のハンドラーを追加
+  const handleRemoveParticipant = (empNo: number) => {
+    setFormData({
+      ...formData,
+      participants: formData.participants.filter(p => p.emp_no !== empNo)
+    });
+  };
 
   return (
     <Box sx={{ pb: 7 }}>
@@ -247,7 +293,7 @@ const EventAddPage = () => {
             <div className="grid grid-cols-2 gap-3">
               {/* イベント種別 */}
               <div>
-                <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
+                <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
                   イベント種別<span className="text-red-500">*</span>
                 </label>
                 <select
@@ -256,14 +302,14 @@ const EventAddPage = () => {
                   className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
                   required
                 >
-                  <option value="0">非公式イベント</option>
+                  <option value="0">有志イベント</option>
                   <option value="1">公式イベント</option>
                 </select>
               </div>
 
               {/* 開催形式 */}
               <div>
-                <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
+                <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
                   開催形式<span className="text-red-500">*</span>
                 </label>
                 <select
@@ -281,7 +327,7 @@ const EventAddPage = () => {
 
             {/* タイトル */}
             <div>
-              <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
+              <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
                 タイトル<span className="text-red-500">*</span>
               </label>
               <input
@@ -295,8 +341,8 @@ const EventAddPage = () => {
 
             {/* 省略名入力フィールドを追加 */}
             <div>
-              <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
-                省略名（全角3文字以内）
+              <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
+                省略名（6バイト以内：全角=2バイト、半角=1バイト）
               </label>
               <input
                 type="text"
@@ -308,14 +354,14 @@ const EventAddPage = () => {
                   }
                 }}
                 className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px] placeholder-[#6B7280]"
-                placeholder="例：懇親会、ポケカ、など"
+                placeholder="例：懇親会、ポケカ、ああaa など"
               />
             </div>
 
             {/* 日時選択 */}
             <div className="flex flex-row gap-3 w-full">
               <div className="w-1/2">
-                <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
+                <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
                   開始日時<span className="text-red-500">*</span>
                 </label>
                 <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>
@@ -347,7 +393,7 @@ const EventAddPage = () => {
                 </LocalizationProvider>
               </div>
               <div className="w-1/2">
-                <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
+                <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
                   終了日時<span className="text-red-500">*</span>
                 </label>
                 <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>
@@ -380,51 +426,9 @@ const EventAddPage = () => {
               </div>
             </div>
 
-            {/* 場所 */}
+            {/* 繰り返し設定 - 日時選択の下に移動 */}
             <div>
-              <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
-                場所<span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.venue_nm}
-                onClick={() => setIsPlaceModalOpen(true)}
-                readOnly
-                className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px] cursor-pointer"
-                placeholder="クリックして場所を選択"
-                required
-              />
-            </div>
-
-            {/* URL - 場所の直後に移動 */}
-            <div>
-              <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
-                URL
-              </label>
-              <input
-                type="url"
-                value={formData.url}
-                onChange={(e) => setFormData({...formData, url: e.target.value})}
-                className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
-                placeholder="https://..."
-              />
-            </div>
-
-            {/* 説明 */}
-            <div>
-              <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
-                説明
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-                className="w-full bg-[#1D1D21] rounded p-2 h-32 text-[#FCFCFC]"
-              />
-            </div>
-
-            {/* 繰り返し設定 */}
-            <div>
-              <label className="flex items-center text-xs font-medium text-[#FCFCFC]">
+              <label className="flex items-center text-xs font-medium text-[#ACACAC]">
                 <input
                   type="checkbox"
                   checked={formData.isRecurring}
@@ -438,7 +442,7 @@ const EventAddPage = () => {
             {formData.isRecurring && (
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
+                  <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
                     繰り返しタイプ
                   </label>
                   <select
@@ -453,7 +457,7 @@ const EventAddPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium mb-1 text-[#FCFCFC]">
+                  <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
                     繰り返し終了日<span className="text-red-500">*</span>
                   </label>
                   <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>
@@ -487,6 +491,84 @@ const EventAddPage = () => {
               </div>
             )}
 
+            {/* 場所 */}
+            <div>
+              <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
+                場所<span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.venue_nm}
+                onClick={() => setIsPlaceModalOpen(true)}
+                readOnly
+                className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px] cursor-pointer"
+                placeholder="クリックして場所を選択"
+                required
+              />
+            </div>
+
+            {/* URL - 場所の直後に移動 */}
+            <div>
+              <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
+                URL
+              </label>
+              <input
+                type="url"
+                value={formData.url}
+                onChange={(e) => setFormData({...formData, url: e.target.value})}
+                className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
+                placeholder="https://..."
+              />
+            </div>
+
+            {/* 説明 */}
+            <div>
+              <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
+                説明
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                className="w-full bg-[#1D1D21] rounded p-2 h-32 text-[#FCFCFC]"
+              />
+            </div>
+            
+            {/* 運営メンバー */}
+            <div>
+              <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
+                運営メンバー
+              </label>
+              <div className="flex flex-col space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setIsUserModalOpen(true)}
+                  className="flex items-center bg-[#3D3D45] rounded-full pl-3 pr-3 py-1.5 text-[#FCFCFC] hover:bg-[#4D4D55] w-auto inline-block"
+                >
+                  <span className="text-sm">+ 運営メンバーを追加</span>
+                </button>
+                
+                {formData.participants.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {formData.participants.map(user => (
+                      <div 
+                        key={user.emp_no} 
+                        className="flex items-center bg-[#3D3D45] rounded-full pl-2 pr-1.5 py-0.5 text-xs"
+                      >
+                        <span className="text-[#FCFCFC] mr-1.5">{user.myoji} {user.namae}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveParticipant(user.emp_no)}
+                          className="w-4 h-4 flex items-center justify-center rounded-full bg-[#5D5D65] text-[#FCFCFC] hover:bg-[#8E93DA] hover:text-black text-xs"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
             {error && (
               <div className="text-red-500 text-sm">{error}</div>
             )}
@@ -514,6 +596,11 @@ const EventAddPage = () => {
         open={isPlaceModalOpen}
         onClose={() => setIsPlaceModalOpen(false)}
         onSelect={handlePlaceSelect}
+      />
+      <UserSelectModal
+        open={isUserModalOpen}
+        onClose={() => setIsUserModalOpen(false)}
+        onSelect={handleUserSelect}
       />
     </Box>
   );

@@ -16,4 +16,5 @@ export interface Event {
   format: EventFormat;
   url?: string;
   abbreviation?: string;
+  manage_member?: string;
 } 

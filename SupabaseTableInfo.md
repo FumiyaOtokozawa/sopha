@@ -71,6 +71,7 @@
 | public      | EVENT_LIST          | url                         | 17               | text                        | YES         | null                    | null        |
 | public      | EVENT_LIST          | venue_radius                | 20               | bigint                      | YES         | null                    | null        |
 | public      | EVENT_LIST          | venue_id                    | 21               | bigint                      | YES         | null                    | FK          |
+| public      | EVENT_LIST          | manage_member               | 22               | text                        | YES         | null                    | null        |
 | public      | EVENT_PARTICIPATION | emp_no                      | 1                | bigint                      | NO          | null                    | PK, FK      |
 | public      | EVENT_PARTICIPATION | official_count              | 2                | bigint                      | NO          | null                    | null        |
 | public      | EVENT_PARTICIPATION | unofficial_count            | 3                | bigint                      | YES         | null                    | null        |

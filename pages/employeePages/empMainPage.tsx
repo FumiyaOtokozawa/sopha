@@ -280,7 +280,7 @@ const EmpMainPage = () => {
                   公式イベント：<span className="font-medium">{participation?.official_count ?? 0}</span>回
                 </div>
                 <div>
-                  非公式イベント：<span className="font-medium">{participation?.unofficial_count ?? 0}</span>回
+                  有志イベント：<span className="font-medium">{participation?.unofficial_count ?? 0}</span>回
                 </div>
               </div>
             </div>
@@ -395,7 +395,7 @@ const EmpMainPage = () => {
                             <div className={`text-xs xs:text-sm font-medium ${
                               item.EVENT_LIST.genre === '1' ? 'text-blue-400' : 'text-green-400'
                             }`}>
-                              {item.EVENT_LIST.genre === '1' ? '公式' : '非公式'}
+                              {item.EVENT_LIST.genre === '1' ? '公式' : '有志'}
                             </div>
                           </div>
                         </div>
