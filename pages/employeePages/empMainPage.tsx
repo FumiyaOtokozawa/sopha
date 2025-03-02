@@ -85,7 +85,7 @@ const EmpMainPage = () => {
       }
 
       setEmployeeNumber(userData.emp_no);
-      if (userData.login_count === 1 || !userData.myoji || !userData.namae) {
+      if (userData.login_count === 1 && !userData.myoji && !userData.namae) {
         setShowProfileDialog(true);
       }
     };
