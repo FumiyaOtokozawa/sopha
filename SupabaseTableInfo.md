@@ -38,7 +38,18 @@
 | public      | ALL_USER_M          | emp_no                      | 1                | bigint                      | NO          | null                    | PK          |
 | public      | ALL_USER_M          | email                       | 2                | text                        | NO          | null                    | null        |
 | public      | ALL_USER_M          | act_kbn                     | 3                | boolean                     | YES         | null                    | null        |
-| public      | EMP_CIZ             | ciz_id                      | 1                | bigint                      | NO          | null                    | UQ, PK      |
+| public      | CONTACT_REPORTS     | id                          | 1                | bigint                      | NO          | null                    | PK          |
+| public      | CONTACT_REPORTS     | category                    | 2                | text                        | NO          | null                    | null        |
+| public      | CONTACT_REPORTS     | title                       | 3                | text                        | YES         | null                    | null        |
+| public      | CONTACT_REPORTS     | description                 | 4                | text                        | YES         | null                    | null        |
+| public      | CONTACT_REPORTS     | email                       | 5                | text                        | YES         | null                    | null        |
+| public      | CONTACT_REPORTS     | status                      | 6                | text                        | YES         | 'pending'::text         | null        |
+| public      | CONTACT_REPORTS     | created_at                  | 7                | timestamp without time zone | YES         | null                    | null        |
+| public      | CONTACT_REPORTS     | updated_at                  | 8                | timestamp without time zone | YES         | null                    | null        |
+| public      | CONTACT_REPORTS     | resolved_at                 | 9                | timestamp without time zone | YES         | null                    | null        |
+| public      | CONTACT_REPORTS     | resolved_by                 | 10               | bigint                      | YES         | null                    | null        |
+| public      | CONTACT_REPORTS     | response                    | 11               | text                        | YES         | null                    | null        |
+| public      | EMP_CIZ             | ciz_id                      | 1                | bigint                      | NO          | null                    | PK, UQ      |
 | public      | EMP_CIZ             | emp_no                      | 2                | bigint                      | NO          | null                    | FK          |
 | public      | EMP_CIZ             | total_ciz                   | 3                | bigint                      | NO          | null                    | null        |
 | public      | EMP_CIZ             | updated_at                  | 4                | timestamp without time zone | YES         | null                    | null        |
@@ -72,7 +83,7 @@
 | public      | EVENT_LIST          | venue_radius                | 20               | bigint                      | YES         | null                    | null        |
 | public      | EVENT_LIST          | venue_id                    | 21               | bigint                      | YES         | null                    | FK          |
 | public      | EVENT_LIST          | manage_member               | 22               | text                        | YES         | null                    | null        |
-| public      | EVENT_PARTICIPATION | emp_no                      | 1                | bigint                      | NO          | null                    | PK, FK      |
+| public      | EVENT_PARTICIPATION | emp_no                      | 1                | bigint                      | NO          | null                    | FK, PK      |
 | public      | EVENT_PARTICIPATION | official_count              | 2                | bigint                      | NO          | null                    | null        |
 | public      | EVENT_PARTICIPATION | unofficial_count            | 3                | bigint                      | YES         | null                    | null        |
 | public      | EVENT_PARTICIPATION | updated_at                  | 4                | timestamp without time zone | YES         | null                    | null        |

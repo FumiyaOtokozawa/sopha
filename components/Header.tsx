@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from '../utils/supabaseClient';
-import LogoutButton from './LogoutButton';
+import MenuIcon from "@mui/icons-material/Menu";
+import LogoutIcon from "@mui/icons-material/Logout";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import { Menu, MenuItem, IconButton } from "@mui/material";
+import { useRouter } from "next/router";
 
 type UserInfo = {
   emp_no: number;
@@ -13,6 +17,37 @@ type UserInfo = {
 
 export default function Header() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+  const router = useRouter();
+
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = async () => {
+    // ログアウト確認ダイアログを表示
+    const isConfirmed = window.confirm("ログアウトしてもよろしいですか？");
+    
+    if (isConfirmed) {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("ログアウトエラー：", error.message);
+      } else {
+        router.push("/loginPage");
+      }
+    }
+    handleMenuClose();
+  };
+
+  const handleContactPage = () => {
+    router.push("/common/contactBugReportPage");
+    handleMenuClose();
+  };
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -66,9 +101,39 @@ export default function Header() {
           </div>
         </div>
 
-        {/* 右側：LogoutButtonコンポーネントを使用 */}
-        <div className="p-2 hover:bg-[#4A4B50] rounded-full transition-colors">
-          <LogoutButton />
+        {/* 右側：ハンバーガーメニュー */}
+        <div>
+          <IconButton
+            onClick={handleMenuOpen}
+            className="p-2 hover:bg-[#4A4B50] rounded-full transition-colors"
+            sx={{ color: '#FCFCFC' }}
+          >
+            <MenuIcon />
+          </IconButton>
+          <Menu
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleMenuClose}
+            PaperProps={{
+              sx: {
+                backgroundColor: '#3D3E42',
+                color: '#FCFCFC',
+                mt: 1,
+                '& .MuiMenuItem-root:hover': {
+                  backgroundColor: '#4A4B50',
+                },
+              },
+            }}
+          >
+            <MenuItem onClick={handleContactPage} className="flex items-center gap-2">
+              <HelpOutlineIcon fontSize="small" sx={{ color: '#FCFCFC' }} />
+              <span>お問い合わせ/不具合報告</span>
+            </MenuItem>
+            <MenuItem onClick={handleLogout} className="flex items-center gap-2">
+              <LogoutIcon fontSize="small" sx={{ color: '#FCFCFC' }} />
+              <span>ログアウト</span>
+            </MenuItem>
+          </Menu>
         </div>
       </header>
       {/* ヘッダーの高さ分のスペーサー */}
