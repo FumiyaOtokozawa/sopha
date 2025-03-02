@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../utils/supabaseClient';
 import Header from '../components/Header';
-import { Box, Button, Typography, Alert, CircularProgress } from '@mui/material';
+import { Box, Alert, CircularProgress } from '@mui/material';
 import FooterMenu from '../components/FooterMenu';
 
 type FormData = {
@@ -82,9 +82,9 @@ export default function ContactBugReportPage() {
       setTimeout(() => {
         setSubmitSuccess(false);
       }, 3000);
-    } catch (error: any) {
-      console.error('送信エラー:', error.message);
-      setSubmitError(error.message);
+    } catch (error: Error | unknown) {
+      console.error('送信エラー:', error instanceof Error ? error.message : '不明なエラー');
+      setSubmitError(error instanceof Error ? error.message : '不明なエラーが発生しました');
     } finally {
       setIsSubmitting(false);
     }
