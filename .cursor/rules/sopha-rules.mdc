@@ -9,3 +9,5 @@ SQLは常にSupabaseのSQLエディタで利用できる内容を提供する
 
 データベース構造は [SupabaseTableInfo.md](mdc:SupabaseTableInfo.md) を毎回に確認し、テーブル名やカラムや型などが誤った実装をしないようにする
 
+アイコンはSVGではなく、MaterialUIのMaterialIconを利用する
+

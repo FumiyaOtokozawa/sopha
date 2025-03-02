@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../utils/supabaseClient';
 import Header from '../../components/Header';
-import { Box, Avatar, Dialog } from '@mui/material';
+import { Box, Avatar, Dialog, CircularProgress } from '@mui/material';
 import FooterMenu from '../../components/FooterMenu';
 import ChangeCircleIcon from '@mui/icons-material/ChangeCircle';
 import { ja } from 'date-fns/locale';
@@ -206,6 +206,58 @@ const isWithinEventPeriod = (event: Event | null): boolean => {
   return nowJST >= eventStart && nowJST <= eventEnd;
 };
 
+// 出席確定完了ダイアログ用のインターフェース
+interface ConfirmationDialogProps {
+  open: boolean;
+  message: string;
+  onClose: () => void;
+}
+
+// 出席確定完了ダイアログコンポーネント
+const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({ open, message, onClose }) => {
+  // 3秒後に自動的に閉じる
+  useEffect(() => {
+    if (open) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [open, onClose]);
+
+  // 改行コードを<br>タグに変換する
+  const formattedMessage = message.split('\n').map((line, index) => (
+    <React.Fragment key={index}>
+      {line}
+      {index < message.split('\n').length - 1 && <br />}
+    </React.Fragment>
+  ));
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      PaperProps={{
+        style: {
+          backgroundColor: '#2D2D33',
+          borderRadius: '1rem',
+          maxWidth: '20rem',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+        },
+      }}
+    >
+      <div className="p-4">
+        <div className="flex items-center justify-center mb-4">
+          <div className="bg-blue-500/20 p-3 rounded-full">
+            <CheckCircleIcon className="h-8 w-8 text-blue-500" />
+          </div>
+        </div>
+        <h3 className="text-sm font-bold text-white text-center mb-2">{formattedMessage}</h3>
+      </div>
+    </Dialog>
+  );
+};
+
 const EventDetailPage: React.FC = () => {
   const router = useRouter();
   const [event, setEvent] = useState<Event | null>(null);
@@ -222,6 +274,10 @@ const EventDetailPage: React.FC = () => {
   const [mockLocationType, setMockLocationType] = useState<'VENUE' | 'FAR'>('VENUE');
   const [isCopied, setIsCopied] = useState(false);
   const [manageMembers, setManageMembers] = useState<string[]>([]);
+  const [confirmationDialog, setConfirmationDialog] = useState<{open: boolean, message: string}>({
+    open: false,
+    message: ''
+  });
 
   useEffect(() => {
     const fetchEventAndCheckOwner = async () => {
@@ -529,7 +585,7 @@ const EventDetailPage: React.FC = () => {
             });
             switch(error.code) {
               case error.PERMISSION_DENIED:
-                reject(new Error('位置情報の使用が許可されていません。ブラウザの設定をご確認ください'));
+                reject(new Error('位置情報の使用が許可されていません。\nブラウザの設定をご確認ください'));
                 break;
               case error.POSITION_UNAVAILABLE:
                 reject(new Error('位置情報を取得できませんでした'));
@@ -559,7 +615,10 @@ const EventDetailPage: React.FC = () => {
       );
 
       if (!result.success) {
-        alert(result.message);
+        setConfirmationDialog({
+          open: true,
+          message: result.message || 'エラーが発生しました'
+        });
         return;
       }
 
@@ -577,7 +636,10 @@ const EventDetailPage: React.FC = () => {
 
       if (participantsError) {
         console.error('参加者一覧の更新に失敗:', participantsError);
-        alert('参加者一覧の更新に失敗しました');
+        setConfirmationDialog({
+          open: true,
+          message: '参加者一覧の更新に失敗しました'
+        });
         return;
       }
 
@@ -591,13 +653,22 @@ const EventDetailPage: React.FC = () => {
 
       setParticipants(formattedParticipants);
       setEntryStatus('11'); // 出席済みステータスに更新
-      alert(result.message);
+      setConfirmationDialog({
+        open: true,
+        message: result.message || '出席を確定しました'
+      });
 
     } catch (error) {
       if (error instanceof Error) {
-        alert(error.message);
+        setConfirmationDialog({
+          open: true,
+          message: error.message
+        });
       } else {
-        alert('予期せぬエラーが発生しました');
+        setConfirmationDialog({
+          open: true,
+          message: '予期せぬエラーが発生しました'
+        });
       }
     } finally {
       setIsGettingLocation(false);
@@ -694,32 +765,6 @@ const EventDetailPage: React.FC = () => {
             )}
 
             <div className="bg-[#2D2D33] rounded-2xl shadow-xl border border-[#3D3D45]">
-              {/* 編集・削除ボタン */}
-              {isOwner && !isEditing && (
-                <div className="p-3 md:p-4 border-b border-gray-700/70 flex justify-end gap-2">
-                  <button
-                    onClick={() => {
-                      if (event?.repeat_id) {
-                        setShowDeleteDialog(true);
-                      } else {
-                        handleDelete('single');
-                      }
-                    }}
-                    className="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all duration-300 flex items-center gap-1.5 group"
-                  >
-                    <DeleteIcon className="h-4 w-4 transform group-hover:rotate-12 transition-transform duration-300" fontSize="small" />
-                    削除
-                  </button>
-                  <button
-                    onClick={handleEdit}
-                    className="px-3 py-1.5 rounded-lg bg-[#4A4B50]/50 text-[#FCFCFC] hover:bg-[#4A4B50]/70 transition-all duration-300 flex items-center gap-1.5 group"
-                  >
-                    <EditIcon className="h-4 w-4 transform group-hover:rotate-45 transition-transform duration-300" fontSize="small" />
-                    編集
-                  </button>
-                </div>
-              )}
-
               {/* イベント詳細内容 */}
               <div className="p-4 md:p-5">
                 {isEditing ? (
@@ -734,6 +779,33 @@ const EventDetailPage: React.FC = () => {
                     <div className="space-y-4">
                       <div className="flex items-start gap-4">
                         <div className="flex-1">
+                          {/* 編集・削除ボタンをタイトルの上に移動 */}
+                          {isOwner && !isEditing && (
+                            <div className="mb-3 grid grid-cols-5 gap-2">
+                              <button
+                                onClick={() => {
+                                  if (event?.repeat_id) {
+                                    setShowDeleteDialog(true);
+                                  } else {
+                                    handleDelete('single');
+                                  }
+                                }}
+                                className="col-span-1 p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all duration-300 flex items-center justify-center group"
+                                aria-label="削除"
+                              >
+                                <DeleteIcon className="h-5 w-5 transform group-hover:rotate-12 transition-transform duration-300" />
+                              </button>
+                              <button
+                                onClick={handleEdit}
+                                className="col-span-4 p-2 rounded-lg bg-[#4A4B50]/50 text-[#FCFCFC] hover:bg-[#4A4B50]/70 transition-all duration-300 flex items-center justify-center gap-2 group"
+                                aria-label="編集"
+                              >
+                                <EditIcon className="h-5 w-5 transform group-hover:rotate-45 transition-transform duration-300" />
+                                <span>編集する</span>
+                              </button>
+                            </div>
+                          )}
+                          
                           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2 text-white">
                             {event.genre === '1' && (
                               <VerifiedIcon className="h-6 w-7 text-[#8E93DA]" />
@@ -987,10 +1059,7 @@ const EventDetailPage: React.FC = () => {
                       >
                         {isGettingLocation ? (
                           <>
-                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
+                            <CircularProgress size={20} className="text-white" />
                             <span className="ml-2">位置情報を確認中...</span>
                           </>
                         ) : (
@@ -1108,6 +1177,12 @@ const EventDetailPage: React.FC = () => {
             </button>
           </div>
         </Dialog>
+        {/* 出席確定完了ダイアログ */}
+        <ConfirmationDialog
+          open={confirmationDialog.open}
+          message={confirmationDialog.message}
+          onClose={() => setConfirmationDialog({ open: false, message: '' })}
+        />
         {/* 開発環境の場合のみモック切り替えボタンを表示 */}
         {process.env.NODE_ENV === 'development' && (
           <div className="fixed top-4 right-4 z-50 space-y-2">
