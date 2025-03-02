@@ -75,7 +75,7 @@ const EmpMainPage = () => {
 
       const { data: userData, error: userDataError } = await supabase
         .from("USER_INFO")
-        .select("emp_no, login_count")
+        .select("emp_no, login_count, myoji, namae")
         .eq("email", user.email)
         .single();
 
@@ -85,7 +85,7 @@ const EmpMainPage = () => {
       }
 
       setEmployeeNumber(userData.emp_no);
-      if (userData.login_count === 1) {
+      if (userData.login_count === 1 || !userData.myoji || !userData.namae) {
         setShowProfileDialog(true);
       }
     };
