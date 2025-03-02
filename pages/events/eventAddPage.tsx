@@ -172,16 +172,6 @@ const EventAddPage = () => {
 
         // 一括登録
         for (const event of events) {
-          const { data: maxEventData } = await supabase
-            .from('EVENT_LIST')
-            .select('event_id')
-            .order('event_id', { ascending: false })
-            .limit(1);
-
-          const nextEventId = maxEventData && maxEventData.length > 0 
-            ? maxEventData[0].event_id + 1 
-            : 1;
-
           const { error: insertError } = await supabase
             .from('EVENT_LIST')
             .insert(event);
@@ -198,18 +188,15 @@ const EventAddPage = () => {
 
         if (maxEventError) throw new Error('イベントIDの取得に失敗しました');
 
-        // 新しいイベントIDを設定（既存の最大値 + 1）
-        const nextEventId = maxEventData && maxEventData.length > 0 
-          ? maxEventData[0].event_id + 1 
-          : 1;
-
         // 自分自身（ログインユーザー）を除外した運営メンバーリストを作成
         const filteredParticipants = formData.participants.filter(p => p.emp_no !== userData.emp_no);
         // 社員番号をカンマ区切りのテキストに変換
         const memberString = filteredParticipants.length > 0 ? filteredParticipants.map(p => p.emp_no).join(',') + ',' : '';
 
         const eventData = {
-          event_id: nextEventId,
+          event_id: maxEventData && maxEventData.length > 0 
+            ? maxEventData[0].event_id + 1 
+            : 1,
           title: formData.title,
           start_date: startDate ? new Date(startDate.getTime() - (startDate.getTimezoneOffset() * 60000)).toISOString() : null,
           end_date: endDate ? new Date(endDate.getTime() - (endDate.getTimezoneOffset() * 60000)).toISOString() : null,

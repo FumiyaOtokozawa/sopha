@@ -1,7 +1,6 @@
 import { Dialog, DialogContent } from '@mui/material';
 import { useState, useCallback, useEffect } from "react";
 import SearchIcon from "@mui/icons-material/Search";
-import PersonIcon from "@mui/icons-material/Person";
 import CloseIcon from "@mui/icons-material/Close";
 import { supabase } from "../utils/supabaseClient";
 import type { User } from '../types/user';
