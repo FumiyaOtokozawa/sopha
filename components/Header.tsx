@@ -85,7 +85,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between bg-[#3D3E42] px-6 py-4 text-white">
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between bg-[#3D3E42] px-6 py-4 text-white" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1rem)' }}>
         {/* 左側：ユーザー情報 */}
         <div className="flex items-center">
           <div className={`w-10 h-10 rounded-full mr-3 ${
@@ -137,7 +137,7 @@ export default function Header() {
         </div>
       </header>
       {/* ヘッダーの高さ分のスペーサー */}
-      <div className="h-20"></div>
+      <div className="h-20" style={{ marginTop: 'env(safe-area-inset-top)' }}></div>
     </>
   );
 }
