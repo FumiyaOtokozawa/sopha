@@ -1,0 +1,4 @@
+<invoke name="list_dir">
+<parameter name="explanation">プロジェクトのルート構造を確認します。</parameter>
+<parameter name="relative_workspace_path">.</parameter>
+</invoke> 

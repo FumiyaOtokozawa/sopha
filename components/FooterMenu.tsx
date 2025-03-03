@@ -13,7 +13,6 @@ import AlertTitle from '@mui/material/AlertTitle';
 
 export default function FooterMenu() {
   const router = useRouter();
-  
   const [openSnackbar, setOpenSnackbar] = useState(false);
   
   // 現在のパスに基づいて適切な値を設定
@@ -62,8 +61,9 @@ export default function FooterMenu() {
           left: 0, 
           right: 0,
           bgcolor: '#2D2D2D',
-          height: '64px', // 高さを固定
-          zIndex: 1000,  // z-indexを追加
+          height: 'calc(64px + 17px)', // アクセスバーの高さを考慮
+          zIndex: 1000,
+          paddingBottom: '17px', // コンテンツを上に寄せる
         }} 
         elevation={3}
       >
@@ -72,32 +72,32 @@ export default function FooterMenu() {
           value={value}
           onChange={handleChange}
           sx={{
-            height: '100%',
+            height: '64px', // ナビゲーション自体の高さは固定
             bgcolor: '#2D2D2D',
             '& .MuiBottomNavigationAction-root': {
               color: '#8E93DA',
-              minWidth: '25%', // 4つのアイテムに調整
+              minWidth: '25%',
               padding: '8px 0',
               '& .MuiBottomNavigationAction-label': {
-                fontSize: '0.625rem', // ラベルのフォントサイズを調整
+                fontSize: '0.625rem',
                 '&.Mui-selected': {
-                  fontSize: '0.75rem', // 選択時のフォントサイズ
-                  color: '#FCFCFC' // 選択時のラベル色を白に
+                  fontSize: '0.75rem',
+                  color: '#FCFCFC'
                 }
               },
               '& .MuiSvgIcon-root': {
-                fontSize: '2rem', // アイコンサイズを2remに拡大（以前は1.5rem）
+                fontSize: '2rem',
                 '&.Mui-selected': {
-                  color: '#FCFCFC' // 選択時のアイコン色を白に
+                  color: '#FCFCFC'
                 }
               }
             },
             '& .Mui-selected': {
               '& .MuiSvgIcon-root': {
-                color: '#FCFCFC' // 選択時のアイコン色を白に
+                color: '#FCFCFC'
               },
               '& .MuiBottomNavigationAction-label': {
-                color: '#FCFCFC' // 選択時のラベル色を白に
+                color: '#FCFCFC'
               }
             }
           }}
