@@ -7,6 +7,7 @@ import { LocalizationProvider, DateTimePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { ja } from 'date-fns/locale';
 import { supabase } from '../utils/supabaseClient';
+import { parseISO } from 'date-fns';
 
 interface EventEditFormProps {
   onSave: () => Promise<void>;
@@ -25,6 +26,7 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [participants, setParticipants] = useState<User[]>([]);
   const [currentUserEmpNo, setCurrentUserEmpNo] = useState<number | null>(null);
+  const [error, setError] = useState<string>('');
 
   // 現在のユーザー情報を取得
   useEffect(() => {
@@ -127,6 +129,38 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
     });
   };
 
+  // ISO文字列をDateオブジェクトに変換する関数
+  const toDate = (isoString: string) => {
+    return parseISO(isoString);
+  };
+
+  // 保存前に呼び出す関数
+  const handleSave = async () => {
+    // エラーをリセット
+    setError('');
+
+    // 開始日時と終了日時の前後関係をチェック
+    const startDate = toDate(editedEvent.start_date);
+    const endDate = toDate(editedEvent.end_date);
+
+    if (startDate >= endDate) {
+      setError('終了日時は開始日時より後に設定してください');
+      return;
+    }
+
+    // 保存前に日時のタイムゾーンオフセットを調整
+    if (editedEvent.start_date) {
+      editedEvent.start_date = new Date(startDate.getTime() - (startDate.getTimezoneOffset() * 60000)).toISOString();
+    }
+    
+    if (editedEvent.end_date) {
+      editedEvent.end_date = new Date(endDate.getTime() - (endDate.getTimezoneOffset() * 60000)).toISOString();
+    }
+    
+    // 元の保存処理を呼び出す
+    await onSave();
+  };
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
@@ -203,7 +237,7 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
           </label>
           <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>
             <DateTimePicker
-              value={new Date(editedEvent?.start_date)}
+              value={toDate(editedEvent?.start_date)}
               onChange={(date) => {
                 if (date) {
                   setEditedEvent({
@@ -242,7 +276,7 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
           </label>
           <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>
             <DateTimePicker
-              value={new Date(editedEvent?.end_date)}
+              value={toDate(editedEvent?.end_date)}
               onChange={(date) => {
                 if (date) {
                   setEditedEvent({
@@ -354,15 +388,21 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
         </div>
       </div>
 
-      <div className="flex justify-end gap-4 mt-6">
+      {error && (
+        <div className="text-red-500 text-sm mt-2">{error}</div>
+      )}
+
+      <div className="flex justify-end gap-4">
         <button
+          type="button"
           onClick={onCancel}
           className="px-4 py-2 rounded bg-[#4A4B50] text-[#FCFCFC] hover:bg-opacity-80"
         >
           キャンセル
         </button>
         <button
-          onClick={onSave}
+          type="button"
+          onClick={handleSave}
           className="px-4 py-2 rounded bg-[#8E93DA] text-black font-bold hover:bg-opacity-80"
         >
           保存
