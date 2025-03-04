@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 192.168.1.15",
+    "dev": "cross-env NODE_NO_WARNINGS=1 next dev -H 192.168.1.15",
     "build": "cross-env NODE_NO_WARNINGS=1 next build",
-    "start": "next start",
+    "start": "cross-env NODE_NO_WARNINGS=1 next start",
     "lint": "next lint"
   },
   "dependencies": {
@@ -19,6 +19,7 @@
     "@types/google.maps": "^3.58.1",
     "@types/react-big-calendar": "^1.16.1",
     "@types/react-datepicker": "^6.2.0",
+    "@vercel/analytics": "^1.5.0",
     "blendy": "^0.0.1",
     "date-fns": "^2.30.0",
     "dotenv": "^16.4.5",
@@ -27,6 +28,7 @@
     "next": "^15.1.4",
     "next-pwa": "^5.6.0",
     "papaparse": "^5.5.2",
+    "punycode-esm": "^1.0.15",
     "react": "^18.2.0",
     "react-big-calendar": "^1.17.1",
     "react-datepicker": "^8.0.0",
