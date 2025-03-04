@@ -9,7 +9,6 @@ import RedeemIcon from '@mui/icons-material/Redeem';
 import { useRouter } from 'next/router';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
-import AlertTitle from '@mui/material/AlertTitle';
 
 export default function FooterMenu() {
   const router = useRouter();

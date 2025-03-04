@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { Dialog, CircularProgress, Fade, Grow } from '@mui/material';
+import { Dialog, CircularProgress, Fade } from '@mui/material';
 import { Event } from '../types/event';
 import { useRouter } from 'next/router';
 import { format } from 'date-fns';
