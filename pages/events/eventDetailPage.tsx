@@ -686,27 +686,37 @@ const EventDetailPage: React.FC = () => {
 
     if (!window.confirm(confirmMessages[deleteType])) return;
 
-    try {
-      let query = supabase
-        .from('EVENT_LIST')
-        .update({ act_kbn: false });
+    let query = supabase
+      .from('EVENT_LIST')
+      .update({ act_kbn: false });
 
-      if (deleteType === 'single') {
-        query = query.eq('event_id', event.event_id);
-      } else if (deleteType === 'all') {
-        query = query.eq('repeat_id', event.repeat_id);
-      } else if (deleteType === 'future') {
-        query = query
-          .eq('repeat_id', event.repeat_id)
-          .gte('start_date', event.start_date);
+    if (deleteType === 'single') {
+      query = query.eq('event_id', event.event_id);
+    } else if (deleteType === 'all') {
+      // repeat_idがnullまたはundefinedの場合はエラーメッセージを表示
+      if (!event.repeat_id) {
+        throw new Error('このイベントは繰り返しイベントではありません');
       }
-
-      const { error } = await query;
-      if (error) throw error;
-      router.push('/events/eventListPage');
-    } catch (error) {
-      console.error('削除エラー:', error);
+      query = query.eq('repeat_id', event.repeat_id);
+    } else if (deleteType === 'future') {
+      // repeat_idがnullまたはundefinedの場合はエラーメッセージを表示
+      if (!event.repeat_id) {
+        throw new Error('このイベントは繰り返しイベントではありません');
+      }
+      query = query
+        .eq('repeat_id', event.repeat_id)
+        .gte('start_date', event.start_date);
     }
+
+    const { error } = await query;
+    if (error) {
+      console.error('削除エラー:', error);
+      alert(`削除処理に失敗しました: ${error.message}`);
+      throw error;
+    }
+    
+    // 削除成功時のみリダイレクト
+    router.push('/events/eventListPage');
   };
 
   // 住所をクリップボードにコピーする関数
@@ -1142,27 +1152,42 @@ const EventDetailPage: React.FC = () => {
             <h3 className="text-lg font-bold text-white mb-4">削除オプション</h3>
             <div className="space-y-2">
               <button
-                onClick={() => {
-                  handleDelete('single');
-                  setShowDeleteDialog(false);
+                onClick={async () => {
+                  try {
+                    await handleDelete('single');
+                    setShowDeleteDialog(false);
+                  } catch (error) {
+                    // エラーが発生した場合はダイアログを閉じない
+                    console.error('削除エラー:', error);
+                  }
                 }}
                 className="w-full p-2.5 text-left rounded-lg bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
               >
                 このイベントのみを削除
               </button>
               <button
-                onClick={() => {
-                  handleDelete('future');
-                  setShowDeleteDialog(false);
+                onClick={async () => {
+                  try {
+                    await handleDelete('future');
+                    setShowDeleteDialog(false);
+                  } catch (error) {
+                    // エラーが発生した場合はダイアログを閉じない
+                    console.error('削除エラー:', error);
+                  }
                 }}
                 className="w-full p-2.5 text-left rounded-lg bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
               >
                 このイベントと以降のイベントを削除
               </button>
               <button
-                onClick={() => {
-                  handleDelete('all');
-                  setShowDeleteDialog(false);
+                onClick={async () => {
+                  try {
+                    await handleDelete('all');
+                    setShowDeleteDialog(false);
+                  } catch (error) {
+                    // エラーが発生した場合はダイアログを閉じない
+                    console.error('削除エラー:', error);
+                  }
                 }}
                 className="w-full p-2.5 text-left rounded-lg bg-[#1D1D21] text-[#FCFCFC] hover:bg-[#37373F] transition-colors"
               >
