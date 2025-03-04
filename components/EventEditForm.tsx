@@ -76,6 +76,12 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
 
   const validateAbbreviation = (value: string): boolean => {
     if (!value) return true;
+    
+    // 文字数チェック（20文字まで）
+    if (value.length > 20) {
+      return false;
+    }
+
     // バイト数を計算（全角文字は2バイト、半角文字は1バイト）
     let byteCount = 0;
     for (let i = 0; i < value.length; i++) {
@@ -148,6 +154,14 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
       return;
     }
 
+    // 省略名のバリデーション
+    if (editedEvent.abbreviation) {
+      if (!validateAbbreviation(editedEvent.abbreviation)) {
+        setError('省略名は合計6バイト以内で入力してください（全角文字は2バイト、半角文字は1バイト）');
+        return;
+      }
+    }
+
     // 保存前に日時のタイムゾーンオフセットを調整
     if (editedEvent.start_date) {
       editedEvent.start_date = new Date(startDate.getTime() - (startDate.getTimezoneOffset() * 60000)).toISOString();
@@ -163,7 +177,7 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 ">
         <div>
           <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
             イベント種別<span className="text-red-500">*</span>
@@ -221,7 +235,7 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
           value={editedEvent?.abbreviation || ''}
           onChange={(e) => {
             const value = e.target.value;
-            if (validateAbbreviation(value)) {
+            if (value.length <= 20) {
               setEditedEvent({ ...editedEvent, abbreviation: value });
             }
           }}

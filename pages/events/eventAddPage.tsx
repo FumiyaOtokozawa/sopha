@@ -62,8 +62,13 @@ const EventAddPage = () => {
     };
   }, []);
 
-  // 省略名のバリデーション関数を追加
+  // 省略名のバリデーション関数を修正
   const validateAbbreviation = (value: string): boolean => {
+    // 文字数チェック（20文字まで）
+    if (value.length > 20) {
+      return false;
+    }
+
     // バイト数を計算（全角文字は2バイト、半角文字は1バイト）
     let byteCount = 0;
     for (let i = 0; i < value.length; i++) {
@@ -92,9 +97,11 @@ const EventAddPage = () => {
       return;
     }
 
-    if (formData.abbreviation && !validateAbbreviation(formData.abbreviation)) {
-      setError('省略名は合計6バイト以内で入力してください（全角文字は2バイト、半角文字は1バイト）');
-      return;
+    if (formData.abbreviation) {
+      if (!validateAbbreviation(formData.abbreviation)) {
+        setError('省略名は合計6バイト以内で入力してください（全角文字は2バイト、半角文字は1バイト）');
+        return;
+      }
     }
 
     const startDate = formData.start;
@@ -271,7 +278,7 @@ const EventAddPage = () => {
   return (
     <Box sx={{ pb: 7 }}>
       <Header />
-      <div className="p-4">
+      <div className="p-4 mb-[30px]">
         <h1 className="text-xl font-bold mb-4 text-[#FCFCFC]">イベント追加</h1>
         
         <form onSubmit={handleSubmit} className="max-w-xl mx-auto">
@@ -336,7 +343,7 @@ const EventAddPage = () => {
                 value={formData.abbreviation}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (validateAbbreviation(value)) {
+                  if (value.length <= 20) {
                     setFormData({...formData, abbreviation: value});
                   }
                 }}
