@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Tabs, Tab } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
 import { supabase } from '../utils/supabaseClient';
 import { GoogleMap, LoadScript, Autocomplete, Libraries, Marker } from '@react-google-maps/api';
 
@@ -256,18 +257,20 @@ const PlaceSelectModal: React.FC<PlaceSelectModalProps> = ({ open, onClose, onSe
         style: {
           backgroundColor: '#2D2D33',
           color: '#FCFCFC',
-          height: '80vh'
+          maxHeight: '90vh',
+          marginTop: '100px',
+          position: 'fixed',
+          top: 0
         }
       }}
     >
-      <DialogTitle>場所を選択</DialogTitle>
       <DialogContent>
         <Tabs 
           value={tabValue} 
           onChange={handleTabChange}
           variant="fullWidth"
           sx={{
-            marginBottom: 2,
+            marginBottom: 1,
             minHeight: '36px',
             '& .MuiTab-root': {
               color: '#FCFCFC',
@@ -291,15 +294,33 @@ const PlaceSelectModal: React.FC<PlaceSelectModalProps> = ({ open, onClose, onSe
         </Tabs>
 
         {tabValue === 0 && (
-          <div className="space-y-2">
-            <input
-              type="text"
-              placeholder="場所を検索..."
-              className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] mb-4"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <div className="max-h-[400px] overflow-y-auto">
+          <div className="flex flex-col gap-2 h-[calc(100vh-327px)]">
+            <div className="relative mb-2 pt-2 flex gap-2">
+              <input
+                type="text"
+                placeholder="場所を検索..."
+                className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC]"
+                style={searchBoxStyle}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <Button
+                variant="contained"
+                sx={{
+                  width: '40px',
+                  height: '40px',
+                  minWidth: '40px',
+                  padding: 0,
+                  backgroundColor: '#5b63d3',
+                  '&:hover': {
+                    backgroundColor: '#4a51b8'
+                  }
+                }}
+              >
+                <SearchIcon />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
               {savedVenues.length > 0 ? (
                 savedVenues
                   .filter(venue => 
@@ -326,7 +347,7 @@ const PlaceSelectModal: React.FC<PlaceSelectModalProps> = ({ open, onClose, onSe
         )}
 
         {tabValue === 1 && (
-          <div className="h-[calc(100vh-250px)] flex flex-col gap-2">
+          <div className="flex flex-col gap-2">
             <LoadScript 
               googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}
               libraries={LIBRARIES}
@@ -334,20 +355,38 @@ const PlaceSelectModal: React.FC<PlaceSelectModalProps> = ({ open, onClose, onSe
             >
               {scriptLoaded && (
                 <>
-                  <div className="relative mb-2">
+                  <div className="relative mb-2 flex gap-2">
                     <Autocomplete
                       onLoad={autocomplete => {
                         console.log('Autocomplete loaded');
                         autocompleteRef.current = autocomplete;
                       }}
                       onPlaceChanged={handlePlaceSelect}
+                      className="flex-1"
                     >
                       <input
                         type="text"
                         placeholder="場所を検索..."
+                        className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC]"
                         style={searchBoxStyle}
                       />
                     </Autocomplete>
+                    <Button
+                      variant="contained"
+                      onClick={handlePlaceSelect}
+                      sx={{
+                        width: '40px',
+                        height: '40px',
+                        minWidth: '40px',
+                        padding: 0,
+                        backgroundColor: '#5b63d3',
+                        '&:hover': {
+                          backgroundColor: '#4a51b8'
+                        }
+                      }}
+                    >
+                      <SearchIcon />
+                    </Button>
                   </div>
 
                   <GoogleMap
@@ -397,57 +436,63 @@ const PlaceSelectModal: React.FC<PlaceSelectModalProps> = ({ open, onClose, onSe
               )}
             </LoadScript>
 
-            <div className="p-3 bg-[#1D1D21] rounded mt-2">
-              <input
-                type="text"
-                value={venueName}
-                onChange={(e) => setVenueName(e.target.value)}
-                className="w-full bg-[#2D2D33] rounded p-2 text-[#FCFCFC] mb-2"
-                placeholder="場所の名称を入力 *"
-                disabled={!selectedPlace}
-                required
-              />
-              <div className="text-sm text-gray-400 min-h-[1.5rem]">
-                {selectedPlace?.formatted_address || '場所を検索してください'}
+            <div className="p-3 bg-[#1D1D21] rounded mt-2 flex flex-col">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  value={venueName}
+                  onChange={(e) => setVenueName(e.target.value)}
+                  className="w-full bg-[#2D2D33] rounded p-2 text-[#FCFCFC] mb-2"
+                  placeholder="場所の名称を入力 *"
+                  disabled={!selectedPlace}
+                  required
+                />
+                <div className="text-sm text-gray-400 min-h-[1.5rem] pb-2">
+                  {selectedPlace?.formatted_address || '場所を検索してください'}
+                </div>
               </div>
-              <Button
-                onClick={handleSavePlace}
-                disabled={!selectedPlace}
-                fullWidth
-                variant="contained"
-                sx={{
-                  mt: 2,
-                  py: 1,
-                  backgroundColor: selectedPlace ? '#8E93DA' : '#4D4D53',
-                  color: '#FCFCFC',
-                  '&:hover': {
-                    backgroundColor: selectedPlace ? '#7A7FC6' : '#4D4D53'
-                  },
-                  '&:disabled': {
-                    backgroundColor: '#4D4D53',
-                    color: '#8D8D93'
-                  }
-                }}
-              >
-                この場所を保存
-              </Button>
+              <div className="flex gap-2 mt-auto">
+                <Button
+                  onClick={onClose}
+                  fullWidth
+                  variant="outlined"
+                  sx={{
+                    py: 1,
+                    borderColor: '#3D3D43',
+                    color: '#FCFCFC',
+                    '&:hover': {
+                      borderColor: '#8E93DA',
+                      backgroundColor: 'rgba(142, 147, 218, 0.1)'
+                    }
+                  }}
+                >
+                  キャンセル
+                </Button>
+                <Button
+                  onClick={handleSavePlace}
+                  disabled={!selectedPlace}
+                  fullWidth
+                  variant="contained"
+                  sx={{
+                    py: 1,
+                    backgroundColor: selectedPlace ? '#5b63d3' : '#4D4D53',
+                    color: '#FCFCFC',
+                    '&:hover': {
+                      backgroundColor: selectedPlace ? '#4a51b8' : '#4D4D53'
+                    },
+                    '&:disabled': {
+                      backgroundColor: '#4D4D53',
+                      color: '#8D8D93'
+                    }
+                  }}
+                >
+                  場所を保存
+                </Button>
+              </div>
             </div>
           </div>
         )}
       </DialogContent>
-      <DialogActions sx={{ padding: 2 }}>
-        <Button 
-          onClick={onClose}
-          sx={{ 
-            color: '#FCFCFC',
-            '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.1)'
-            }
-          }}
-        >
-          キャンセル
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 };
