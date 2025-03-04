@@ -12,6 +12,7 @@ const SignUpPage = () => {
   const [employeeId, setEmployeeId] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   // 画面遷移時に入力欄をクリア
   useEffect(() => {
@@ -126,10 +127,10 @@ const SignUpPage = () => {
   `;
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="bg-[#FCFCFC19] rounded-lg shadow-md p-8 w-[400px]">
+    <div className="flex items-center justify-center min-h-screen p-8">
+      <div className="bg-[#FCFCFC19] rounded-lg shadow-md p-8 w-[400px] mx-auto">
         <h1 className="text-2xl font-bold mb-6 text-center text-[#FCFCFC]">
-          Sign Up
+          新規登録
         </h1>
         
         {errorMessage && (
@@ -139,30 +140,46 @@ const SignUpPage = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
-          <div>
+          <div className="relative">
             <input
               id="employeeId"
               type="text"
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value)}
-              placeholder="Employee ID"
+              onFocus={() => setFocusedField('employeeId')}
+              onBlur={() => setFocusedField(null)}
+              placeholder="社員番号"
               className={inputClassName}
               required
               autoComplete="off"
             />
+            {focusedField === 'employeeId' && (
+              <div className="absolute z-10 px-3 py-2 text-xs text-white bg-gray-900 rounded-lg -top-12 left-0 w-max whitespace-nowrap">
+                社員証に記載の社員番号を入力してください
+                <div className="absolute w-2 h-2 bg-gray-900 transform rotate-45 -bottom-1 left-4"></div>
+              </div>
+            )}
           </div>
 
-          <div>
+          <div className="relative">
             <input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
+              onFocus={() => setFocusedField('email')}
+              onBlur={() => setFocusedField(null)}
+              placeholder="メールアドレス"
               className={inputClassName}
               required
               autoComplete="off"
             />
+            {focusedField === 'email' && (
+              <div className="absolute z-10 px-3 py-2 text-xs text-white bg-gray-900 rounded-lg -top-12 left-0 w-max whitespace-nowrap">
+                コンサイズのメールアドレスを入力してください
+                <div className="absolute w-2 h-2 bg-gray-900 transform rotate-45 -bottom-1 left-4"></div>
+              </div>
+            )}
           </div>
 
           <div>
@@ -171,7 +188,7 @@ const SignUpPage = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
+              placeholder="パスワード"
               className={inputClassName}
               required
               autoComplete="new-password"
@@ -184,7 +201,7 @@ const SignUpPage = () => {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm Password"
+              placeholder="パスワード（確認）"
               className={inputClassName}
               required
               autoComplete="new-password"
@@ -196,12 +213,12 @@ const SignUpPage = () => {
             disabled={isLoading}
             className="
               w-full py-2 rounded-md
-              bg-[#8E93DA] text-black font-semibold
+              bg-[#5b63d3] text-white font-semibold
               hover:bg-opacity-90 transition-colors
               disabled:opacity-50
             "
           >
-            {isLoading ? "Signing up..." : "Sign Up"}
+            {isLoading ? "登録中..." : "登録する"}
           </button>
         </form>
 
@@ -213,7 +230,7 @@ const SignUpPage = () => {
             hover:bg-opacity-30 transition-colors
           "
         >
-          Back to Login
+          ログイン画面に戻る
         </button>
       </div>
     </div>

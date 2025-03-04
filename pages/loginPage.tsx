@@ -112,7 +112,7 @@ const LoginPage = () => {
             disabled={isLoading}
             className="
               w-full py-2 rounded-md
-              bg-[#8E93DA] text-black font-semibold
+              bg-[#5b63d3] text-white font-semibold
               hover:bg-opacity-90 transition-colors
               disabled:opacity-50
             "

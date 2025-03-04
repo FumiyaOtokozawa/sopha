@@ -763,7 +763,7 @@ const EventDetailPage: React.FC = () => {
     <Box sx={{ pb: 7 }}>
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#1D1D21] to-[#2D2D33]">
         <Header />
-        <div className="flex-1 p-3 md:p-4 pb-[calc(64px+50px)]">
+        <div className="flex-1 p-3 md:p-10 pb-[calc(64px+50px)]">
           <div className="max-w-2xl mx-auto">
             {/* 主催者メッセージ */}
             {isOwner && (
