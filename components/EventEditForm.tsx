@@ -274,6 +274,7 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
                   '&::placeholder': {
                     color: '#6B7280',
                     opacity: 1,
+                    fontSize: '12px',
                   },
                 },
                 '& .MuiSvgIcon-root': {
@@ -313,6 +314,7 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
                   '&::placeholder': {
                     color: '#6B7280',
                     opacity: 1,
+                    fontSize: '12px',
                   },
                 },
                 '& .MuiSvgIcon-root': {

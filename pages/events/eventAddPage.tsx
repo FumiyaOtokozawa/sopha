@@ -135,6 +135,17 @@ const EventAddPage = () => {
         // 新しいrepeat_idを生成（タイムスタンプを使用）
         const repeat_id = Date.now();
         
+        // 最大のevent_idを取得
+        const { data: maxEventData, error: maxEventError } = await supabase
+          .from('EVENT_LIST')
+          .select('event_id')
+          .order('event_id', { ascending: false })
+          .limit(1);
+
+        if (maxEventError) throw new Error('イベントIDの取得に失敗しました');
+
+        let nextEventId = maxEventData && maxEventData.length > 0 ? maxEventData[0].event_id + 1 : 1;
+        
         const events = [];
         let currentStart = new Date(formData.start.getTime());
         let currentEnd = new Date(formData.end.getTime());
@@ -147,6 +158,7 @@ const EventAddPage = () => {
         
         while (currentStart <= endDate) {
           events.push({
+            event_id: nextEventId++,  // 各イベントに一意のIDを設定
             title: formData.title,
             start_date: new Date(currentStart.getTime() - (currentStart.getTimezoneOffset() * 60000)).toISOString(),
             end_date: new Date(currentEnd.getTime() - (currentEnd.getTimezoneOffset() * 60000)).toISOString(),
@@ -279,7 +291,6 @@ const EventAddPage = () => {
     <Box sx={{ pb: 7 }}>
       <Header />
       <div className="p-4 mb-[30px]">
-        <h1 className="text-xl font-bold mb-4 text-[#FCFCFC]">イベント追加</h1>
         
         <form onSubmit={handleSubmit} className="max-w-xl mx-auto">
           <div className="bg-[#2D2D33] rounded-lg p-4 space-y-3">
@@ -374,8 +385,9 @@ const EventAddPage = () => {
                         padding: '8px 14px',
                         height: '24px',
                         '&::placeholder': {
-                          color: '#6B7280',  // gray-500相当の色
+                          color: '#6B7280',
                           opacity: 1,
+                          fontSize: '12px',
                         },
                       },
                       '& .MuiSvgIcon-root': {
@@ -406,8 +418,9 @@ const EventAddPage = () => {
                         padding: '8px 14px',
                         height: '24px',
                         '&::placeholder': {
-                          color: '#6B7280',  // gray-500相当の色
+                          color: '#6B7280',
                           opacity: 1,
+                          fontSize: '12px',
                         },
                       },
                       '& .MuiSvgIcon-root': {
@@ -470,8 +483,9 @@ const EventAddPage = () => {
                           padding: '8px 14px',
                           height: '24px',
                           '&::placeholder': {
-                            color: '#6B7280',  // gray-500相当の色
+                            color: '#6B7280',
                             opacity: 1,
+                            fontSize: '14px',
                           },
                         },
                         '& .MuiSvgIcon-root': {
