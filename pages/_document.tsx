@@ -13,7 +13,7 @@ export default function Document() {
         <meta name='mobile-web-app-capable' content='yes' />
         <meta name='theme-color' content='#3D3E42' media='(prefers-color-scheme: light)' />
         <meta name='theme-color' content='#3D3E42' media='(prefers-color-scheme: dark)' />
-        <meta name='viewport' content='minimum-scale=1, initial-scale=1, width=device-width, shrink-to-fit=no, viewport-fit=cover, user-scalable=no' />
+        <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover' />
 
         <link rel='apple-touch-icon' href='/icons/icon-192x192.png' />
         <link rel='manifest' href='/manifest.json' />

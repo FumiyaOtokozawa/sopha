@@ -271,20 +271,7 @@
 
 /* スクロールバーのカスタマイズ */
 .custom-calendar ::-webkit-scrollbar {
-  width: 8px;
-}
-
-.custom-calendar ::-webkit-scrollbar-track {
-  background: #2d2d33;
-}
-
-.custom-calendar ::-webkit-scrollbar-thumb {
-  background: #4b4b55;
-  border-radius: 4px;
-}
-
-.custom-calendar ::-webkit-scrollbar-thumb:hover {
-  background: #6b6b6b;
+  display: none;
 }
 
 /* スマホ表示時の調整 */

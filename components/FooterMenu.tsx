@@ -61,11 +61,11 @@ export default function FooterMenu() {
           left: 0, 
           right: 0,
           bgcolor: '#2D2D2D',
-          height: 'calc(64px + 17px)', // アクセスバーの高さを考慮
+          height: 'calc(64px + 20px)',
           zIndex: 1000,
-          paddingBottom: '17px', // コンテンツを上に寄せる
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
         }} 
-        elevation={3}
+        elevation={0}
       >
         <BottomNavigation
           showLabels

@@ -4,8 +4,9 @@
   "description": "Sopha - スケジュール管理アプリケーション",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "orientation": "portrait",
+  "background_color": "#242529",
+  "theme_color": "#3D3E42",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",

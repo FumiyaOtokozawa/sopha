@@ -478,7 +478,12 @@ export default function EventListPage() {
   };
 
   return (
-    <Box sx={{ pb: 7 }}>
+    <Box sx={{ 
+      height: '100vh',
+      position: 'relative',
+      width: '100%',
+      overflow: 'hidden',
+    }}>
       <div>
         <Header />
         <div className="p-4">
@@ -528,17 +533,16 @@ export default function EventListPage() {
           </div>
 
           <div style={{ 
-            height: 'calc(100vh - 18rem)',  // フッターより上の位置までの高さ
+            height: 'calc(100vh - 22rem)',  // フッターより上の位置までの高さ
             minHeight: '50vh', // 最小高さを設定
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'hidden'  // 外側のコンテナはオーバーフローを隠す
           }}>
             {view === 'calendar' ? <CalendarView /> : <EventList />}
           </div>
         </div>
+        <FooterMenu />
       </div>
-      <FooterMenu />
       
       <EventDetailModal
         eventId={selectedEvent?.event_id.toString() || ''}
