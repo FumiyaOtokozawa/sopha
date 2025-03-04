@@ -127,9 +127,9 @@ export default function FooterMenu() {
         open={openSnackbar}
         autoHideDuration={3000}
         onClose={() => setOpenSnackbar(false)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         sx={{ 
-          top: '20px !important',
+          bottom: 'calc(64px + 20px) !important',
           width: '90%',
           maxWidth: '600px',
           margin: '0 auto'
@@ -147,9 +147,10 @@ export default function FooterMenu() {
             }
           }}
         >
-          <AlertTitle sx={{ fontWeight: 'bold' }}>お知らせ</AlertTitle>
-          ポイント譲渡機能は現在作成中です。<br />
-          もうしばらくお待ちください。
+          <div style={{ fontSize: '0.8em' }}>
+            ポイント譲渡機能は現在作成中です。<br />
+            もうしばらくお待ちください。
+          </div>
         </Alert>
       </Snackbar>
     </>
