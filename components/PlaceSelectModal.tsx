@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Tabs, Tab } from '@mui/material';
+import { Dialog, DialogContent, Button, Tabs, Tab } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { supabase } from '../utils/supabaseClient';
 import { GoogleMap, LoadScript, Autocomplete, Libraries, Marker } from '@react-google-maps/api';
