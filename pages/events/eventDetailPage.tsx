@@ -763,7 +763,7 @@ const EventDetailPage: React.FC = () => {
     <Box sx={{ pb: 7 }}>
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#1D1D21] to-[#2D2D33]">
         <Header />
-        <div className="flex-1 p-3 md:p-4">
+        <div className="flex-1 p-3 md:p-4 pb-[calc(64px+50px)]">
           <div className="max-w-2xl mx-auto">
             {/* 主催者メッセージ */}
             {isOwner && (
@@ -1056,7 +1056,7 @@ const EventDetailPage: React.FC = () => {
 
         {/* 出席・欠席ボタンを画面下部に固定 */}
         {!isEditing && (
-          <div className="sticky bottom-16 left-0 right-0 bg-[#1D1D21] border-t border-gray-700/70 z-50">
+          <div className="fixed bottom-[calc(64px+20px)] left-0 right-0 bg-[#1D1D21] border-t border-gray-700/70 z-[999]">
             <div className="max-w-2xl mx-auto p-3">
               {entryStatus ? (
                 <>
