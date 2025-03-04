@@ -172,23 +172,26 @@ export default function EventListPage() {
         // 予定リスト表示の場合：システム日付のJST 0時から1ヶ月先まで
         const today = new Date();
         
-        // JST基準の0時に設定
-        // 現在の日付を取得し、時間を0時に設定
+        // 現在の日付をJST基準で取得
+        // 日本時間の0時に設定する
+        // 現在のシステムがすでにJST (+09:00) なので、単純に時間を0時に設定
         today.setHours(0, 0, 0, 0);
         
-        // JSTとローカル時間のオフセットを計算（ミリ秒単位）
-        // JSTは UTC+9
-        const jstOffset = 9 * 60 * 60 * 1000; // 9時間をミリ秒に変換
-        const localOffset = today.getTimezoneOffset() * 60 * 1000; // ローカルとUTCの差（分）をミリ秒に変換
-        
-        // ローカル時間の0時からJST 0時に調整
-        const jstMidnight = new Date(today.getTime() - localOffset + jstOffset);
-        startDate = jstMidnight;
+        // 当日の0時を開始日時として設定
+        startDate = today;
         
         // 1ヶ月後の日付を計算
-        const oneMonthLater = new Date(jstMidnight);
+        const oneMonthLater = new Date(today);
         oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
         endDate = oneMonthLater;
+        
+        // 取得期間のログ出力を追加（デバッグ用）
+        console.log('イベント取得期間（詳細）:', {
+          startDateISO: startDate.toISOString(),
+          endDateISO: endDate.toISOString(),
+          startDateLocal: startDate.toString(),
+          endDateLocal: endDate.toString()
+        });
       }
 
       // 取得期間のログを出力（簡略化）
@@ -208,7 +211,7 @@ export default function EventListPage() {
       }
 
       console.log('DBからイベントを取得');
-      const { data: events, error } = await supabase
+      const { data: eventsFromDB, error } = await supabase
         .from('EVENT_LIST')
         .select(`
           *,
@@ -221,8 +224,38 @@ export default function EventListPage() {
 
       if (error) throw error;
 
+      // デバッグ用：取得したイベントの日時情報をログ出力
+      console.log('取得したイベント数:', eventsFromDB?.length);
+      if (eventsFromDB?.length) {
+        console.log('最初のイベント:', {
+          title: eventsFromDB[0].title,
+          start_date: eventsFromDB[0].start_date,
+          start_date_formatted: format(new Date(eventsFromDB[0].start_date), 'yyyy年MM月dd日 HH:mm:ss', { locale: ja })
+        });
+        
+        // 取得したイベントの日付をチェック
+        const invalidEvents = eventsFromDB.filter(event => new Date(event.start_date) < startDate);
+        if (invalidEvents.length > 0) {
+          console.warn('警告: 開始日時より前のイベントが含まれています:', invalidEvents.length);
+          console.warn('例:', {
+            title: invalidEvents[0].title,
+            start_date: invalidEvents[0].start_date,
+            start_date_formatted: format(new Date(invalidEvents[0].start_date), 'yyyy年MM月dd日 HH:mm:ss', { locale: ja })
+          });
+        }
+      }
+
+      // 日付の比較を正確に行うため、JavaScriptのDateオブジェクトを使用してフィルタリング
+      // これにより、データベースの日付比較で生じる可能性のある問題を回避
+      const filteredEvents = eventsFromDB ? eventsFromDB.filter(event => {
+        const eventDate = new Date(event.start_date);
+        return eventDate >= startDate;
+      }) : [];
+
+      console.log('フィルタリング後のイベント数:', filteredEvents.length);
+
       const eventsWithOwner = await Promise.all(
-        events.map(async (event) => {
+        filteredEvents.map(async (event) => {
           const { data: ownerData } = await supabase
             .from('USER_INFO')
             .select('myoji, namae')
@@ -250,8 +283,10 @@ export default function EventListPage() {
         }
       }));
 
-      console.log(`イベント取得完了: ${eventsWithOwner.length}件`);
+      // フィルタリングされたイベントをセット
       setEvents(eventsWithOwner);
+
+      console.log(`イベント取得完了: ${eventsWithOwner.length}件`);
     } catch (error) {
       console.error('イベントの取得に失敗:', error);
     } finally {
