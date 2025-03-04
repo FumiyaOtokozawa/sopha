@@ -11,3 +11,4 @@ SQLは常にSupabaseのSQLエディタで利用できる内容を提供する
 
 アイコンはSVGではなく、MaterialUIのMaterialIconを利用する
 
+実行系のボタン色は「#5b63d3」で実装するようにしてください

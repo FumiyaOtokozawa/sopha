@@ -417,7 +417,7 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
         <button
           type="button"
           onClick={handleSave}
-          className="px-4 py-2 rounded bg-[#8E93DA] text-black font-bold hover:bg-opacity-80"
+          className="px-4 py-2 rounded bg-[#5b63d3] text-white font-bold hover:bg-opacity-80"
         >
           保存
         </button>

@@ -5,6 +5,7 @@ import { supabase } from '../utils/supabaseClient';
 import MenuIcon from "@mui/icons-material/Menu";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import HomeIcon from "@mui/icons-material/Home";
 import { Menu, MenuItem, IconButton } from "@mui/material";
 import { useRouter } from "next/router";
 
@@ -47,6 +48,10 @@ export default function Header() {
   const handleContactPage = () => {
     router.push("/common/contactBugReportPage");
     handleMenuClose();
+  };
+
+  const handleHomeClick = () => {
+    router.push("/adminPages/admMainPage");
   };
 
   useEffect(() => {
@@ -101,39 +106,51 @@ export default function Header() {
           </div>
         </div>
 
-        {/* 右側：ハンバーガーメニュー */}
+        {/* 右側：ハンバーガーメニューまたはホームボタン */}
         <div>
-          <IconButton
-            onClick={handleMenuOpen}
-            className="p-2 hover:bg-[#4A4B50] rounded-full transition-colors"
-            sx={{ color: '#FCFCFC' }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={open}
-            onClose={handleMenuClose}
-            PaperProps={{
-              sx: {
-                backgroundColor: '#3D3E42',
-                color: '#FCFCFC',
-                mt: 1,
-                '& .MuiMenuItem-root:hover': {
-                  backgroundColor: '#4A4B50',
-                },
-              },
-            }}
-          >
-            <MenuItem onClick={handleContactPage} className="flex items-center gap-2">
-              <HelpOutlineIcon fontSize="small" sx={{ color: '#FCFCFC' }} />
-              <span>お問い合わせ/不具合報告</span>
-            </MenuItem>
-            <MenuItem onClick={handleLogout} className="flex items-center gap-2">
-              <LogoutIcon fontSize="small" sx={{ color: '#FCFCFC' }} />
-              <span>ログアウト</span>
-            </MenuItem>
-          </Menu>
+          {userInfo?.role === "1" ? (
+            <IconButton
+              onClick={handleHomeClick}
+              className="p-2 hover:bg-[#4A4B50] rounded-full transition-colors"
+              sx={{ color: '#FCFCFC' }}
+            >
+              <HomeIcon />
+            </IconButton>
+          ) : (
+            <>
+              <IconButton
+                onClick={handleMenuOpen}
+                className="p-2 hover:bg-[#4A4B50] rounded-full transition-colors"
+                sx={{ color: '#FCFCFC' }}
+              >
+                <MenuIcon />
+              </IconButton>
+              <Menu
+                anchorEl={anchorEl}
+                open={open}
+                onClose={handleMenuClose}
+                PaperProps={{
+                  sx: {
+                    backgroundColor: '#3D3E42',
+                    color: '#FCFCFC',
+                    mt: 1,
+                    '& .MuiMenuItem-root:hover': {
+                      backgroundColor: '#4A4B50',
+                    },
+                  },
+                }}
+              >
+                <MenuItem onClick={handleContactPage} className="flex items-center gap-2">
+                  <HelpOutlineIcon fontSize="small" sx={{ color: '#FCFCFC' }} />
+                  <span>お問い合わせ/不具合報告</span>
+                </MenuItem>
+                <MenuItem onClick={handleLogout} className="flex items-center gap-2">
+                  <LogoutIcon fontSize="small" sx={{ color: '#FCFCFC' }} />
+                  <span>ログアウト</span>
+                </MenuItem>
+              </Menu>
+            </>
+          )}
         </div>
       </header>
       {/* ヘッダーの高さ分のスペーサー */}

@@ -7,17 +7,27 @@ import type { User } from "../../types/user";
 
 const EmployeeSelect = () => {
   const router = useRouter();
-  const handleUserSelect = (user: User) => {
-    router.push(`/adminPages/admPointEditPage?empNo=${user.emp_no}`);
+
+  const handleUserSelect = async (user: User) => {
+    try {
+      await router.push({
+        pathname: '/adminPages/admPointEditPage',
+        query: { empNo: user.emp_no }
+      });
+    } catch (error) {
+      console.error('遷移エラー:', error);
+    }
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-[#1a1b1e]">
       <Header />
-      <UserSearchList
-        title="社員検索"
-        onUserSelect={handleUserSelect}
-      />
+      <main className="container mx-auto px-4 py-8">
+        <UserSearchList
+          title="社員検索"
+          onUserSelect={handleUserSelect}
+        />
+      </main>
     </div>
   );
 };

@@ -20,7 +20,7 @@ const AdmMainPage = () => {
 
   // ダミーの処理を実際の画面遷移に変更
   const navigateToEventManagePage = () => {
-    router.push("/adminPages/admEventEditPage");
+    router.push("/adminPages/admEventSearchPage");
   };
   const navigateToLogout = () => {
     router.push("/loginPage");
