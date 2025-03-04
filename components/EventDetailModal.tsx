@@ -158,6 +158,11 @@ const EventDetailModal: React.FC<Props> = ({ isOpen, onClose, eventId }) => {
                     <span className="text-white text-xs font-medium">主催イベント</span>
                   </div>
                 )}
+                {event.abbreviation && (
+                  <div className="text-[10px] text-gray-400 mb-1 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+                    {event.abbreviation}
+                  </div>
+                )}
                 <h2 className="text-xl font-bold text-white mb-2 animate-fade-in-up" style={{ animationDelay: '200ms' }}>{event.title}</h2>
                 <div className="flex items-center text-white/90 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
                   <div className="flex items-center bg-[#37373F] rounded-lg px-2.5 py-1 shadow-sm">
@@ -264,7 +269,7 @@ const EventDetailModal: React.FC<Props> = ({ isOpen, onClose, eventId }) => {
         {/* 閉じるボタン */}
         <button
           onClick={handleClose}
-          className="absolute top-3 right-3 p-1.5 rounded-full bg-gray-800/50 text-white/70 hover:bg-gray-800/80 hover:text-white transition-all duration-300"
+          className="absolute top-3 right-3 p-1.5 rounded-full bg-gray-800/50 text-white/70 hover:bg-gray-800/80 hover:text-white transition-all duration-300 w-8 h-8 flex items-center justify-center"
         >
           <CloseIcon className="h-4 w-4" fontSize="small" />
         </button>
