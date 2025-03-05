@@ -1133,12 +1133,7 @@ const EventDetailPage: React.FC = () => {
                 {entryStatus ? (
                   <>
                     {entryStatus === '1' && (
-                      <motion.div 
-                        className="flex-1 mb-3"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                      >
+                      <div className="flex-1 mb-3">
                         <TooltipButton
                           onClick={handleConfirmAttendance}
                           isDisabled={isGettingLocation || !isWithinEventPeriod(event)}
@@ -1156,15 +1151,10 @@ const EventDetailPage: React.FC = () => {
                             </>
                           )}
                         </TooltipButton>
-                      </motion.div>
+                      </div>
                     )}
                     
-                    <motion.div 
-                      className="flex items-center justify-between gap-3"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.4 }}
-                    >
+                    <div className="flex items-center justify-between gap-3">
                       <div className="flex-1">
                         <div 
                           className={`
@@ -1181,44 +1171,33 @@ const EventDetailPage: React.FC = () => {
                         </div>
                       </div>
                       {entryStatus !== '11' && (
-                        <motion.button
+                        <button
                           onClick={() => setEntryStatus(null)}
                           className="p-2 rounded-xl bg-[#37373F] text-gray-300 hover:bg-[#4A4B50] hover:text-white transition-all duration-300"
                           aria-label="ステータスを変更"
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
                         >
                           <ChangeCircleIcon sx={{ fontSize: 32 }} />
-                        </motion.button>
+                        </button>
                       )}
-                    </motion.div>
+                    </div>
                   </>
                 ) : (
-                  <motion.div 
-                    className="flex justify-between gap-3"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                  >
-                    <motion.button
+                  <div className="flex justify-between gap-3">
+                    <button
                       onClick={() => handleEventEntry('1')}
                       className="h-12 px-8 rounded-xl bg-gradient-to-r from-green-600 to-green-500 text-white font-bold hover:opacity-90 transition-opacity duration-300 flex-1 flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
                     >
                       <CheckIcon className="h-5 w-5" />
                       出席
-                    </motion.button>
-                    <motion.button
+                    </button>
+                    <button
                       onClick={() => handleEventEntry('2')}
                       className="h-12 px-8 rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white font-bold hover:opacity-90 transition-opacity duration-300 flex-1 flex items-center justify-center gap-2 shadow-lg shadow-red-600/20"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
                     >
                       <CancelIcon className="h-5 w-5" />
                       欠席
-                    </motion.button>
-                  </motion.div>
+                    </button>
+                  </div>
                 )}
               </div>
             </motion.div>

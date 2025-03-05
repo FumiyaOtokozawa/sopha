@@ -15,6 +15,7 @@ import AddBoxIcon from '@mui/icons-material/AddBox';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import EventDetailModal from '../../components/EventDetailModal';
 import { Event } from '../../types/event';
+import { motion } from 'framer-motion';
 
 // カレンダーのローカライズ設定
 const locales = {
@@ -530,7 +531,12 @@ export default function EventListPage() {
       <div>
         <Header />
         <div className="p-4">
-          <div className="mb-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mb-4"
+          >
             <button
               onClick={() => router.push('/events/eventAddPage')}
               className="w-full py-2 rounded bg-[#5b63d3] text-white font-bold hover:bg-opacity-80 flex items-center justify-center gap-2"
@@ -538,9 +544,14 @@ export default function EventListPage() {
               <AddBoxIcon />
               イベント追加
             </button>
-          </div>
+          </motion.div>
 
-          <div className="mb-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="mb-4"
+          >
             <div className="flex justify-center items-center">
               <div className="w-full border-b border-gray-600">
                 <div className="flex">
@@ -573,16 +584,21 @@ export default function EventListPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
 
-          <div style={{ 
-            height: 'calc(100vh - 22rem)',  // フッターより上の位置までの高さ
-            minHeight: '50vh', // 最小高さを設定
-            display: 'flex',
-            flexDirection: 'column',
-          }}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+            style={{ 
+              height: 'calc(100vh - 22rem)',
+              minHeight: '50vh',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
             {view === 'calendar' ? <CalendarView /> : <EventList />}
-          </div>
+          </motion.div>
         </div>
         <FooterMenu />
       </div>

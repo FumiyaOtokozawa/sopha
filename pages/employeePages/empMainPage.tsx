@@ -6,6 +6,7 @@ import Header from "../../components/Header";
 import { Dialog, Tabs, Tab, Box } from '@mui/material';
 import { useRouter } from 'next/router';
 import FooterMenu from '../../components/FooterMenu';
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 
 type HistoryItem = {
   history_id: number;
@@ -51,6 +52,43 @@ const EmpMainPage = () => {
   const [hasMorePoints, setHasMorePoints] = useState<boolean>(true);
   const [hasMoreEvents, setHasMoreEvents] = useState<boolean>(true);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+
+  // アニメーション用の値
+  const pointsMotionValue = useMotionValue(0);
+  const monthlyChangeMotionValue = useMotionValue(0);
+  const officialCountMotionValue = useMotionValue(0);
+  const unofficialCountMotionValue = useMotionValue(0);
+
+  // アニメーション値の変換
+  const animatedPoints = useTransform(pointsMotionValue, (latest) => Math.round(latest).toLocaleString());
+  const animatedMonthlyChange = useTransform(monthlyChangeMotionValue, (latest) => {
+    const value = Math.round(latest);
+    return `${value >= 0 ? '+' : ''}${value.toLocaleString()} since last month`;
+  });
+  const animatedOfficialCount = useTransform(officialCountMotionValue, (latest) => Math.round(latest));
+  const animatedUnofficialCount = useTransform(unofficialCountMotionValue, (latest) => Math.round(latest));
+
+  // アニメーションの実行
+  useEffect(() => {
+    if (points !== null) {
+      pointsMotionValue.set(0);
+      animate(pointsMotionValue, points, { duration: 1, ease: "easeOut" });
+    }
+  }, [points]);
+
+  useEffect(() => {
+    monthlyChangeMotionValue.set(0);
+    animate(monthlyChangeMotionValue, monthlyChange, { duration: 1, ease: "easeOut" });
+  }, [monthlyChange]);
+
+  useEffect(() => {
+    if (participation) {
+      officialCountMotionValue.set(0);
+      unofficialCountMotionValue.set(0);
+      animate(officialCountMotionValue, participation.official_count, { duration: 1, ease: "easeOut" });
+      animate(unofficialCountMotionValue, participation.unofficial_count, { duration: 1, ease: "easeOut" });
+    }
+  }, [participation]);
 
   const formatDate = (dateString: string) => {
     const d = new Date(dateString);
@@ -273,26 +311,37 @@ const EmpMainPage = () => {
         
         <div className="p-4">
           <div className="w-full max-w-xl mx-auto space-y-3">
-            <div className="bg-[#2f3033] rounded-lg shadow-md p-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="bg-[#2f3033] rounded-lg shadow-md p-4"
+            >
               <div className="text-right">
                 <div className="text-[#FCFCFC] text-4xl font-bold mb-2">
-                  {points !== null ? points.toLocaleString() : "..."} <span className="text-2xl">ciz</span>
+                  <motion.span>{animatedPoints}</motion.span> <span className="text-2xl">ciz</span>
                 </div>
                 <div className={`text-sm ${monthlyChange >= 0 ? 'text-green-400' : 'text-red-400'} mb-3`}>
-                  {monthlyChange >= 0 ? '+' : ''}{monthlyChange.toLocaleString()} since last month
+                  <motion.span>{animatedMonthlyChange}</motion.span>
                 </div>
                 <div className="flex justify-end items-center gap-4 text-sm text-gray-300 border-t border-gray-600 pt-3">
                   <div>
-                    公式イベント：<span className="font-medium">{participation?.official_count ?? 0}</span>回
+                    公式イベント：<motion.span className="font-medium">{animatedOfficialCount}</motion.span>回
                   </div>
                   <div>
-                    有志イベント：<span className="font-medium">{participation?.unofficial_count ?? 0}</span>回
+                    有志イベント：<motion.span className="font-medium">{animatedUnofficialCount}</motion.span>回
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="bg-[#2f3033] rounded-lg shadow-md p-4 py-2 flex flex-col" style={{ height: 'calc(100vh - 25rem)' }}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+              className="bg-[#2f3033] rounded-lg shadow-md p-4 py-2 flex flex-col"
+              style={{ height: 'calc(100vh - 25rem)' }}
+            >
               <div className="flex justify-center items-center mb-2">
                 <Tabs 
                   value={activeTab}
@@ -322,21 +371,29 @@ const EmpMainPage = () => {
                 </Tabs>
               </div>
 
-              <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent overscroll-contain">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
+                className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent overscroll-contain"
+              >
                 {activeTab === 'points' ? (
                   <div className="space-y-2">
                     {historyList.length === 0 ? (
                       <p className="text-gray-400">履歴はありません</p>
                     ) : (
                       <>
-                        {historyList.map((item) => {
+                        {historyList.map((item, index) => {
                           const isAdd = item.change_type === "add";
                           const sign = isAdd ? "+ " : "- ";
                           const colorClass = isAdd ? "text-green-400" : "text-red-400";
 
                           return (
-                            <div
+                            <motion.div
                               key={`history-${item.history_id}`}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.3, delay: index * 0.05 }}
                               className="bg-[#404040] px-3 py-2 rounded-md"
                             >
                               <div className="flex justify-between items-center">
@@ -353,12 +410,17 @@ const EmpMainPage = () => {
                                   {item.ciz.toLocaleString()} <span className="text-xs xs:text-sm sm:text-base font-medium">ciz</span>
                                 </div>
                               </div>
-                            </div>
+                            </motion.div>
                           );
                         })}
                         
                         {hasMorePoints && (
-                          <div className="flex justify-center mt-4 mb-1">
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.3, delay: 0.3 }}
+                            className="flex justify-center mt-4 mb-1"
+                          >
                             <button
                               onClick={handleLoadMore}
                               disabled={isLoadingMore}
@@ -373,7 +435,7 @@ const EmpMainPage = () => {
                                 "さらに読み込む"
                               )}
                             </button>
-                          </div>
+                          </motion.div>
                         )}
                       </>
                     )}
@@ -384,9 +446,12 @@ const EmpMainPage = () => {
                       <p className="text-gray-400">参加履歴はありません</p>
                     ) : (
                       <>
-                        {participationHistory.map((item) => (
-                          <div
+                        {participationHistory.map((item, index) => (
+                          <motion.div
                             key={`event-${item.history_id}`}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.3, delay: index * 0.05 }}
                             className="bg-[#404040] px-3 py-2 rounded-md"
                           >
                             <div className="flex justify-between items-center">
@@ -404,11 +469,16 @@ const EmpMainPage = () => {
                                 {item.EVENT_LIST.genre === '1' ? '公式' : '有志'}
                               </div>
                             </div>
-                          </div>
+                          </motion.div>
                         ))}
                         
                         {hasMoreEvents && (
-                          <div className="flex justify-center mt-4 mb-1">
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.3, delay: 0.3 }}
+                            className="flex justify-center mt-4 mb-1"
+                          >
                             <button
                               onClick={handleLoadMore}
                               disabled={isLoadingMore}
@@ -423,14 +493,14 @@ const EmpMainPage = () => {
                                 "さらに読み込む"
                               )}
                             </button>
-                          </div>
+                          </motion.div>
                         )}
                       </>
                     )}
                   </div>
                 )}
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           </div>
         </div>
 
@@ -440,7 +510,12 @@ const EmpMainPage = () => {
           maxWidth="sm"
           fullWidth
         >
-          <div className="bg-[#2D2D2D] p-6">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+            className="bg-[#2D2D2D] p-6"
+          >
             <h2 className="text-xl font-bold mb-4 text-[#FCFCFC]">プロフィール設定</h2>
             <p className="text-[#FCFCFC] mb-4">
               初回ログインありがとうございます。<br />
@@ -454,7 +529,7 @@ const EmpMainPage = () => {
                 設定する
               </button>
             </div>
-          </div>
+          </motion.div>
         </Dialog>
 
         <FooterMenu />
