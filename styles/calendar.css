@@ -316,16 +316,16 @@
   .custom-calendar .rbc-event *,
   .custom-calendar .rbc-event-content,
   .custom-calendar .rbc-event-label {
-    font-size: 0.7rem !important;
+    font-size: 0.55rem !important;
     padding-top: 1 !important;
     padding-bottom: 1 !important;
-    line-height: 1.2 !important;
+    line-height: 1.4 !important;
     height: auto !important;
   }
 
   /* イベントコンテナのサイズも調整 */
   .custom-calendar .rbc-event-content {
-    height: 1.2em !important;
+    height: 1.5em !important;
   }
 
   /* ヘッダー（曜日）のフォントサイズも調整 */
