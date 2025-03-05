@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
 
+// iOS Safariのnavigator型を拡張
+interface NavigatorWithStandalone extends Navigator {
+  standalone?: boolean;
+}
+
 const PWAInstallPrompt = () => {
   const [showPrompt, setShowPrompt] = useState(false);
 
@@ -8,7 +13,7 @@ const PWAInstallPrompt = () => {
     const isPWAInstalled = 
       window.matchMedia('(display-mode: standalone)').matches ||
       window.matchMedia('(display-mode: window-controls-overlay)').matches ||
-      (window.navigator as any).standalone === true;
+      (window.navigator as NavigatorWithStandalone).standalone === true;
 
     // PWAがインストールされていない場合は常にメッセージを表示
     if (!isPWAInstalled) {
