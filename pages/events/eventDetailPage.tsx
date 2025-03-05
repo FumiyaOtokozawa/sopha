@@ -27,6 +27,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import VideocamIcon from '@mui/icons-material/Videocam';
 import PeopleIcon from '@mui/icons-material/People';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Event {
   event_id: number;
@@ -756,38 +757,83 @@ const EventDetailPage: React.FC = () => {
   };
 
   if (!event) {
-    return <div>読み込み中...</div>;
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="flex items-center justify-center min-h-screen"
+      >
+        <CircularProgress />
+      </motion.div>
+    );
   }
 
   return (
     <Box sx={{ pb: 7 }}>
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#1D1D21] to-[#2D2D33]">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3 }}
+        className="min-h-screen flex flex-col bg-gradient-to-b from-[#1D1D21] to-[#2D2D33]"
+      >
         <Header />
         <div className="flex-1 p-3 md:p-10 pb-[calc(64px+50px)]">
           <div className="max-w-2xl mx-auto">
             {/* 主催者メッセージ */}
-            {isOwner && (
-              <div className="mb-4 bg-[#8E93DA]/20 border border-[#8E93DA]/40 rounded-xl p-3 flex items-center justify-center transform hover:scale-[1.02] transition-all duration-300">
-                <div className="flex items-center gap-2">
-                  <span className="text-[#8E93DA] font-medium">あなたが主催しているイベントです</span>
-                </div>
-              </div>
-            )}
+            <AnimatePresence>
+              {isOwner && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="mb-4 bg-[#8E93DA]/20 border border-[#8E93DA]/40 rounded-xl p-3 flex items-center justify-center transform hover:scale-[1.02] transition-all duration-300"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#8E93DA] font-medium">あなたが主催しているイベントです</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            <div className="bg-[#2D2D33] rounded-2xl shadow-xl border border-[#3D3D45]">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+              className="bg-[#2D2D33] rounded-2xl shadow-xl border border-[#3D3D45]"
+            >
               {/* イベント詳細内容 */}
               <div className="p-4 md:p-5">
                 {isEditing ? (
-                  <EventEditForm
-                    onSave={handleSave}
-                    onCancel={handleCancel}
-                    editedEvent={editedEvent!}
-                    setEditedEvent={setEditedEvent}
-                  />
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <EventEditForm
+                      onSave={handleSave}
+                      onCancel={handleCancel}
+                      editedEvent={editedEvent!}
+                      setEditedEvent={setEditedEvent}
+                    />
+                  </motion.div>
                 ) : (
-                  <div className="space-y-8">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="space-y-8"
+                  >
                     <div className="space-y-4">
-                      <div className="flex items-start gap-4">
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.1 }}
+                        className="flex items-start gap-4"
+                      >
                         <div className="flex-1">
                           {/* 編集・削除ボタンをタイトルの上に移動 */}
                           {isOwner && !isEditing && (
@@ -954,20 +1000,33 @@ const EventDetailPage: React.FC = () => {
                             </div>
                           )}
                         </div>
-                      </div>
+                      </motion.div>
 
                       {/* イベント詳細説明を上に移動 */}
-                      {event.description && (
-                        <div className="mt-4 pt-4 border-t border-gray-700/70">
-                          <div className="bg-[#37373F] rounded-xl p-4">
-                            <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">
-                              {event.description}
-                            </p>
-                          </div>
-                        </div>
-                      )}
+                      <AnimatePresence>
+                        {event.description && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.3 }}
+                            className="mt-4 pt-4 border-t border-gray-700/70"
+                          >
+                            <div className="bg-[#37373F] rounded-xl p-4">
+                              <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">
+                                {event.description}
+                              </p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
 
-                      <div className="mt-4 pt-4 border-t border-gray-700/70">
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.2 }}
+                        className="mt-4 pt-4 border-t border-gray-700/70"
+                      >
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="bg-[#37373F]/50 rounded-xl p-3 border border-[#4A4B50]/30">
                             <h3 className="text-xs font-medium text-gray-300 mb-2 flex items-center gap-2">
@@ -1045,91 +1104,126 @@ const EventDetailPage: React.FC = () => {
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
 
         {/* 出席・欠席ボタンを画面下部に固定 */}
-        {!isEditing && (
-          <div className="fixed bottom-[calc(64px+20px)] left-0 right-0 bg-[#1D1D21] border-t border-gray-700/70 z-[999]">
-            <div className="max-w-2xl mx-auto p-3">
-              {entryStatus ? (
-                <>
-                  {entryStatus === '1' && (
-                    <div className="flex-1 mb-3">
-                      <TooltipButton
-                        onClick={handleConfirmAttendance}
-                        isDisabled={isGettingLocation || !isWithinEventPeriod(event)}
-                        message={!isWithinEventPeriod(event) ? 'イベントの開催時間外です' : undefined}
+        <AnimatePresence>
+          {!isEditing && (
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              transition={{ 
+                duration: 0.5,
+                delay: 0.3,
+                type: "spring",
+                stiffness: 100,
+                damping: 15
+              }}
+              className="fixed bottom-[calc(64px+20px)] left-0 right-0 bg-[#1D1D21] border-t border-gray-700/70 z-[999]"
+            >
+              <div className="max-w-2xl mx-auto p-3">
+                {entryStatus ? (
+                  <>
+                    {entryStatus === '1' && (
+                      <motion.div 
+                        className="flex-1 mb-3"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
                       >
-                        {isGettingLocation ? (
-                          <>
-                            <CircularProgress size={20} className="text-white" />
-                            <span className="ml-2">位置情報を確認中...</span>
-                          </>
-                        ) : (
-                          <>
-                            <CheckIcon className="h-5 w-5" />
-                            <span className="ml-2">本出席を確定する</span>
-                          </>
-                        )}
-                      </TooltipButton>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex-1">
-                      <div 
-                        className={`
-                          text-lg font-bold h-12 flex items-center justify-center rounded-xl w-full
-                          ${entryStatus === '1' 
-                            ? 'bg-green-600/30 text-green-400' 
-                            : entryStatus === '2' 
-                              ? 'bg-red-600/30 text-red-400'
-                              : 'bg-blue-600/30 text-blue-400'
-                          }
-                        `}
-                      >
-                        {entryStatus === '1' ? '出席予定' : entryStatus === '2' ? '欠席予定' : '出席済み'}
-                      </div>
-                    </div>
-                    {entryStatus !== '11' && (
-                      <button
-                        onClick={() => setEntryStatus(null)}
-                        className="p-2 rounded-xl bg-[#37373F] text-gray-300 hover:bg-[#4A4B50] hover:text-white transition-all duration-300"
-                        aria-label="ステータスを変更"
-                      >
-                        <ChangeCircleIcon sx={{ fontSize: 32 }} />
-                      </button>
+                        <TooltipButton
+                          onClick={handleConfirmAttendance}
+                          isDisabled={isGettingLocation || !isWithinEventPeriod(event)}
+                          message={!isWithinEventPeriod(event) ? 'イベントの開催時間外です' : undefined}
+                        >
+                          {isGettingLocation ? (
+                            <>
+                              <CircularProgress size={20} className="text-white" />
+                              <span className="ml-2">位置情報を確認中...</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckIcon className="h-5 w-5" />
+                              <span className="ml-2">本出席を確定する</span>
+                            </>
+                          )}
+                        </TooltipButton>
+                      </motion.div>
                     )}
-                  </div>
-                </>
-              ) : (
-                <div className="flex justify-between gap-3">
-                  <button
-                    onClick={() => handleEventEntry('1')}
-                    className="h-12 px-8 rounded-xl bg-gradient-to-r from-green-600 to-green-500 text-white font-bold hover:opacity-90 transition-opacity duration-300 flex-1 flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
+                    
+                    <motion.div 
+                      className="flex items-center justify-between gap-3"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                    >
+                      <div className="flex-1">
+                        <div 
+                          className={`
+                            text-lg font-bold h-12 flex items-center justify-center rounded-xl w-full
+                            ${entryStatus === '1' 
+                              ? 'bg-green-600/30 text-green-400' 
+                              : entryStatus === '2' 
+                                ? 'bg-red-600/30 text-red-400'
+                                : 'bg-blue-600/30 text-blue-400'
+                            }
+                          `}
+                        >
+                          {entryStatus === '1' ? '出席予定' : entryStatus === '2' ? '欠席予定' : '出席済み'}
+                        </div>
+                      </div>
+                      {entryStatus !== '11' && (
+                        <motion.button
+                          onClick={() => setEntryStatus(null)}
+                          className="p-2 rounded-xl bg-[#37373F] text-gray-300 hover:bg-[#4A4B50] hover:text-white transition-all duration-300"
+                          aria-label="ステータスを変更"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <ChangeCircleIcon sx={{ fontSize: 32 }} />
+                        </motion.button>
+                      )}
+                    </motion.div>
+                  </>
+                ) : (
+                  <motion.div 
+                    className="flex justify-between gap-3"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
                   >
-                    <CheckIcon className="h-5 w-5" />
-                    出席
-                  </button>
-                  <button
-                    onClick={() => handleEventEntry('2')}
-                    className="h-12 px-8 rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white font-bold hover:opacity-90 transition-opacity duration-300 flex-1 flex items-center justify-center gap-2 shadow-lg shadow-red-600/20"
-                  >
-                    <CancelIcon className="h-5 w-5" />
-                    欠席
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+                    <motion.button
+                      onClick={() => handleEventEntry('1')}
+                      className="h-12 px-8 rounded-xl bg-gradient-to-r from-green-600 to-green-500 text-white font-bold hover:opacity-90 transition-opacity duration-300 flex-1 flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <CheckIcon className="h-5 w-5" />
+                      出席
+                    </motion.button>
+                    <motion.button
+                      onClick={() => handleEventEntry('2')}
+                      className="h-12 px-8 rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white font-bold hover:opacity-90 transition-opacity duration-300 flex-1 flex items-center justify-center gap-2 shadow-lg shadow-red-600/20"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <CancelIcon className="h-5 w-5" />
+                      欠席
+                    </motion.button>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <FooterMenu />
         <EventDetailModal 
           isOpen={isModalOpen}
@@ -1231,7 +1325,7 @@ const EventDetailPage: React.FC = () => {
             )}
           </div>
         )}
-      </div>
+      </motion.div>
     </Box>
   );
 };
