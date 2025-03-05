@@ -12,6 +12,7 @@ import { useRouter } from 'next/router';
 import { Box } from '@mui/material';
 import FooterMenu from '../../components/FooterMenu';
 import AddBoxIcon from '@mui/icons-material/AddBox';
+import RepeatIcon from '@mui/icons-material/Repeat';
 import EventDetailModal from '../../components/EventDetailModal';
 import { Event } from '../../types/event';
 
@@ -421,9 +422,14 @@ export default function EventListPage() {
         {filteredEvents.map((event) => (
           <div
             key={event.event_id}
-            className="mb-2 sm:mb-3 md:mb-4 p-2 sm:p-3 md:p-4 bg-[#37373F] rounded-md sm:rounded-lg cursor-pointer hover:bg-[#404049] transition-colors"
+            className="mb-2 sm:mb-3 md:mb-4 p-2 sm:p-3 md:p-4 bg-[#37373F] rounded-md sm:rounded-lg cursor-pointer hover:bg-[#404049] transition-colors relative"
             onClick={() => handleEventClick(event)}
           >
+            {event.abbreviation && (
+              <div className="text-xs sm:text-sm text-gray-400 mb-0.5">
+                {event.abbreviation}
+              </div>
+            )}
             <div className="text-base sm:text-lg font-medium mb-1 sm:mb-2 flex items-center gap-1 sm:gap-2">
               {event.genre === '1' && (
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 text-[#8E93DA]" viewBox="0 0 20 20" fill="currentColor">
@@ -431,9 +437,6 @@ export default function EventListPage() {
                 </svg>
               )}
               {event.title}
-              {event.repeat_id && (
-                <span className="ml-1 sm:ml-2 text-xs sm:text-sm text-gray-400">（繰り返し）</span>
-              )}
             </div>
             <div className="text-xs sm:text-sm text-gray-400">
               <div>場　所：{event.venue_nm || '未定'}</div>
@@ -443,6 +446,11 @@ export default function EventListPage() {
                 {format(new Date(event.end_date), ' M月d日 HH:mm', { locale: ja })}
               </div>
             </div>
+            {event.repeat_id && (
+              <div className="absolute bottom-2 right-2">
+                <RepeatIcon className="h-4 w-4 text-gray-400" />
+              </div>
+            )}
           </div>
         ))}
       </div>
