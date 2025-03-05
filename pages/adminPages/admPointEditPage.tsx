@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/router";
 import { FormEvent, useEffect, useState } from "react";
-import supabase from "../../supabaseClient";
+import { supabase } from "../../utils/supabaseClient";
 import Header from "../../components/Header";
 
 type Employee = {

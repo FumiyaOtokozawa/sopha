@@ -68,6 +68,7 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
       onClose={onClose}
       maxWidth="sm"
       fullWidth
+      aria-label="ユーザー選択"
       PaperProps={{
         style: {
           backgroundColor: '#2D2D33',
@@ -104,6 +105,7 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
               <button
                 type="submit"
                 className="absolute right-2 top-1/2 transform -translate-y-1/2 text-[#ACACAC] hover:text-[#FCFCFC]"
+                aria-label="検索"
               >
                 <SearchIcon fontSize="small" />
               </button>
@@ -111,6 +113,7 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
             <button 
               onClick={onClose}
               className="text-[#ACACAC] hover:text-[#FCFCFC] p-1 rounded-full hover:bg-[#3D3D45] flex-shrink-0"
+              aria-label="閉じる"
             >
               <CloseIcon fontSize="small" />
             </button>

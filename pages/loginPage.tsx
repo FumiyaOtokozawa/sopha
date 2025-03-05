@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import supabase from "../supabaseClient";
+import { supabase } from "../utils/supabaseClient";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");

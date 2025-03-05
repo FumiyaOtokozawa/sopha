@@ -1,17 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { createClient } from "@supabase/supabase-js";
-
-// Supabaseクライアントの初期化を変更
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!, // サービスロールキーを使用
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+import supabaseAdmin from "../../supabaseAdminClient";
 
 type Employee = {
   emp_no: number;
@@ -36,7 +24,7 @@ export default async function handler(
 
   // Bearerトークンを設定
   const token = authHeader.split(' ')[1];
-  supabase.auth.setSession({
+  supabaseAdmin.auth.setSession({
     access_token: token,
     refresh_token: ''
   });
@@ -49,7 +37,7 @@ export default async function handler(
     const { employees } = req.body as { employees: Employee[] };
 
     // すべての処理を単一のストアドプロシージャ内で実行
-    const { error: procError } = await supabase.rpc('add_employees_transaction', {
+    const { error: procError } = await supabaseAdmin.rpc('add_employees_transaction', {
       employee_data: employees
     });
 

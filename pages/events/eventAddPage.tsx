@@ -288,12 +288,20 @@ const EventAddPage = () => {
   };
 
   return (
-    <Box sx={{ pb: 7 }}>
+    <Box 
+      sx={{ pb: 7 }}
+      component="div"
+      role="main"
+    >
       <Header />
       <div className="p-4 mb-[30px]">
         
         <form onSubmit={handleSubmit} className="max-w-xl mx-auto">
-          <div className="bg-[#2D2D33] rounded-lg p-4 space-y-3">
+          <div 
+            className="bg-[#2D2D33] rounded-lg p-4 space-y-3"
+            role="region"
+            aria-label="イベント登録フォーム"
+          >
             {/* イベント種別と開催形式を横並びに */}
             <div className="grid grid-cols-2 gap-3">
               {/* イベント種別 */}

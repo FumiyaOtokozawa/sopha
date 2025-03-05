@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/router";
-import supabase from "../supabaseClient";
+import { supabase } from "../utils/supabaseClient";
 
 const IndexPage = () => {
   const router = useRouter();
