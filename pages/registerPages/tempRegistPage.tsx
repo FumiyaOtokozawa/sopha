@@ -117,7 +117,7 @@ const SignUpPage = () => {
               onChange={(e) => setEmail(e.target.value)}
               onFocus={() => setFocusedField('email')}
               onBlur={() => setFocusedField(null)}
-              placeholder="メールアドレス"
+              placeholder="Comsize Email"
               className={inputClassName}
               required
               autoComplete="off"
@@ -136,7 +136,7 @@ const SignUpPage = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="パスワード"
+              placeholder="Password"
               className={inputClassName}
               required
               autoComplete="new-password"
@@ -149,7 +149,7 @@ const SignUpPage = () => {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="パスワード（確認）"
+              placeholder="Confirm Password"
               className={inputClassName}
               required
               autoComplete="new-password"
@@ -166,7 +166,7 @@ const SignUpPage = () => {
               disabled:opacity-50
             "
           >
-            {isLoading ? "登録中..." : "登録する"}
+            {isLoading ? "登録中..." : "登録"}
           </button>
         </form>
 
