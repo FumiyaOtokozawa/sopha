@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import CloseIcon from '@mui/icons-material/Close';
 
 // iOS Safariのnavigator型を拡張
 interface NavigatorWithStandalone extends Navigator {
@@ -25,8 +26,15 @@ const PWAInstallPrompt = () => {
 
   return (
     <div className="fixed bottom-20 left-0 right-0 bg-[#5b63d3] text-white p-2 z-50">
-      <div className="container mx-auto">
-        <p className="text-xs text-center">
+      <div className="container mx-auto relative">
+        <button 
+          onClick={() => setShowPrompt(false)}
+          className="absolute right-2 top-1/2 -translate-y-1/2"
+          aria-label="閉じる"
+        >
+          <CloseIcon />
+        </button>
+        <p className="text-xs text-center pr-8">
           SOPHAをホーム画面に追加すると、より快適に利用できます<br/>
           ※ブラウザで利用するとレイアウトが崩れる可能性があります！
         </p>
