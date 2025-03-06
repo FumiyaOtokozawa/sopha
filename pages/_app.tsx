@@ -8,6 +8,8 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import PWAInstallPrompt from "../components/PWAInstallPrompt";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/router";
+import Header from "../components/Header";
+import FooterMenu from "../components/FooterMenu";
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
@@ -15,17 +17,22 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <>
       <PWAInstallPrompt />
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={router.pathname}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.3 }}
-        >
-          <Component {...pageProps} />
-        </motion.div>
-      </AnimatePresence>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <AnimatePresence mode="wait">
+          <motion.main
+            key={router.pathname}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="flex-1"
+          >
+            <Component {...pageProps} />
+          </motion.main>
+        </AnimatePresence>
+        <FooterMenu />
+      </div>
       <Analytics />
       <SpeedInsights />
     </>

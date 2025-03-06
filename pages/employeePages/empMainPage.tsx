@@ -2,10 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from '../../utils/supabaseClient';
-import Header from "../../components/Header";
 import { Dialog, Tabs, Tab, Box } from '@mui/material';
 import { useRouter } from 'next/router';
-import FooterMenu from '../../components/FooterMenu';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 
 type HistoryItem = {
@@ -301,14 +299,11 @@ const EmpMainPage = () => {
 
   return (
     <Box sx={{ 
-      minHeight: '100vh',
       position: 'relative',
       width: '100%',
       overflow: 'hidden',
     }}>
       <div>
-        <Header />
-        
         <div className="p-4">
           <div className="w-full max-w-xl mx-auto space-y-3">
             <motion.div
@@ -531,8 +526,6 @@ const EmpMainPage = () => {
             </div>
           </motion.div>
         </Dialog>
-
-        <FooterMenu />
       </div>
     </Box>
   );

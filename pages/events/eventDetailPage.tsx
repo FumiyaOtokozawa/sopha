@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../utils/supabaseClient';
-import Header from '../../components/Header';
 import { Box, Avatar, Dialog, CircularProgress } from '@mui/material';
-import FooterMenu from '../../components/FooterMenu';
 import ChangeCircleIcon from '@mui/icons-material/ChangeCircle';
 import { ja } from 'date-fns/locale';
 import { handleAttendanceConfirmation } from '../../utils/attendanceApprovalLogic';
@@ -758,52 +756,27 @@ const EventDetailPage: React.FC = () => {
 
   if (!event) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="flex items-center justify-center min-h-screen"
-      >
+      <div className="flex items-center justify-center min-h-screen">
         <CircularProgress />
-      </motion.div>
+      </div>
     );
   }
 
   return (
     <Box sx={{ pb: 7 }}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.3 }}
-        className="min-h-screen flex flex-col bg-gradient-to-b from-[#1D1D21] to-[#2D2D33]"
-      >
-        <Header />
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#1D1D21] to-[#2D2D33]">
         <div className="flex-1 p-3 md:p-10 pb-[calc(64px+50px)]">
           <div className="max-w-2xl mx-auto">
             {/* 主催者メッセージ */}
-            <AnimatePresence>
-              {isOwner && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className="mb-4 bg-[#8E93DA]/20 border border-[#8E93DA]/40 rounded-xl p-3 flex items-center justify-center transform hover:scale-[1.02] transition-all duration-300"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-[#8E93DA] font-medium">あなたが主催しているイベントです</span>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {isOwner && (
+              <div className="mb-4 bg-[#8E93DA]/20 border border-[#8E93DA]/40 rounded-xl p-3 flex items-center justify-center transform hover:scale-[1.02] transition-all duration-300">
+                <div className="flex items-center gap-2">
+                  <span className="text-[#8E93DA] font-medium">あなたが主催しているイベントです</span>
+                </div>
+              </div>
+            )}
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
-              className="bg-[#2D2D33] rounded-2xl shadow-xl border border-[#3D3D45]"
-            >
+            <div className="bg-[#2D2D33] rounded-2xl shadow-xl border border-[#3D3D45]">
               {/* イベント詳細内容 */}
               <div className="p-4 md:p-5">
                 {isEditing ? (
@@ -1109,7 +1082,7 @@ const EventDetailPage: React.FC = () => {
                   </motion.div>
                 )}
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
 
@@ -1203,7 +1176,6 @@ const EventDetailPage: React.FC = () => {
             </motion.div>
           )}
         </AnimatePresence>
-        <FooterMenu />
         <EventDetailModal 
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
@@ -1304,9 +1276,9 @@ const EventDetailPage: React.FC = () => {
             )}
           </div>
         )}
-      </motion.div>
+      </div>
     </Box>
   );
 };
 
-export default EventDetailPage; 
+export default EventDetailPage;

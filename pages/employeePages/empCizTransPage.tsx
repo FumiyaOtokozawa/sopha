@@ -61,22 +61,26 @@ const EmpCizTransPage = () => {
 
   return (
     <Box sx={{ pb: 7 }}>
-      <div className="min-h-screen">
-        <Header />
-        <UserSearchList
-          title="ポイント譲渡"
-          excludeEmpNo={currentUserEmpNo || undefined}
-          onUserSelect={handleUserSelect}
-        />
-        <CizTransferModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onSubmit={handleTransfer}
-          selectedUser={selectedUser}
-          error={error}
-        />
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#1D1D21] to-[#2D2D33]">
+        <div className="flex-1 p-3 md:p-10 pb-[calc(64px+50px)]">
+          <div className="max-w-2xl mx-auto">
+            <Header />
+            <UserSearchList
+              title="ポイント譲渡"
+              excludeEmpNo={currentUserEmpNo || undefined}
+              onUserSelect={handleUserSelect}
+            />
+            <CizTransferModal
+              isOpen={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
+              onSubmit={handleTransfer}
+              selectedUser={selectedUser}
+              error={error}
+            />
+          </div>
+        </div>
+        <FooterMenu />
       </div>
-      <FooterMenu />
     </Box>
   );
 };

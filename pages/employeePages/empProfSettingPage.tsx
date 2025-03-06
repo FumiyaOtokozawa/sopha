@@ -114,8 +114,6 @@ const EmpProfSettingPage = () => {
 
   return (
     <div>
-      <Header />
-
       <div className="p-4">
         <div className="w-full max-w-xl mx-auto">
           <h1 className="text-2xl font-bold mb-6 text-[#FCFCFC]">プロフィール設定</h1>

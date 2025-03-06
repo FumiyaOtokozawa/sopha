@@ -1,13 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../utils/supabaseClient';
-import Header from '../../components/Header';
 import { useRouter } from 'next/router';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { ja } from 'date-fns/locale';
 import { Box } from '@mui/material';
-import FooterMenu from '../../components/FooterMenu';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import PlaceSelectModal from '../../components/PlaceSelectModal';
 import UserSelectModal from '../../components/UserSelectModal';
@@ -293,9 +291,7 @@ const EventAddPage = () => {
       component="div"
       role="main"
     >
-      <Header />
       <div className="p-4 mb-[30px]">
-        
         <form onSubmit={handleSubmit} className="max-w-xl mx-auto">
           <div 
             className="bg-[#2D2D33] rounded-lg p-4 space-y-3"
@@ -607,7 +603,6 @@ const EventAddPage = () => {
           </div>
         </form>
       </div>
-      <FooterMenu />
       <PlaceSelectModal
         open={isPlaceModalOpen}
         onClose={() => setIsPlaceModalOpen(false)}

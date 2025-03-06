@@ -6,11 +6,9 @@ import startOfWeek from 'date-fns/startOfWeek';
 import getDay from 'date-fns/getDay';
 import { ja } from 'date-fns/locale';
 import { supabase } from '../../utils/supabaseClient';
-import Header from '../../components/Header';
 import React from 'react';
 import { useRouter } from 'next/router';
 import { Box } from '@mui/material';
-import FooterMenu from '../../components/FooterMenu';
 import AddBoxIcon from '@mui/icons-material/AddBox';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import EventDetailModal from '../../components/EventDetailModal';
@@ -523,13 +521,11 @@ export default function EventListPage() {
 
   return (
     <Box sx={{ 
-      height: '100vh',
       position: 'relative',
       width: '100%',
       overflow: 'hidden',
     }}>
       <div>
-        <Header />
         <div className="p-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -600,7 +596,6 @@ export default function EventListPage() {
             {view === 'calendar' ? <CalendarView /> : <EventList />}
           </motion.div>
         </div>
-        <FooterMenu />
       </div>
       
       <EventDetailModal
