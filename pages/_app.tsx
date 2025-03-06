@@ -10,15 +10,64 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/router";
 import Header from "../components/Header";
 import FooterMenu from "../components/FooterMenu";
+import { useEffect, useState } from "react";
+import { supabase } from "../utils/supabaseClient";
+
+// ログインが必要なパスのパターン
+const AUTH_REQUIRED_PATHS = [
+  '/employeePages',
+  '/events',
+  '/adminPages'
+];
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setIsAuthenticated(!!session);
+      } catch (error) {
+        console.error('認証チェックエラー:', error);
+        setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // ログインが必要なパスかどうかをチェック
+  const isAuthRequired = AUTH_REQUIRED_PATHS.some(path => router.pathname.startsWith(path));
+
+  // ログインが必要なパスにアクセスしているが、未ログインの場合はログインページにリダイレクト
+  useEffect(() => {
+    if (!isLoading && isAuthRequired && !isAuthenticated) {
+      router.push('/');
+    }
+  }, [isLoading, isAuthRequired, isAuthenticated, router]);
+
+  if (isLoading) {
+    return null; // またはローディング表示
+  }
 
   return (
     <>
       <PWAInstallPrompt />
       <div className="min-h-screen flex flex-col">
-        <Header />
+        {isAuthenticated && <Header />}
         <AnimatePresence mode="wait">
           <motion.main
             key={router.pathname}
@@ -31,7 +80,7 @@ export default function App({ Component, pageProps }: AppProps) {
             <Component {...pageProps} />
           </motion.main>
         </AnimatePresence>
-        <FooterMenu />
+        {isAuthenticated && <FooterMenu />}
       </div>
       <Analytics />
       <SpeedInsights />
