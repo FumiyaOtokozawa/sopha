@@ -120,15 +120,23 @@ const PlaceSelectModal: React.FC<PlaceSelectModalProps> = ({ open, onClose, onSe
   const handlePlaceSelect = () => {
     if (!autocompleteRef.current) return;
 
-    const place = autocompleteRef.current.getPlace();
-    console.log('Selected place:', place);
+    // 入力フィールドから直接テキストを取得
+    const inputElement = document.querySelector('.pac-target-input') as HTMLInputElement;
+    const searchText = inputElement?.value || '';
+    
+    if (!searchText.trim()) {
+      return; // 検索テキストが空の場合は何もしない
+    }
 
-    if (!place.geometry) {
-      // 場所が選択されていない場合は、検索クエリを使用して場所を取得
+    const place = autocompleteRef.current.getPlace();
+    
+    // 場所が選択されていない場合（検索ボタンをクリックした場合など）
+    if (!place || !place.geometry) {
+      // 検索クエリを使用して場所を取得
       const service = new google.maps.places.PlacesService(mapRef.current!);
       service.findPlaceFromQuery(
         {
-          query: place.name || '',
+          query: searchText,
           fields: ['geometry', 'name', 'formatted_address']
         },
         (results, status) => {
@@ -156,7 +164,7 @@ const PlaceSelectModal: React.FC<PlaceSelectModalProps> = ({ open, onClose, onSe
       return;
     }
 
-    // 通常の処理
+    // 通常の処理（Autocompleteから場所が選択された場合）
     if (!place.geometry?.location) return;
 
     const location = {
@@ -304,21 +312,6 @@ const PlaceSelectModal: React.FC<PlaceSelectModalProps> = ({ open, onClose, onSe
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <Button
-                variant="contained"
-                sx={{
-                  width: '40px',
-                  height: '40px',
-                  minWidth: '40px',
-                  padding: 0,
-                  backgroundColor: '#5b63d3',
-                  '&:hover': {
-                    backgroundColor: '#4a51b8'
-                  }
-                }}
-              >
-                <SearchIcon />
-              </Button>
             </div>
             <div className="flex-1 overflow-y-auto">
               {savedVenues.length > 0 ? (
