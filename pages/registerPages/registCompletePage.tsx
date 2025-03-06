@@ -5,8 +5,8 @@ const RegistCompletePage = () => {
   const { email } = router.query;
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-8">
-      <div className="bg-[#FCFCFC19] rounded-lg shadow-md p-8 w-[400px] mx-auto">
+    <div className="fixed inset-0 flex items-center justify-center overflow-hidden touch-none">
+      <div className="bg-[#FCFCFC19] rounded-lg shadow-md p-8 w-[400px] mx-8 sm:mx-auto">
         <h1 className="text-2xl font-bold mb-6 text-center text-[#FCFCFC]">
           仮登録完了
         </h1>

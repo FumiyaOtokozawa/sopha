@@ -136,7 +136,7 @@ const RegistConfirmedPage = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-8">
+    <div className="fixed inset-0 flex items-center justify-center overflow-hidden touch-none">
       <div className="bg-[#FCFCFC19] rounded-lg shadow-md p-8 w-[400px] mx-auto">
         {error ? (
           <>
