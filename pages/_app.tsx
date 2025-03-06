@@ -26,6 +26,7 @@ const publicPages = [
   '/registerPages/registConfirmedPage',
   '/registerPages/registPage',
   '/registerPages/registInputPage'
+  
 ];
 
 export default function App({ Component, pageProps }: AppProps) {
