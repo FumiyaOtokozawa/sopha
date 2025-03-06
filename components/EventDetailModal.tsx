@@ -39,8 +39,8 @@ const EventDetailModal: React.FC<Props> = ({ isOpen, onClose, eventId }) => {
       // モーダルが完全に閉じた後にリセット
       setTimeout(() => {
         setIsClosing(false);
-      }, 100);
-    }, 300);
+      }, 50);
+    }, 150);
   }, [onClose]);
 
   useEffect(() => {
@@ -95,7 +95,7 @@ const EventDetailModal: React.FC<Props> = ({ isOpen, onClose, eventId }) => {
           // アニメーションのためにローディング状態を少し遅延させて解除
           setTimeout(() => {
             setIsLoading(false);
-          }, 300);
+          }, 150);
         }
       };
 
@@ -112,7 +112,7 @@ const EventDetailModal: React.FC<Props> = ({ isOpen, onClose, eventId }) => {
       // モーダルが完全に閉じた後にデータをクリア
       setTimeout(() => {
         setEvent(null);
-      }, 300);
+      }, 150);
     }
   }, [isOpen, isClosing]);
 
@@ -131,40 +131,40 @@ const EventDetailModal: React.FC<Props> = ({ isOpen, onClose, eventId }) => {
         },
       }}
       TransitionComponent={Fade}
-      transitionDuration={300}
+      transitionDuration={200}
     >
       <div className="relative flex flex-col max-h-[90vh]">
         {isLoading ? (
-          <Fade in={isLoading} timeout={300}>
+          <Fade in={isLoading} timeout={200}>
             <div className="flex flex-col items-center justify-center p-16 min-h-[300px]">
               <CircularProgress color="primary" size={48} />
               <span className="mt-4 text-white text-sm">読み込み中...</span>
             </div>
           </Fade>
         ) : !event ? (
-          <Fade in={!isLoading && !event && !isClosing} timeout={300}>
+          <Fade in={!isLoading && !event && !isClosing} timeout={200}>
             <div className="flex items-center justify-center p-16 min-h-[300px]">
               <span className="text-white">イベント情報が見つかりません</span>
             </div>
           </Fade>
         ) : (
-          <Fade in={!isLoading && !!event && !isClosing} timeout={isClosing ? 100 : 500}>
+          <Fade in={!isLoading && !!event && !isClosing} timeout={isClosing ? 50 : 200}>
             <div className={`animate-fade-in ${isClosing ? 'animate-fade-out' : ''}`}>
               {/* ヘッダー部分 */}
               <div className="bg-gradient-to-br from-[#37373F] via-[#3D3E42] to-[#5b63d3]/50 p-4 pb-8">
                 {isOwner && (
-                  <div className="inline-flex items-center gap-2 bg-white/20 rounded-full px-2.5 py-0.5 mb-3 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+                  <div className="inline-flex items-center gap-2 bg-white/20 rounded-full px-2.5 py-0.5 mb-3 animate-fade-in-up" style={{ animationDelay: '50ms' }}>
                     <AssignmentIndIcon className="h-3.5 w-3.5 text-white" />
                     <span className="text-white text-xs font-medium">主催イベント</span>
                   </div>
                 )}
                 {event.abbreviation && (
-                  <div className="text-[10px] text-gray-400 mb-1 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+                  <div className="text-[10px] text-gray-400 mb-1 animate-fade-in-up" style={{ animationDelay: '75ms' }}>
                     {event.abbreviation}
                   </div>
                 )}
-                <h2 className="text-xl font-bold text-white mb-2 animate-fade-in-up" style={{ animationDelay: '200ms' }}>{event.title}</h2>
-                <div className="flex items-center text-white/90 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+                <h2 className="text-xl font-bold text-white mb-2 animate-fade-in-up" style={{ animationDelay: '100ms' }}>{event.title}</h2>
+                <div className="flex items-center text-white/90 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
                   <div className="flex items-center bg-[#37373F] rounded-lg px-2.5 py-1 shadow-sm">
                     <CalendarMonthIcon className="h-3.5 w-3.5 mr-1.5 text-[#8E93DA]" fontSize="small" />
                     <span className="text-xs font-medium">
@@ -180,7 +180,7 @@ const EventDetailModal: React.FC<Props> = ({ isOpen, onClose, eventId }) => {
               {/* メイン情報部分 */}
               <div className="bg-[#2D2D33] -mt-4 rounded-t-2xl p-4 space-y-4 overflow-y-auto flex-1">
                 {/* 時間情報 */}
-                <div className="flex items-center gap-3 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+                <div className="flex items-center gap-3 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
                   <div className="p-1.5 bg-[#37373F] rounded-lg flex items-center justify-center" style={{ height: '36px', width: '36px' }}>
                     <AccessTimeIcon className="h-5 w-5 text-[#8E93DA]" fontSize="small" />
                   </div>
@@ -193,7 +193,7 @@ const EventDetailModal: React.FC<Props> = ({ isOpen, onClose, eventId }) => {
                 </div>
 
                 {/* 場所情報 */}
-                <div className="flex items-center gap-3 animate-fade-in-up" style={{ animationDelay: '500ms' }}>
+                <div className="flex items-center gap-3 animate-fade-in-up" style={{ animationDelay: '250ms' }}>
                   <div className="p-1.5 bg-[#37373F] rounded-lg flex items-center justify-center" style={{ height: '36px', width: '36px' }}>
                     <LocationOnIcon className="h-5 w-5 text-[#8E93DA]" fontSize="small" />
                   </div>
@@ -204,7 +204,7 @@ const EventDetailModal: React.FC<Props> = ({ isOpen, onClose, eventId }) => {
                 </div>
 
                 {/* 開催形式 */}
-                <div className="flex items-center gap-3 animate-fade-in-up" style={{ animationDelay: '600ms' }}>
+                <div className="flex items-center gap-3 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
                   <div className="p-1.5 bg-[#37373F] rounded-lg flex items-center justify-center" style={{ height: '36px', width: '36px' }}>
                     <VideocamIcon className="h-5 w-5 text-[#8E93DA]" fontSize="small" />
                   </div>
@@ -218,7 +218,7 @@ const EventDetailModal: React.FC<Props> = ({ isOpen, onClose, eventId }) => {
                 </div>
 
                 {/* 主催者情報 */}
-                <div className="flex items-center gap-3 animate-fade-in-up" style={{ animationDelay: '700ms' }}>
+                <div className="flex items-center gap-3 animate-fade-in-up" style={{ animationDelay: '350ms' }}>
                   <div className="p-1.5 bg-[#37373F] rounded-lg flex items-center justify-center" style={{ height: '36px', width: '36px' }}>
                     <PersonIcon className="h-5 w-5 text-[#8E93DA]" fontSize="small" />
                   </div>
@@ -230,7 +230,7 @@ const EventDetailModal: React.FC<Props> = ({ isOpen, onClose, eventId }) => {
 
                 {/* 参加URL */}
                 {event.url && (
-                  <div className="flex items-center gap-3 animate-fade-in-up" style={{ animationDelay: '800ms' }}>
+                  <div className="flex items-center gap-3 animate-fade-in-up" style={{ animationDelay: '400ms' }}>
                     <div className="p-1.5 bg-[#37373F] rounded-lg flex items-center justify-center" style={{ height: '36px', width: '36px' }}>
                       <LinkIcon className="h-5 w-5 text-[#8E93DA]" fontSize="small" />
                     </div>
@@ -249,7 +249,7 @@ const EventDetailModal: React.FC<Props> = ({ isOpen, onClose, eventId }) => {
                 )}
 
                 {/* フッターボタン */}
-                <div className="sticky bottom-0 pt-4 pb-1 bg-[#2D2D33] animate-fade-in-up" style={{ animationDelay: '900ms' }}>
+                <div className="sticky bottom-0 pt-4 pb-1 bg-[#2D2D33] animate-fade-in-up" style={{ animationDelay: '450ms' }}>
                   <button
                     onClick={() => {
                       handleClose();

@@ -13,7 +13,7 @@ import AddBoxIcon from '@mui/icons-material/AddBox';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import EventDetailModal from '../../components/EventDetailModal';
 import { Event } from '../../types/event';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // カレンダーのローカライズ設定
 const locales = {
@@ -519,6 +519,40 @@ export default function EventListPage() {
     );
   };
 
+  // アニメーションのバリアント定義
+  const viewVariants = {
+    calendar: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.3, ease: "easeInOut" }
+    },
+    list: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.3, ease: "easeInOut" }
+    },
+    exitCalendar: {
+      opacity: 0,
+      x: 50,
+      transition: { duration: 0.2, ease: "easeInOut" }
+    },
+    exitList: {
+      opacity: 0,
+      x: -50,
+      transition: { duration: 0.2, ease: "easeInOut" }
+    },
+    initialCalendar: {
+      opacity: 0,
+      x: -50,
+      transition: { duration: 0.2 }
+    },
+    initialList: {
+      opacity: 0,
+      x: 50,
+      transition: { duration: 0.2 }
+    }
+  };
+
   return (
     <Box sx={{ 
       position: 'relative',
@@ -561,7 +595,11 @@ export default function EventListPage() {
                   >
                     カレンダー
                     {view === 'calendar' && (
-                      <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#8E93DA]"></span>
+                      <motion.span 
+                        className="absolute bottom-0 left-0 w-full h-0.5 bg-[#8E93DA]"
+                        layoutId="activeTab"
+                        transition={{ duration: 0.3 }}
+                      ></motion.span>
                     )}
                   </button>
                   <button
@@ -574,7 +612,11 @@ export default function EventListPage() {
                   >
                     予定リスト
                     {view === 'list' && (
-                      <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#8E93DA]"></span>
+                      <motion.span 
+                        className="absolute bottom-0 left-0 w-full h-0.5 bg-[#8E93DA]"
+                        layoutId="activeTab"
+                        transition={{ duration: 0.3 }}
+                      ></motion.span>
                     )}
                   </button>
                 </div>
@@ -591,9 +633,35 @@ export default function EventListPage() {
               minHeight: '50vh',
               display: 'flex',
               flexDirection: 'column',
+              position: 'relative',
+              overflow: 'hidden'
             }}
           >
-            {view === 'calendar' ? <CalendarView /> : <EventList />}
+            <AnimatePresence mode="wait">
+              {view === 'calendar' ? (
+                <motion.div
+                  key="calendar"
+                  initial="initialCalendar"
+                  animate="calendar"
+                  exit="exitCalendar"
+                  variants={viewVariants}
+                  style={{ width: '100%', height: '100%' }}
+                >
+                  <CalendarView />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="list"
+                  initial="initialList"
+                  animate="list"
+                  exit="exitList"
+                  variants={viewVariants}
+                  style={{ width: '100%', height: '100%' }}
+                >
+                  <EventList />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         </div>
       </div>
