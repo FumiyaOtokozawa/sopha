@@ -137,7 +137,7 @@ const RegistConfirmedPage = () => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center overflow-hidden touch-none">
-      <div className="bg-[#FCFCFC19] rounded-lg shadow-md p-8 w-[400px] mx-auto">
+      <div className="bg-[#FCFCFC19] rounded-lg shadow-md p-8 w-[400px] mx-8 sm:mx-auto">
         {error ? (
           <>
             <h1 className="text-2xl font-bold mb-6 text-center text-[#FCFCFC]">
