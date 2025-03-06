@@ -72,12 +72,12 @@ const EmpMainPage = () => {
       pointsMotionValue.set(0);
       animate(pointsMotionValue, points, { duration: 1, ease: "easeOut" });
     }
-  }, [points]);
+  }, [points, pointsMotionValue]);
 
   useEffect(() => {
     monthlyChangeMotionValue.set(0);
     animate(monthlyChangeMotionValue, monthlyChange, { duration: 1, ease: "easeOut" });
-  }, [monthlyChange]);
+  }, [monthlyChange, monthlyChangeMotionValue]);
 
   useEffect(() => {
     if (participation) {
@@ -86,7 +86,7 @@ const EmpMainPage = () => {
       animate(officialCountMotionValue, participation.official_count, { duration: 1, ease: "easeOut" });
       animate(unofficialCountMotionValue, participation.unofficial_count, { duration: 1, ease: "easeOut" });
     }
-  }, [participation]);
+  }, [participation, officialCountMotionValue, unofficialCountMotionValue]);
 
   const formatDate = (dateString: string) => {
     const d = new Date(dateString);

@@ -20,10 +20,21 @@ const AUTH_REQUIRED_PATHS = [
   '/adminPages'
 ];
 
+// 認証前のページのパスを定義
+const publicPages = [
+  '/loginPage',
+  '/registerPages/registConfirmedPage',
+  '/registerPages/registPage',
+  '/registerPages/registInputPage'
+];
+
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // 現在のページが認証前のページかどうかを判定
+  const isPublicPage = publicPages.includes(router.pathname);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -67,7 +78,7 @@ export default function App({ Component, pageProps }: AppProps) {
     <>
       <PWAInstallPrompt />
       <div className="min-h-screen flex flex-col">
-        {isAuthenticated && <Header />}
+        {isAuthenticated && !isPublicPage && <Header />}
         <AnimatePresence mode="wait">
           <motion.main
             key={router.pathname}
@@ -80,7 +91,7 @@ export default function App({ Component, pageProps }: AppProps) {
             <Component {...pageProps} />
           </motion.main>
         </AnimatePresence>
-        {isAuthenticated && <FooterMenu />}
+        {isAuthenticated && !isPublicPage && <FooterMenu />}
       </div>
       <Analytics />
       <SpeedInsights />
