@@ -763,217 +763,294 @@ const EventDetailPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ pb: 7 }}>
-      <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#1D1D21] to-[#2D2D33]">
-        <div className="flex-1 p-3 md:p-10 pb-[calc(64px+50px)]">
+    <Box sx={{ 
+      position: 'relative',
+      width: '100%',
+      minHeight: '100vh',
+      overflow: 'auto',
+    }}>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="flex flex-col bg-gradient-to-b from-[#1D1D21] to-[#2D2D33] min-h-screen"
+      >
+        <div className="p-4 pb-[calc(64px+20px+80px)]">
           <div className="max-w-2xl mx-auto">
             {/* 主催者メッセージ */}
-            {isOwner && (
-              <div className="mb-4 bg-[#8E93DA]/20 border border-[#8E93DA]/40 rounded-xl p-3 flex items-center justify-center transform hover:scale-[1.02] transition-all duration-300">
-                <div className="flex items-center gap-2">
-                  <span className="text-[#8E93DA] font-medium">あなたが主催しているイベントです</span>
-                </div>
-              </div>
-            )}
+            <AnimatePresence>
+              {isOwner && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="mb-4 bg-[#8E93DA]/20 border border-[#8E93DA]/40 rounded-xl p-3 flex items-center justify-center"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#8E93DA] font-medium">あなたが主催しているイベントです</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            <div className="bg-[#2D2D33] rounded-2xl shadow-xl border border-[#3D3D45]">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+              className="bg-[#2D2D33] rounded-2xl shadow-xl border border-[#3D3D45] mb-20"
+            >
               {/* イベント詳細内容 */}
-              <div className="p-4 md:p-5">
+              <div className="p-4">
                 {isEditing ? (
-                  <div>
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.3 }}
+                  >
                     <EventEditForm
                       onSave={handleSave}
                       onCancel={handleCancel}
                       editedEvent={editedEvent!}
                       setEditedEvent={setEditedEvent}
                     />
-                  </div>
+                  </motion.div>
                 ) : (
-                  <div className="space-y-8">
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3, delay: 0.2 }}
+                    className="space-y-8"
+                  >
                     <div className="space-y-4">
                       <div className="flex items-start gap-4">
                         <div className="flex-1">
-                          {/* 編集・削除ボタンをタイトルの上に移動 */}
-                          {isOwner && !isEditing && (
-                            <div className="mb-3 grid grid-cols-5 gap-2">
-                              <button
-                                onClick={() => {
-                                  if (event?.repeat_id) {
-                                    setShowDeleteDialog(true);
-                                  } else {
-                                    handleDelete('single');
-                                  }
-                                }}
-                                className="col-span-1 p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all duration-300 flex items-center justify-center group"
-                                aria-label="削除"
+                          {/* 編集・削除ボタン */}
+                          <AnimatePresence>
+                            {isOwner && !isEditing && (
+                              <motion.div 
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.3 }}
+                                className="mb-3 grid grid-cols-5 gap-2"
                               >
-                                <DeleteIcon className="h-5 w-5 transform group-hover:rotate-12 transition-transform duration-300" />
-                              </button>
-                              <button
-                                onClick={handleEdit}
-                                className="col-span-4 p-2 rounded-lg bg-[#4A4B50]/50 text-[#FCFCFC] hover:bg-[#4A4B50]/70 transition-all duration-300 flex items-center justify-center gap-2 group"
-                                aria-label="編集"
-                              >
-                                <EditIcon className="h-5 w-5 transform group-hover:rotate-45 transition-transform duration-300" />
-                                <span>編集する</span>
-                              </button>
-                            </div>
-                          )}
-                          
-                          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2 text-white">
-                            {event.genre === '1' && (
-                              <VerifiedIcon className="h-6 w-7 text-[#8E93DA]" />
+                                <button
+                                  onClick={() => {
+                                    if (event?.repeat_id) {
+                                      setShowDeleteDialog(true);
+                                    } else {
+                                      handleDelete('single');
+                                    }
+                                  }}
+                                  className="col-span-1 p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-all duration-300 flex items-center justify-center"
+                                >
+                                  <DeleteIcon className="h-5 w-5" />
+                                </button>
+                                <button
+                                  onClick={handleEdit}
+                                  className="col-span-4 p-2 rounded-lg bg-[#4A4B50]/50 text-[#FCFCFC] hover:bg-[#4A4B50]/70 transition-all duration-300 flex items-center justify-center gap-2"
+                                >
+                                  <EditIcon className="h-5 w-5" />
+                                  <span>編集する</span>
+                                </button>
+                              </motion.div>
                             )}
-                            {event.title}
-                          </h2>
-                          
-                          {/* 日程表示 */}
-                          <div className="mt-3 flex items-center gap-2">
-                            <div className="p-2 bg-[#37373F] rounded-lg">
-                              <CalendarMonthIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
-                            </div>
-                            <div>
-                              <div className="text-[10px] text-gray-400 leading-tight">開催日時</div>
-                              <div className="text-gray-300 text-sm">
-                                {(() => {
-                                  const startDate = new Date(event.start_date);
-                                  const endDate = new Date(event.end_date);
-                                  const isSameDay = 
-                                    startDate.getFullYear() === endDate.getFullYear() &&
-                                    startDate.getMonth() === endDate.getMonth() &&
-                                    startDate.getDate() === endDate.getDate();
-                                  
-                                  if (isSameDay) {
-                                    return (
-                                      <>
-                                        {format(startDate, "yyyy年MM月dd日", { locale: ja })}
-                                        <span className="ml-1">({format(startDate, "E", { locale: ja })})</span>
-                                        {" "}
-                                        {format(startDate, "HH:mm")} → {format(endDate, "HH:mm")}
-                                      </>
-                                    );
-                                  } else {
-                                    return (
-                                      <>
-                                        {format(startDate, "yyyy年MM月dd日", { locale: ja })}
-                                        <span className="ml-1">({format(startDate, "E", { locale: ja })})</span>
-                                        {" "}
-                                        {format(startDate, "HH:mm")} → 
-                                        {" "}
-                                        {format(endDate, "yyyy年MM月dd日", { locale: ja })}
-                                        <span className="ml-1">({format(endDate, "E", { locale: ja })})</span>
-                                        {" "}
-                                        {format(endDate, "HH:mm")}
-                                      </>
-                                    );
-                                  }
-                                })()}
-                              </div>
-                            </div>
-                          </div>
+                          </AnimatePresence>
 
-                          <div className="mt-2 flex items-center gap-2">
-                            <div className="p-2 bg-[#37373F] rounded-lg">
-                              <LocationOnIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
-                            </div>
-                            <div>
-                              <div className="text-[10px] text-gray-400 leading-tight">開催場所</div>
-                              <div className="relative flex items-center gap-2">
-                                <span className="text-gray-300 text-sm">{event.venue_nm || '未定'}</span>
-                                {event.venue_address && (
-                                  <button 
-                                    onClick={() => copyToClipboard(event.venue_address || '')}
-                                    className="text-gray-400 hover:text-white flex items-center justify-center p-[2px] rounded-full hover:bg-[#4A4B50]/50 transition-all scale-75"
-                                    title="住所をコピー"
-                                  >
-                                    <ContentCopyIcon className="h-1.5 w-1.5" fontSize="small" />
-                                  </button>
-                                )}
-                                {isCopied && (
-                                  <div className="absolute top-0 left-full ml-2 px-2 py-1 bg-green-500 text-white text-xs rounded-md whitespace-nowrap">
-                                    住所をコピーしました
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="mt-2 flex items-center gap-2">
-                            <div className="p-2 bg-[#37373F] rounded-lg">
-                              <PersonIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
-                            </div>
-                            <div>
-                              <div className="text-[10px] text-gray-400 leading-tight">主催者</div>
-                              <span className="text-gray-300 text-sm">{event.ownerName}</span>
-                            </div>
-                          </div>
-                          
-                          {event.manage_member && (
-                            <div className="mt-2 flex items-center gap-2">
+                          {/* イベントタイトル */}
+                          <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: 0.3 }}
+                            className="flex items-start gap-2"
+                          >
+                            {event.genre === '1' && (
+                              <VerifiedIcon className="h-6 w-7 text-[#8E93DA] flex-shrink-0 mt-1" />
+                            )}
+                            <h2 className="text-2xl font-bold tracking-tight text-white break-all">
+                              {event.title}
+                            </h2>
+                          </motion.div>
+
+                          {/* イベント情報 */}
+                          <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: 0.4 }}
+                            className="mt-3 space-y-2"
+                          >
+                            {/* 日程 */}
+                            <div className="flex items-center gap-2">
                               <div className="p-2 bg-[#37373F] rounded-lg">
-                                <PeopleIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
+                                <CalendarMonthIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
                               </div>
                               <div>
-                                <div className="text-[10px] text-gray-400 leading-tight">運営メンバー</div>
+                                <div className="text-[10px] text-gray-400 leading-tight">開催日時</div>
                                 <div className="text-gray-300 text-sm">
-                                  {manageMembers.length > 0 
-                                    ? manageMembers.join(' / ') 
-                                    : event.manage_member}
+                                  {(() => {
+                                    const startDate = new Date(event.start_date);
+                                    const endDate = new Date(event.end_date);
+                                    const isSameDay = 
+                                      startDate.getFullYear() === endDate.getFullYear() &&
+                                      startDate.getMonth() === endDate.getMonth() &&
+                                      startDate.getDate() === endDate.getDate();
+                                    
+                                    if (isSameDay) {
+                                      return (
+                                        <>
+                                          {format(startDate, "yyyy年MM月dd日", { locale: ja })}
+                                          <span className="ml-1">({format(startDate, "E", { locale: ja })})</span>
+                                          {" "}
+                                          {format(startDate, "HH:mm")} → {format(endDate, "HH:mm")}
+                                        </>
+                                      );
+                                    } else {
+                                      return (
+                                        <>
+                                          {format(startDate, "yyyy年MM月dd日", { locale: ja })}
+                                          <span className="ml-1">({format(startDate, "E", { locale: ja })})</span>
+                                          {" "}
+                                          {format(startDate, "HH:mm")} → 
+                                          {" "}
+                                          {format(endDate, "yyyy年MM月dd日", { locale: ja })}
+                                          <span className="ml-1">({format(endDate, "E", { locale: ja })})</span>
+                                          {" "}
+                                          {format(endDate, "HH:mm")}
+                                        </>
+                                      );
+                                    }
+                                  })()}
                                 </div>
                               </div>
                             </div>
-                          )}
-                          
-                          {event.format && (
-                            <div className="mt-2 flex items-center gap-2">
+
+                            {/* 開催場所 */}
+                            <div className="flex items-center gap-2">
                               <div className="p-2 bg-[#37373F] rounded-lg">
-                                <VideocamIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
+                                <LocationOnIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
                               </div>
                               <div>
-                                <div className="text-[10px] text-gray-400 leading-tight">開催形式</div>
-                                <span className="text-gray-300 text-sm">
-                                  {event.format === 'offline' ? 'オフライン' :
-                                   event.format === 'online' ? 'オンライン' : 'ハイブリッド'}
-                                </span>
+                                <div className="text-[10px] text-gray-400 leading-tight">開催場所</div>
+                                <div className="relative flex items-center gap-2">
+                                  <span className="text-gray-300 text-sm">{event.venue_nm || '未定'}</span>
+                                  {event.venue_address && (
+                                    <button 
+                                      onClick={() => copyToClipboard(event.venue_address || '')}
+                                      className="text-gray-400 hover:text-white flex items-center justify-center p-[2px] rounded-full hover:bg-[#4A4B50]/50 transition-all scale-75"
+                                      title="住所をコピー"
+                                    >
+                                      <ContentCopyIcon className="h-1.5 w-1.5" fontSize="small" />
+                                    </button>
+                                  )}
+                                  {isCopied && (
+                                    <div className="absolute top-0 left-full ml-2 px-2 py-1 bg-green-500 text-white text-xs rounded-md whitespace-nowrap">
+                                      住所をコピーしました
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          )}
-                          
-                          {event.url && (
-                            <div className="mt-2 flex items-center gap-2">
+
+                            {/* 主催者 */}
+                            <div className="flex items-center gap-2">
                               <div className="p-2 bg-[#37373F] rounded-lg">
-                                <LinkIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
+                                <PersonIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
                               </div>
                               <div>
-                                <div className="text-[10px] text-gray-400 leading-tight">参加URL</div>
-                                <a 
-                                  href={event.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-[#8E93DA] hover:underline break-all text-sm"
-                                >
-                                  {event.url}
-                                </a>
+                                <div className="text-[10px] text-gray-400 leading-tight">主催者</div>
+                                <span className="text-gray-300 text-sm">{event.ownerName}</span>
                               </div>
                             </div>
-                          )}
+
+                            {/* 運営メンバー */}
+                            {event.manage_member && (
+                              <div className="flex items-start gap-2">
+                                <div className="p-2 bg-[#37373F] rounded-lg flex-shrink-0">
+                                  <PeopleIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-[10px] text-gray-400 leading-tight">運営メンバー</div>
+                                  <div className="text-gray-300 text-sm break-all">
+                                    {manageMembers.length > 0 
+                                      ? manageMembers.join(' / ') 
+                                      : event.manage_member}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* 開催形式 */}
+                            {event.format && (
+                              <div className="flex items-center gap-2">
+                                <div className="p-2 bg-[#37373F] rounded-lg">
+                                  <VideocamIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
+                                </div>
+                                <div>
+                                  <div className="text-[10px] text-gray-400 leading-tight">開催形式</div>
+                                  <span className="text-gray-300 text-sm">
+                                    {event.format === 'offline' ? 'オフライン' :
+                                     event.format === 'online' ? 'オンライン' : 'ハイブリッド'}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* 参加URL */}
+                            {event.url && (
+                              <div className="flex items-center gap-2">
+                                <div className="p-2 bg-[#37373F] rounded-lg">
+                                  <LinkIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
+                                </div>
+                                <div>
+                                  <div className="text-[10px] text-gray-400 leading-tight">参加URL</div>
+                                  <a 
+                                    href={event.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[#8E93DA] hover:underline break-all text-sm"
+                                  >
+                                    {event.url}
+                                  </a>
+                                </div>
+                              </div>
+                            )}
+                          </motion.div>
                         </div>
                       </div>
 
-                      {/* イベント詳細説明を上に移動 */}
+                      {/* イベント説明 */}
                       {event.description && (
-                        <div className="mt-4 pt-4 border-t border-gray-700/70">
+                        <motion.div 
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: 0.5 }}
+                          className="mt-4 pt-4 border-t border-gray-700/70"
+                        >
                           <div className="bg-[#37373F] rounded-xl p-4">
                             <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">
                               {event.description}
                             </p>
                           </div>
-                        </div>
+                        </motion.div>
                       )}
 
-                      <div className="mt-4 pt-4 border-t border-gray-700/70">
+                      {/* 参加者一覧 */}
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.6 }}
+                        className="mt-4 pt-4 border-t border-gray-700/70"
+                      >
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="bg-[#37373F]/50 rounded-xl p-3 border border-[#4A4B50]/30">
+                          {/* 出席者 */}
+                          <motion.div 
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.3, delay: 0.7 }}
+                            className="bg-[#37373F]/50 rounded-xl p-3 border border-[#4A4B50]/30"
+                          >
                             <h3 className="text-xs font-medium text-gray-300 mb-2 flex items-center gap-2">
                               <GroupIcon className="h-3 w-3 text-green-500" fontSize="small" />
                               <span className="text-green-400">出席者</span>
@@ -987,7 +1064,7 @@ const EventDetailPage: React.FC = () => {
                                 .map(participant => (
                                   <div
                                     key={participant.entry_id}
-                                    className="flex items-center bg-green-600/20 rounded-full px-2 py-1 group hover:bg-green-600/30 transition-all duration-300"
+                                    className="flex items-center bg-green-600/20 rounded-full px-2 py-1"
                                   >
                                     <Avatar
                                       sx={{
@@ -1000,7 +1077,7 @@ const EventDetailPage: React.FC = () => {
                                     >
                                       {participant.myoji[0]}
                                     </Avatar>
-                                    <span className="ml-1.5 text-xs text-green-500 group-hover:text-green-400 transition-colors duration-300">
+                                    <span className="ml-1.5 text-xs text-green-500">
                                       {participant.myoji} {participant.namae}
                                     </span>
                                     {participant.status === '11' && (
@@ -1012,8 +1089,9 @@ const EventDetailPage: React.FC = () => {
                                   </div>
                                 ))}
                             </div>
-                          </div>
+                          </motion.div>
 
+                          {/* 欠席者 */}
                           <div className="bg-[#37373F]/50 rounded-xl p-3 border border-[#4A4B50]/30">
                             <h3 className="text-xs font-medium text-gray-300 mb-2 flex items-center gap-2">
                               <CancelIcon className="h-3 w-3 text-red-500" fontSize="small" />
@@ -1028,7 +1106,7 @@ const EventDetailPage: React.FC = () => {
                                 .map(participant => (
                                   <div
                                     key={participant.entry_id}
-                                    className="flex items-center bg-red-600/20 rounded-full px-2 py-1 group hover:bg-red-600/30 transition-all duration-300"
+                                    className="flex items-center bg-red-600/20 rounded-full px-2 py-1"
                                   >
                                     <Avatar
                                       sx={{
@@ -1041,7 +1119,7 @@ const EventDetailPage: React.FC = () => {
                                     >
                                       {participant.myoji[0]}
                                     </Avatar>
-                                    <span className="ml-1.5 text-xs text-red-500 group-hover:text-red-400 transition-colors duration-300">
+                                    <span className="ml-1.5 text-xs text-red-500">
                                       {participant.myoji} {participant.namae}
                                     </span>
                                   </div>
@@ -1049,16 +1127,16 @@ const EventDetailPage: React.FC = () => {
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
 
-        {/* 出席・欠席ボタンを画面下部に固定 */}
+        {/* 出欠席ボタン */}
         {!isEditing && (
           <div className="fixed bottom-[calc(64px+20px)] left-0 right-0 bg-[#1D1D21] border-t border-gray-700/70 z-[999]">
             <div className="max-w-2xl mx-auto p-3">
@@ -1134,6 +1212,8 @@ const EventDetailPage: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* モーダル類 */}
         <EventDetailModal 
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
@@ -1160,7 +1240,6 @@ const EventDetailPage: React.FC = () => {
                     await handleDelete('single');
                     setShowDeleteDialog(false);
                   } catch (error) {
-                    // エラーが発生した場合はダイアログを閉じない
                     console.error('削除エラー:', error);
                   }
                 }}
@@ -1174,7 +1253,6 @@ const EventDetailPage: React.FC = () => {
                     await handleDelete('future');
                     setShowDeleteDialog(false);
                   } catch (error) {
-                    // エラーが発生した場合はダイアログを閉じない
                     console.error('削除エラー:', error);
                   }
                 }}
@@ -1188,7 +1266,6 @@ const EventDetailPage: React.FC = () => {
                     await handleDelete('all');
                     setShowDeleteDialog(false);
                   } catch (error) {
-                    // エラーが発生した場合はダイアログを閉じない
                     console.error('削除エラー:', error);
                   }
                 }}
@@ -1205,13 +1282,13 @@ const EventDetailPage: React.FC = () => {
             </button>
           </div>
         </Dialog>
-        {/* 出席確定完了ダイアログ */}
         <ConfirmationDialog
           open={confirmationDialog.open}
           message={confirmationDialog.message}
           onClose={() => setConfirmationDialog({ open: false, message: '' })}
         />
-        {/* 開発環境の場合のみモック切り替えボタンを表示 */}
+
+        {/* 開発環境用のモック切り替えボタン */}
         {process.env.NODE_ENV === 'development' && (
           <div className="fixed top-4 right-4 z-50 space-y-2">
             <button
@@ -1234,7 +1311,7 @@ const EventDetailPage: React.FC = () => {
             )}
           </div>
         )}
-      </div>
+      </motion.div>
     </Box>
   );
 };
