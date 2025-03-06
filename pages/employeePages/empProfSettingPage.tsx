@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../../utils/supabaseClient";
-import Header from "../../components/Header";
 
 type UserProfile = {
   emp_no: number;
