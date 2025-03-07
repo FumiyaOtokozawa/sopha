@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../utils/supabaseClient';
-import Header from '../components/Header';
 import { Box, Alert, CircularProgress } from '@mui/material';
-import FooterMenu from '../components/FooterMenu';
 
 type FormData = {
   category: string;
