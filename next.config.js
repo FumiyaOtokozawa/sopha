@@ -8,7 +8,7 @@ const withPWA = require('next-pwa')({
 
 const nextConfig = {
   images: {
-    domains: ['localhost', 'xqxlvxbxvxvxvx.supabase.co'],
+    domains: ['localhost', 'nvqbxjibrfvxbknssrsw.supabase.co'],
   },
   // ... 他の設定
   webpack: (config, { isServer }) => {
