@@ -17,6 +17,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import LinkIcon from '@mui/icons-material/Link';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CloseIcon from '@mui/icons-material/Close';
 import CancelIcon from '@mui/icons-material/Cancel';
 import GroupIcon from '@mui/icons-material/Group';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -824,7 +825,7 @@ const EventDetailPage: React.FC = () => {
                     className="space-y-8"
                   >
                     <div className="space-y-4">
-                      <div className="flex items-start gap-4">
+                      <div className="flex items-center gap-4">
                         <div className="flex-1">
                           {/* 編集・削除ボタン */}
                           <AnimatePresence>
@@ -864,7 +865,7 @@ const EventDetailPage: React.FC = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.3, delay: 0.3 }}
-                            className="flex items-start gap-2"
+                            className="flex items-center gap-2"
                           >
                             {event.genre === '1' && (
                               <VerifiedIcon className="h-6 w-7 text-[#8E93DA] flex-shrink-0 mt-1" />
@@ -883,7 +884,7 @@ const EventDetailPage: React.FC = () => {
                           >
                             {/* 日程 */}
                             <div className="flex items-center gap-2">
-                              <div className="p-2 bg-[#37373F] rounded-lg">
+                              <div className="p-2 bg-[#37373F] rounded-lg flex-shrink-0">
                                 <CalendarMonthIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
                               </div>
                               <div>
@@ -912,8 +913,8 @@ const EventDetailPage: React.FC = () => {
                                           {format(startDate, "yyyy年MM月dd日", { locale: ja })}
                                           <span className="ml-1">({format(startDate, "E", { locale: ja })})</span>
                                           {" "}
-                                          {format(startDate, "HH:mm")} → 
-                                          {" "}
+                                          {format(startDate, "HH:mm")}
+                                          <br />{" → "} 
                                           {format(endDate, "yyyy年MM月dd日", { locale: ja })}
                                           <span className="ml-1">({format(endDate, "E", { locale: ja })})</span>
                                           {" "}
@@ -928,7 +929,7 @@ const EventDetailPage: React.FC = () => {
 
                             {/* 開催場所 */}
                             <div className="flex items-center gap-2">
-                              <div className="p-2 bg-[#37373F] rounded-lg">
+                              <div className="p-2 bg-[#37373F] rounded-lg flex-shrink-0">
                                 <LocationOnIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
                               </div>
                               <div>
@@ -955,7 +956,7 @@ const EventDetailPage: React.FC = () => {
 
                             {/* 主催者 */}
                             <div className="flex items-center gap-2">
-                              <div className="p-2 bg-[#37373F] rounded-lg">
+                              <div className="p-2 bg-[#37373F] rounded-lg flex-shrink-0">
                                 <PersonIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
                               </div>
                               <div>
@@ -966,7 +967,7 @@ const EventDetailPage: React.FC = () => {
 
                             {/* 運営メンバー */}
                             {event.manage_member && (
-                              <div className="flex items-start gap-2">
+                              <div className="flex items-center gap-2">
                                 <div className="p-2 bg-[#37373F] rounded-lg flex-shrink-0">
                                   <PeopleIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
                                 </div>
@@ -984,7 +985,7 @@ const EventDetailPage: React.FC = () => {
                             {/* 開催形式 */}
                             {event.format && (
                               <div className="flex items-center gap-2">
-                                <div className="p-2 bg-[#37373F] rounded-lg">
+                                <div className="p-2 bg-[#37373F] rounded-lg flex-shrink-0">
                                   <VideocamIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
                                 </div>
                                 <div>
@@ -1000,7 +1001,7 @@ const EventDetailPage: React.FC = () => {
                             {/* 参加URL */}
                             {event.url && (
                               <div className="flex items-center gap-2">
-                                <div className="p-2 bg-[#37373F] rounded-lg">
+                                <div className="p-2 bg-[#37373F] rounded-lg flex-shrink-0">
                                   <LinkIcon className="h-4 w-4 text-[#8E93DA]" fontSize="small" />
                                 </div>
                                 <div>
@@ -1029,7 +1030,7 @@ const EventDetailPage: React.FC = () => {
                           className="mt-4 pt-4 border-t border-gray-700/70"
                         >
                           <div className="bg-[#37373F] rounded-xl p-4">
-                            <p className="text-gray-300 whitespace-pre-wrap leading-relaxed">
+                            <p className="text-gray-300 text-xs leading-relaxed whitespace-pre-wrap">
                               {event.description}
                             </p>
                           </div>
@@ -1055,37 +1056,50 @@ const EventDetailPage: React.FC = () => {
                               <GroupIcon className="h-3 w-3 text-green-500" fontSize="small" />
                               <span className="text-green-400">出席者</span>
                               <span className="bg-green-500/20 text-green-400 text-xs px-1.5 py-0.5 rounded-full">
-                                {participants.filter(p => p.status === '1' || p.status === '11').length}
+                                {participants.filter(p => p.status === '11').length}／{participants.filter(p => p.status === '1' || p.status === '11').length}
                               </span>
                             </h3>
                             <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
                               {participants
                                 .filter(p => p.status === '1' || p.status === '11')
+                                .sort((a, b) => {
+                                  // 本確定者（status === '11'）を優先的に上に表示
+                                  if (a.status === '11' && b.status !== '11') return -1;
+                                  if (a.status !== '11' && b.status === '11') return 1;
+                                  // 同じステータスの場合は社員番号順
+                                  return a.emp_no - b.emp_no;
+                                })
                                 .map(participant => (
                                   <div
                                     key={participant.entry_id}
-                                    className="flex items-center bg-green-600/20 rounded-full px-2 py-1"
+                                    className={`flex items-center rounded-full pl-1.5 pr-2 py-1 ${
+                                      participant.status === '11' 
+                                        ? 'bg-transparent border border-green-500/50' 
+                                        : 'bg-green-600/20 border border-green-500/50'
+                                    }`}
                                   >
                                     <Avatar
                                       sx={{
                                         width: 20,
                                         height: 20,
                                         fontSize: '0.65rem',
-                                        bgcolor: 'rgba(34, 197, 94, 0.3)',
-                                        color: '#22c55e',
+                                        bgcolor: participant.status === '11' 
+                                          ? 'rgba(34, 197, 94, 0.3)'
+                                          : 'rgba(34, 197, 94, 0.3)',
+                                        color: participant.status === '11' 
+                                          ? '#22c55e'
+                                          : '#22c55e',
                                       }}
                                     >
                                       {participant.myoji[0]}
                                     </Avatar>
-                                    <span className="ml-1.5 text-xs text-green-500">
+                                    <span className={`ml-1.5 text-xs ${
+                                      participant.status === '11' 
+                                        ? 'text-white' 
+                                        : 'text-green-500'
+                                    }`}>
                                       {participant.myoji} {participant.namae}
                                     </span>
-                                    {participant.status === '11' && (
-                                      <CheckCircleIcon 
-                                        className="h-4 w-4 ml-1 text-blue-500"
-                                        fontSize="small"
-                                      />
-                                    )}
                                   </div>
                                 ))}
                             </div>
@@ -1106,7 +1120,7 @@ const EventDetailPage: React.FC = () => {
                                 .map(participant => (
                                   <div
                                     key={participant.entry_id}
-                                    className="flex items-center bg-red-600/20 rounded-full px-2 py-1"
+                                    className="flex items-center bg-red-600/20 border border-red-500/50 rounded-full pl-1.5 pr-2 py-1"
                                   >
                                     <Avatar
                                       sx={{
@@ -1208,14 +1222,14 @@ const EventDetailPage: React.FC = () => {
                     className="h-12 px-8 rounded-xl bg-gradient-to-r from-green-600 to-green-500 text-white font-bold hover:opacity-90 transition-opacity duration-300 flex-1 flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
                   >
                     <CheckIcon className="h-5 w-5" />
-                    出席
+                    仮出席
                   </button>
                   <button
                     onClick={() => handleEventEntry('2')}
                     className="h-12 px-8 rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white font-bold hover:opacity-90 transition-opacity duration-300 flex-1 flex items-center justify-center gap-2 shadow-lg shadow-red-600/20"
                   >
-                    <CancelIcon className="h-5 w-5" />
-                    欠席
+                    <CloseIcon className="h-5 w-5" />
+                    仮欠席
                   </button>
                 </div>
               )}
