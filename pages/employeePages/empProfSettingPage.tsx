@@ -115,15 +115,15 @@ const EmpProfSettingPage = () => {
     <div>
       <div className="p-4">
         <div className="w-full max-w-xl mx-auto">
-          <h1 className="text-2xl font-bold mb-6 text-[#FCFCFC]">プロフィール設定</h1>
+          <h1 className="text-2xl font-bold mb-2 text-[#FCFCFC]">プロフィール設定</h1>
 
           <div className="bg-[#2f3033] rounded-lg shadow-md p-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-2">
               {/* 漢字名 */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[#FCFCFC] mb-1">
-                    姓（漢字）
+                    名字
                   </label>
                   <input
                     type="text"
@@ -135,7 +135,7 @@ const EmpProfSettingPage = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[#FCFCFC] mb-1">
-                    名（漢字）
+                    名前
                   </label>
                   <input
                     type="text"
@@ -151,7 +151,7 @@ const EmpProfSettingPage = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[#FCFCFC] mb-1">
-                    姓（ローマ字）
+                    Last Name
                   </label>
                   <input
                     type="text"
@@ -163,7 +163,7 @@ const EmpProfSettingPage = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[#FCFCFC] mb-1">
-                    名（ローマ字）
+                    First Name
                   </label>
                   <input
                     type="text"
@@ -231,7 +231,7 @@ const EmpProfSettingPage = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="px-4 py-2 rounded bg-[#8E93DA] text-black font-bold hover:bg-opacity-80"
+                  className="px-4 py-2 rounded bg-[#5b63d3] text-white font-bold hover:bg-opacity-80"
                 >
                   {isLoading ? "更新中..." : "更新"}
                 </button>

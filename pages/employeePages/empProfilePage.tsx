@@ -144,7 +144,7 @@ const EmpProfilePage = () => {
                   <button
                     onClick={handleSave}
                     disabled={isSaving}
-                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#8E93DA] text-white hover:bg-[#7A7FD0] transition-all duration-200 shadow-md"
+                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#5b63d3] text-white hover:bg-[#7A7FD0] transition-all duration-200 shadow-md"
                     aria-label="保存"
                   >
                     <SaveIcon fontSize="small" />
@@ -195,7 +195,7 @@ const EmpProfilePage = () => {
                     <div className="space-y-2">
                       <div className="grid grid-cols-2 gap-2">
                         <TextField
-                          label="姓（漢字）"
+                          label="名字"
                           value={editedProfile?.myoji || ''}
                           onChange={(e) => setEditedProfile(prev => prev ? {...prev, myoji: e.target.value} : null)}
                           variant="outlined"
@@ -222,7 +222,7 @@ const EmpProfilePage = () => {
                           }}
                         />
                         <TextField
-                          label="名（漢字）"
+                          label="名前"
                           value={editedProfile?.namae || ''}
                           onChange={(e) => setEditedProfile(prev => prev ? {...prev, namae: e.target.value} : null)}
                           variant="outlined"
@@ -251,7 +251,7 @@ const EmpProfilePage = () => {
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <TextField
-                          label="姓（ローマ字）"
+                          label="LastName"
                           value={editedProfile?.last_nm || ''}
                           onChange={(e) => setEditedProfile(prev => prev ? {...prev, last_nm: e.target.value} : null)}
                           variant="outlined"
@@ -278,7 +278,7 @@ const EmpProfilePage = () => {
                           }}
                         />
                         <TextField
-                          label="名（ローマ字）"
+                          label="FirstName"
                           value={editedProfile?.first_nm || ''}
                           onChange={(e) => setEditedProfile(prev => prev ? {...prev, first_nm: e.target.value} : null)}
                           variant="outlined"

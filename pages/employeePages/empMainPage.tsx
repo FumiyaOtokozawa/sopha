@@ -511,15 +511,15 @@ const EmpMainPage = () => {
             transition={{ duration: 0.2 }}
             className="bg-[#2D2D2D] p-6"
           >
-            <h2 className="text-xl font-bold mb-4 text-[#FCFCFC]">プロフィール設定</h2>
-            <p className="text-[#FCFCFC] mb-4">
+            <h2 className="text-xl font-bold mb-2 text-[#FCFCFC]">プロフィール設定</h2>
+            <p className="text-sm text-[#FCFCFC] mb-3">
               初回ログインありがとうございます。<br />
               プロフィール情報を設定してください。
             </p>
-            <div className="flex justify-end">
+            <div>
               <button
                 onClick={() => router.push('/employeePages/empProfSettingPage')}
-                className="bg-[#8E93DA] text-black px-4 py-2 rounded-md font-bold"
+                className="w-full bg-[#5b63d3] text-white px-4 py-2 rounded-md font-bold"
               >
                 設定する
               </button>
