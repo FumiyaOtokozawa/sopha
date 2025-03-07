@@ -5,7 +5,6 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '../styles/calendar.css';
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import PWAInstallPrompt from "../components/PWAInstallPrompt";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/router";
 import Header from "../components/Header";
@@ -77,7 +76,6 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <>
-      <PWAInstallPrompt />
       <div className="min-h-screen flex flex-col">
         {isAuthenticated && !isPublicPage && <Header />}
         {isPublicPage ? (

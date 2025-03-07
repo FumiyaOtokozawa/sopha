@@ -92,7 +92,6 @@ export default function ContactBugReportPage() {
 
   return (
     <Box sx={{ pb: 7 }}>
-      <Header />
       <div className="p-4">
         <h1 className="text-xl font-bold mb-4 text-[#FCFCFC]">お問い合わせ / 不具合報告</h1>
         
@@ -196,7 +195,6 @@ export default function ContactBugReportPage() {
           </div>
         </form>
       </div>
-      <FooterMenu />
     </Box>
   );
 } 
