@@ -7,6 +7,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* スクロールバー非表示設定 */
+* {
+  /* Chrome, Safari, Edge向け */
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Firefox向け */
+  scrollbar-width: none;
+  
+  /* IE向け */
+  -ms-overflow-style: none;
+}
+
 :root {
   --sat: env(safe-area-inset-top);
   --sar: env(safe-area-inset-right);
