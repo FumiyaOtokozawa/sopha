@@ -77,8 +77,10 @@ export default function FooterMenu() {
               color: '#8E93DA',
               minWidth: '25%',
               padding: '8px 0',
+              transition: 'none', // 遷移アニメーションを無効化
               '& .MuiBottomNavigationAction-label': {
                 fontSize: '0.625rem',
+                transition: 'none', // ラベルの遷移も無効化
                 '&.Mui-selected': {
                   fontSize: '0.75rem',
                   color: '#FCFCFC'
@@ -86,6 +88,8 @@ export default function FooterMenu() {
               },
               '& .MuiSvgIcon-root': {
                 fontSize: '2rem',
+                transition: 'none', // アイコンの遷移も無効化
+                color: '#8E93DA', // 非選択時の色を明示的に設定
                 '&.Mui-selected': {
                   color: '#FCFCFC'
                 }
@@ -93,10 +97,12 @@ export default function FooterMenu() {
             },
             '& .Mui-selected': {
               '& .MuiSvgIcon-root': {
-                color: '#FCFCFC'
+                color: '#FCFCFC',
+                transition: 'none' // 選択時の遷移も無効化
               },
               '& .MuiBottomNavigationAction-label': {
-                color: '#FCFCFC'
+                color: '#FCFCFC',
+                transition: 'none' // 選択時のラベル遷移も無効化
               }
             }
           }}

@@ -1138,7 +1138,17 @@ const EventDetailPage: React.FC = () => {
 
         {/* 出欠席ボタン */}
         {!isEditing && (
-          <div className="fixed bottom-[calc(64px+20px)] left-0 right-0 bg-[#1D1D21] border-t border-gray-700/70 z-[999]">
+          <motion.div 
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            transition={{ 
+              type: "spring",
+              stiffness: 300,
+              damping: 100,
+              delay: 0.4
+            }}
+            className="fixed bottom-[calc(64px+19px)] left-0 right-0 bg-[#1D1D21] border-t border-gray-700/70 z-[999]"
+          >
             <div className="max-w-2xl mx-auto p-3">
               {entryStatus ? (
                 <>
@@ -1210,7 +1220,7 @@ const EventDetailPage: React.FC = () => {
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* モーダル類 */}

@@ -153,7 +153,7 @@ const EmpProfilePage = () => {
               ) : (
                 <button
                   onClick={handleEdit}
-                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#8E93DA] text-white hover:bg-[#7A7FD0] transition-all duration-200 shadow-md"
+                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#5b63d3] text-white hover:bg-[#7A7FD0] transition-all duration-200 shadow-md"
                   aria-label="編集"
                 >
                   <EditIcon fontSize="small" />

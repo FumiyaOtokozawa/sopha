@@ -75,7 +75,7 @@ const EmpProfSettingPage = () => {
     try {
       // 入力値の検証
       if (!profile.myoji || !profile.namae || !profile.last_nm || !profile.first_nm || !profile.gender) {
-        throw new Error("すべての項目を入力してください");
+        throw new Error("氏名の項目を入力してください");
       }
 
       // プロフィールの更新
