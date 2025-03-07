@@ -53,6 +53,7 @@ interface EventParticipant {
   myoji: string;
   namae: string;
   status: '1' | '2' | '11';
+  icon_url: string | null;
 }
 
 interface SupabaseEntry {
@@ -62,6 +63,7 @@ interface SupabaseEntry {
   USER_INFO: {
     myoji: string;
     namae: string;
+    icon_url: string | null;
   };
 }
 
@@ -355,7 +357,7 @@ const EventDetailPage: React.FC = () => {
                 entry_id,
                 emp_no,
                 status,
-                USER_INFO!inner(myoji, namae)
+                USER_INFO!inner(myoji, namae, icon_url)
               `)
               .eq('event_id', router.query.event_id)
               .order('entry_id', { ascending: true });
@@ -367,7 +369,8 @@ const EventDetailPage: React.FC = () => {
               emp_no: entry.emp_no,
               myoji: entry.USER_INFO.myoji,
               namae: entry.USER_INFO.namae,
-              status: entry.status
+              status: entry.status,
+              icon_url: entry.USER_INFO.icon_url
             })) || [];
 
             setParticipants(formattedParticipants);
@@ -470,7 +473,8 @@ const EventDetailPage: React.FC = () => {
             emp_no: currentUserEmpNo,
             myoji: userData.myoji,
             namae: userData.namae,
-            status: status
+            status: status,
+            icon_url: null
           });
         }
       }
@@ -507,7 +511,7 @@ const EventDetailPage: React.FC = () => {
           entry_id,
           emp_no,
           status,
-          USER_INFO!inner(myoji, namae)
+          USER_INFO!inner(myoji, namae, icon_url)
         `)
         .eq('event_id', event.event_id)
         .order('entry_id', { ascending: true })
@@ -518,7 +522,8 @@ const EventDetailPage: React.FC = () => {
               emp_no: entry.emp_no,
               myoji: entry.USER_INFO.myoji,
               namae: entry.USER_INFO.namae,
-              status: entry.status
+              status: entry.status,
+              icon_url: entry.USER_INFO.icon_url
             })) || [];
             
             setParticipants(formattedParticipants);
@@ -629,7 +634,7 @@ const EventDetailPage: React.FC = () => {
           entry_id,
           emp_no,
           status,
-          USER_INFO!inner(myoji, namae)
+          USER_INFO!inner(myoji, namae, icon_url)
         `)
         .eq('event_id', router.query.event_id)
         .order('entry_id', { ascending: true });
@@ -648,7 +653,8 @@ const EventDetailPage: React.FC = () => {
         emp_no: entry.emp_no,
         myoji: entry.USER_INFO.myoji,
         namae: entry.USER_INFO.namae,
-        status: entry.status
+        status: entry.status,
+        icon_url: entry.USER_INFO.icon_url
       })) || [];
 
       setParticipants(formattedParticipants);
@@ -1063,10 +1069,8 @@ const EventDetailPage: React.FC = () => {
                               {participants
                                 .filter(p => p.status === '1' || p.status === '11')
                                 .sort((a, b) => {
-                                  // 本確定者（status === '11'）を優先的に上に表示
                                   if (a.status === '11' && b.status !== '11') return -1;
                                   if (a.status !== '11' && b.status === '11') return 1;
-                                  // 同じステータスの場合は社員番号順
                                   return a.emp_no - b.emp_no;
                                 })
                                 .map(participant => (
@@ -1079,6 +1083,7 @@ const EventDetailPage: React.FC = () => {
                                     }`}
                                   >
                                     <Avatar
+                                      src={participant.icon_url || undefined}
                                       sx={{
                                         width: 20,
                                         height: 20,
@@ -1123,6 +1128,7 @@ const EventDetailPage: React.FC = () => {
                                     className="flex items-center bg-red-600/20 border border-red-500/50 rounded-full pl-1.5 pr-2 py-1"
                                   >
                                     <Avatar
+                                      src={participant.icon_url || undefined}
                                       sx={{
                                         width: 20,
                                         height: 20,

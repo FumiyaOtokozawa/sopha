@@ -9,6 +9,7 @@ import HomeIcon from "@mui/icons-material/Home";
 import CloseIcon from "@mui/icons-material/Close";
 import { Menu, MenuItem, IconButton } from "@mui/material";
 import { useRouter } from "next/router";
+import Image from "next/image";
 
 // iOS Safariのnavigator型を拡張
 interface NavigatorWithStandalone extends Navigator {
@@ -20,6 +21,7 @@ type UserInfo = {
   myoji: string;
   namae: string;
   role?: string;
+  icon_url: string | null;
 };
 
 export default function Header() {
@@ -28,6 +30,28 @@ export default function Header() {
   const [showPWAPrompt, setShowPWAPrompt] = useState(false);
   const open = Boolean(anchorEl);
   const router = useRouter();
+
+  // プロフィール更新イベントのリスナーを追加
+  useEffect(() => {
+    const handleProfileUpdate = (event: CustomEvent<{ myoji: string; namae: string; icon_url: string | null }>) => {
+      if (userInfo) {
+        setUserInfo({
+          ...userInfo,
+          myoji: event.detail.myoji,
+          namae: event.detail.namae,
+          icon_url: event.detail.icon_url
+        });
+      }
+    };
+
+    // イベントリスナーを追加
+    window.addEventListener('userProfileUpdate', handleProfileUpdate as EventListener);
+
+    // クリーンアップ関数
+    return () => {
+      window.removeEventListener('userProfileUpdate', handleProfileUpdate as EventListener);
+    };
+  }, [userInfo]); // userInfoが変更されたときにリスナーを再設定
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -74,6 +98,7 @@ export default function Header() {
           emp_no,
           myoji,
           namae,
+          icon_url,
           USER_ROLE!left(role)
         `)
         .eq("email", user.email)
@@ -88,6 +113,7 @@ export default function Header() {
         emp_no: data.emp_no,
         myoji: data.myoji,
         namae: data.namae,
+        icon_url: data.icon_url,
         role: data.USER_ROLE?.[0]?.role || "0" // デフォルトは"0"（Employee）
       });
     };
@@ -112,9 +138,21 @@ export default function Header() {
         <div className="flex items-center justify-between px-6 py-4">
           {/* 左側：ユーザー情報 */}
           <div className="flex items-center">
-            <div className={`w-10 h-10 rounded-full mr-3 ${
-              userInfo?.role === "1" ? 'bg-[#eaad99]' : 'bg-[#8E93DA]'
-            }`}></div>
+            <div className="w-10 h-10 rounded-full mr-3 overflow-hidden bg-[#8E93DA]">
+              {userInfo?.icon_url ? (
+                <Image
+                  src={userInfo.icon_url}
+                  alt={`${userInfo.myoji} ${userInfo.namae}のアイコン`}
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-white text-base font-medium">
+                  {userInfo ? `${userInfo.myoji.charAt(0)}${userInfo.namae.charAt(0)}` : ""}
+                </div>
+              )}
+            </div>
             <div>
               <p className="font-bold">
                 {userInfo ? `${userInfo.myoji} ${userInfo.namae}` : "Loading..."}
