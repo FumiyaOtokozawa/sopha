@@ -12,9 +12,63 @@ import CloseIcon from '@mui/icons-material/Close';
 import CakeIcon from '@mui/icons-material/Cake';
 import AddAPhotoIcon from '@mui/icons-material/AddAPhoto';
 import DeleteIcon from '@mui/icons-material/Delete';
-import ReactCrop, { Crop } from 'react-image-crop';
-import 'react-image-crop/dist/ReactCrop.css';
+import { Cropper, CropperRef } from 'react-advanced-cropper';
+import 'react-advanced-cropper/dist/style.css';
 import imageCompression from 'browser-image-compression';
+
+// カスタムスタイルを追加
+const cropperStyle = `
+  .advanced-cropper-wrapper {
+    background-color: #23232A !important;
+  }
+  .advanced-cropper-boundary {
+    border: 2px solid #5b63d3 !important;
+  }
+  .advanced-cropper-stencil {
+    border: 2px solid #5b63d3 !important;
+    cursor: move !important;
+  }
+  .advanced-cropper-handles-wrapper {
+    border: none !important;
+  }
+  .advanced-cropper-handle {
+    background-color: #5b63d3 !important;
+    border: 3px solid #FCFCFC !important;
+    width: 32px !important;
+    height: 32px !important;
+    opacity: 1 !important;
+    cursor: pointer !important;
+    transform: translate(-50%, -50%) !important;
+    transition: all 0.2s ease !important;
+    border-radius: 8px !important;
+  }
+  .advanced-cropper-handle:hover {
+    background-color: #7A7FD0 !important;
+    transform: translate(-50%, -50%) scale(1.1) !important;
+    box-shadow: 0 0 8px rgba(91, 99, 211, 0.5) !important;
+  }
+  .advanced-cropper-handle-west,
+  .advanced-cropper-handle-east,
+  .advanced-cropper-handle-south,
+  .advanced-cropper-handle-north {
+    display: none !important;
+  }
+  .advanced-cropper-handle-west-north,
+  .advanced-cropper-handle-east-north,
+  .advanced-cropper-handle-west-south,
+  .advanced-cropper-handle-east-south {
+    background-color: #5b63d3 !important;
+    border: 3px solid #FCFCFC !important;
+    width: 40px !important;
+    height: 40px !important;
+  }
+  .advanced-cropper-lines {
+    border: none !important;
+  }
+  .advanced-cropper-rotate-wrapper {
+    display: none !important;
+  }
+`;
 
 interface UserProfile {
   emp_no: string;
@@ -86,15 +140,9 @@ const EmpProfilePage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [cropImage, setCropImage] = useState<string | null>(null);
-  const [crop, setCrop] = useState<Crop>({
-    unit: '%',
-    width: 90,
-    height: 90,
-    x: 5,
-    y: 5,
-  });
-  const [imageRef, setImageRef] = useState<HTMLImageElement | null>(null);
   const [isCropping, setIsCropping] = useState(false);
+  const [cropperKey, setCropperKey] = useState(0);
+  const cropperRef = useRef<CropperRef>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -255,55 +303,52 @@ const EmpProfilePage = () => {
         throw new Error("画像ファイルのみアップロード可能です");
       }
 
+      // 既存のURLをクリーンアップ
+      if (cropImage) {
+        URL.revokeObjectURL(cropImage);
+      }
+
       // 画像をURLに変換
       const imageUrl = URL.createObjectURL(file);
       setCropImage(imageUrl);
+      
+      // クロッパーをリセット
+      setCropperKey(prev => prev + 1);
       setShowCropDialog(true);
+
+      // input要素をリセット
+      if (event.target) {
+        event.target.value = '';
+      }
 
     } catch (error) {
       console.error("画像アップロードエラー:", error);
       setError(error instanceof Error ? error.message : "画像のアップロードに失敗しました");
+    } finally {
       setIsUploading(false);
     }
   };
 
   const handleCropComplete = async () => {
-    if (!imageRef || !cropImage || !editedProfile) return;
+    if (!cropperRef.current || !editedProfile) return;
 
     try {
       setIsCropping(true);
-      const canvas = document.createElement('canvas');
-      const scaleX = imageRef.naturalWidth / imageRef.width;
-      const scaleY = imageRef.naturalHeight / imageRef.height;
-      canvas.width = crop.width * scaleX;
-      canvas.height = crop.height * scaleY;
-      const ctx = canvas.getContext('2d');
+      setError("");
 
-      if (!ctx) {
-        throw new Error('Canvas context not available');
+      // クロップされた画像をcanvasとして取得
+      const canvas = cropperRef.current.getCanvas();
+      if (!canvas) {
+        throw new Error('トリミング領域が設定されていません');
       }
 
-      ctx.drawImage(
-        imageRef,
-        crop.x * scaleX,
-        crop.y * scaleY,
-        crop.width * scaleX,
-        crop.height * scaleY,
-        0,
-        0,
-        crop.width * scaleX,
-        crop.height * scaleY
-      );
-
-      // トリミングした画像をBlobに変換
-      const blob = await new Promise<Blob>((resolve) => {
-        canvas.toBlob((blob) => {
+      // canvasをBlobに変換
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((blob: Blob | null) => {
           if (blob) resolve(blob);
-        }, 'image/jpeg', 0.8);
+          else reject(new Error('画像の生成に失敗しました'));
+        }, 'image/jpeg', 0.95);
       });
-
-      // BlobをFileオブジェクトに変換
-      const file = new File([blob], 'profile-image.jpg', { type: 'image/jpeg' });
 
       // 画像を圧縮
       const options = {
@@ -311,7 +356,7 @@ const EmpProfilePage = () => {
         maxWidthOrHeight: 400,
         useWebWorker: true
       };
-      const compressedFile = await imageCompression(file, options);
+      const compressedFile = await imageCompression(new File([blob], 'profile.jpg', { type: 'image/jpeg' }), options);
 
       // プレビュー用のURLを生成
       const previewUrl = URL.createObjectURL(compressedFile);
@@ -324,15 +369,10 @@ const EmpProfilePage = () => {
 
       // クリーンアップ
       setShowCropDialog(false);
-      setCropImage(null);
-      URL.revokeObjectURL(cropImage);
-      setCrop({
-        unit: '%',
-        width: 90,
-        height: 90,
-        x: 5,
-        y: 5,
-      });
+      if (cropImage) {
+        URL.revokeObjectURL(cropImage);
+        setCropImage(null);
+      }
 
     } catch (error) {
       console.error("画像処理エラー:", error);
@@ -342,6 +382,23 @@ const EmpProfilePage = () => {
       setIsUploading(false);
     }
   };
+
+  // クロッパーのクリーンアップ
+  const cleanupCropper = () => {
+    if (cropImage) {
+      URL.revokeObjectURL(cropImage);
+      setCropImage(null);
+    }
+    setShowCropDialog(false);
+  };
+
+  // ダイアログが開かれたときにクロッパーを初期化
+  useEffect(() => {
+    if (!showCropDialog && cropImage) {
+      URL.revokeObjectURL(cropImage);
+      setCropImage(null);
+    }
+  }, [showCropDialog]);
 
   const handleImageDelete = async () => {
     if (!editedProfile?.icon_url) return;
@@ -377,6 +434,7 @@ const EmpProfilePage = () => {
 
   return (
     <Box>
+      <style jsx global>{cropperStyle}</style>
       <div className="bg-gradient-to-b from-[#1D1D21] to-[#2D2D33]">
         <div className="p-4">
           <div className="max-w-md mx-auto">
@@ -421,9 +479,9 @@ const EmpProfilePage = () => {
 
             <div className="bg-[#2D2D33] rounded-xl overflow-hidden shadow-lg border border-[#3D3D43]">
               {/* プロフィールヘッダー */}
-              <div className="p-4 flex items-center gap-3 border-b border-[#3D3D43]">
-                {/* プロフィール画像 */}
-                <div className="relative">
+              <div className="p-4 flex items-start gap-3 border-b border-[#3D3D43]">
+                {/* プロフィール画像エリア */}
+                <div className="flex flex-col items-center gap-3 pt-1">
                   <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1D1D21] to-[#2D2D33] overflow-hidden border-2 border-[#8E93DA] flex-shrink-0">
                     {editedProfile?.icon_url ? (
                       <Image
@@ -442,7 +500,7 @@ const EmpProfilePage = () => {
                     )}
                   </div>
                   {isEditing && (
-                    <div className="absolute -bottom-1 -right-1 flex gap-1">
+                    <div className="flex gap-1">
                       <input
                         type="file"
                         ref={fileInputRef}
@@ -453,10 +511,16 @@ const EmpProfilePage = () => {
                       <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isUploading}
-                        className="w-8 h-8 flex items-center justify-center rounded-full bg-[#5b63d3] text-white hover:bg-[#7A7FD0] transition-all duration-200 shadow-md"
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-[#5b63d3] text-white hover:bg-[#7A7FD0] transition-all duration-200 shadow-md relative"
                         aria-label="画像をアップロード"
                       >
-                        <AddAPhotoIcon fontSize="small" />
+                        <AddAPhotoIcon 
+                          fontSize="small" 
+                          className="absolute"
+                          sx={{
+                            transform: 'translate(-1px, -1px)'
+                          }}
+                        />
                       </button>
                       {editedProfile?.icon_url && (
                         <button
@@ -688,21 +752,7 @@ const EmpProfilePage = () => {
       {/* トリミングダイアログ */}
       <Dialog
         open={showCropDialog}
-        onClose={() => {
-          setShowCropDialog(false);
-          if (cropImage) {
-            URL.revokeObjectURL(cropImage);
-            setCropImage(null);
-          }
-          setCrop({
-            unit: '%',
-            width: 90,
-            height: 90,
-            x: 5,
-            y: 5,
-          });
-          setImageRef(null);
-        }}
+        onClose={cleanupCropper}
         maxWidth="sm"
         fullWidth
         PaperProps={{
@@ -713,55 +763,58 @@ const EmpProfilePage = () => {
             position: 'relative',
             display: 'flex',
             flexDirection: 'column',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            backgroundColor: '#2D2D33',
           }
         }}
       >
         <DialogContent 
-          className="bg-[#2D2D33] p-0 flex flex-col"
           sx={{
             flex: 1,
             overflow: 'hidden',
             position: 'relative',
-            padding: '0 !important'
+            padding: '0 !important',
+            backgroundColor: '#2D2D33',
           }}
         >
           {cropImage && (
-            <div className="flex-1 overflow-auto h-full flex items-center justify-center" style={{ WebkitOverflowScrolling: 'touch' }}>
-              <ReactCrop
-                crop={crop}
-                onChange={(c) => setCrop(c)}
-                aspect={1}
-                circularCrop
-              >
-                <img
-                  src={cropImage}
-                  alt="トリミング対象"
-                  onLoad={(e) => {
-                    const img = e.currentTarget;
-                    setImageRef(img);
-                    const size = Math.min(img.width, img.height);
-                    setCrop({
-                      unit: 'px',
-                      width: size,
-                      height: size,
-                      x: (img.width - size) / 2,
-                      y: (img.height - size) / 2,
-                    });
-                  }}
-                  className="max-w-full max-h-full"
-                  style={{
-                    maxHeight: 'calc(100dvh - 200px)',
-                    objectFit: 'contain',
-                    display: 'block'
-                  }}
-                />
-              </ReactCrop>
+            <div className="flex-1 overflow-hidden h-full flex items-center justify-center bg-[#23232A]">
+              <Cropper
+                key={cropperKey}
+                src={cropImage}
+                className="w-full h-full"
+                stencilProps={{
+                  aspectRatio: 1,
+                  grid: true,
+                  handlers: {
+                    eastNorth: true,
+                    north: false,
+                    westNorth: true,
+                    west: false,
+                    westSouth: true,
+                    south: false,
+                    eastSouth: true,
+                    east: false,
+                  },
+                  movable: true,
+                  resizable: true,
+                  lines: {
+                    cols: 2,
+                    rows: 2
+                  }
+                }}
+                defaultSize={{
+                  width: 250,
+                  height: 250
+                }}
+                minWidth={250}
+                minHeight={250}
+                ref={cropperRef}
+              />
             </div>
           )}
         </DialogContent>
         <DialogActions 
-          className="bg-[#2D2D33] gap-2"
           sx={{
             position: 'sticky',
             bottom: 0,
@@ -773,21 +826,7 @@ const EmpProfilePage = () => {
           }}
         >
           <Button
-            onClick={() => {
-              setShowCropDialog(false);
-              if (cropImage) {
-                URL.revokeObjectURL(cropImage);
-                setCropImage(null);
-              }
-              setCrop({
-                unit: '%',
-                width: 90,
-                height: 90,
-                x: 5,
-                y: 5,
-              });
-              setImageRef(null);
-            }}
+            onClick={cleanupCropper}
             className="flex-1"
             variant="contained"
             sx={{
