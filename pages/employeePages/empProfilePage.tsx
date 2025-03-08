@@ -3,6 +3,9 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../utils/supabaseClient';
 import Image from 'next/image';
 import { Box, CircularProgress, TextField, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, Dialog, DialogContent, DialogActions, Button } from '@mui/material';
+import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { ja } from 'date-fns/locale';
 import BadgeIcon from '@mui/icons-material/Badge';
 import EmailIcon from '@mui/icons-material/Email';
 import EditIcon from '@mui/icons-material/Edit';
@@ -130,6 +133,7 @@ const cleanupUnusedImages = async () => {
 
 const EmpProfilePage = () => {
   const router = useRouter();
+  const { emp_no: targetEmpNo } = router.query; // URLからemp_noを取得
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -137,6 +141,7 @@ const EmpProfilePage = () => {
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isCurrentUser, setIsCurrentUser] = useState(false); // 表示中のプロフィールが自分のものかどうか
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showCropDialog, setShowCropDialog] = useState(false);
   const [cropImage, setCropImage] = useState<string | null>(null);
@@ -147,30 +152,49 @@ const EmpProfilePage = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        // ログインユーザーの情報を取得
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           router.push('/');
           return;
         }
 
-        const { data, error } = await supabase
+        // ログインユーザーの社員番号を取得
+        const { data: currentUserData } = await supabase
           .from('USER_INFO')
-          .select('*')
+          .select('emp_no')
           .eq('email', user.email)
           .single();
 
+        // URLパラメータのemp_noが指定されていない場合は、ログインユーザーのプロフィールを表示
+        const profileEmpNo = targetEmpNo || currentUserData?.emp_no;
+
+        // プロフィール情報を取得
+        const { data: profileData, error } = await supabase
+          .from('USER_INFO')
+          .select('*')
+          .eq('emp_no', profileEmpNo)
+          .single();
+
         if (error) throw error;
-        setProfile(data);
-        setEditedProfile(data);
+
+        setProfile(profileData);
+        setEditedProfile(profileData);
+        // 表示中のプロフィールが自分のものかどうかを設定
+        setIsCurrentUser(currentUserData?.emp_no === profileData.emp_no);
+
       } catch (error) {
         console.error('Error fetching profile:', error);
+        setError('プロフィールの取得に失敗しました');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProfile();
-  }, [router]);
+    if (router.isReady) {
+      fetchProfile();
+    }
+  }, [router.isReady, router, targetEmpNo]);
 
   const handleEdit = () => {
     if (isEditing) {
@@ -438,37 +462,7 @@ const EmpProfilePage = () => {
       <div className="bg-gradient-to-b from-[#1D1D21] to-[#2D2D33]">
         <div className="p-4">
           <div className="max-w-md mx-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h1 className="text-xl font-bold text-[#FCFCFC] tracking-wide">
-                {isEditing ? 'プロフィール編集' : 'プロフィール'}
-              </h1>
-              {isEditing ? (
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleCancel}
-                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#4A4B50] text-white hover:bg-[#3A3B40] transition-all duration-200 shadow-md"
-                    aria-label="キャンセル"
-                  >
-                    <CloseIcon fontSize="small" />
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={isSaving}
-                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#5b63d3] text-white hover:bg-[#7A7FD0] transition-all duration-200 shadow-md"
-                    aria-label="保存"
-                  >
-                    <SaveIcon fontSize="small" />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={handleEdit}
-                  className="w-10 h-10 flex items-center justify-center rounded-full bg-[#5b63d3] text-white hover:bg-[#7A7FD0] transition-all duration-200 shadow-md"
-                  aria-label="編集"
-                >
-                  <EditIcon fontSize="small" />
-                </button>
-              )}
+            <div className="flex justify-between items-center">
             </div>
 
             {error && (
@@ -477,7 +471,43 @@ const EmpProfilePage = () => {
               </div>
             )}
 
-            <div className="bg-[#2D2D33] rounded-xl overflow-hidden shadow-lg border border-[#3D3D43]">
+            <div className="bg-[#2D2D33] rounded-xl overflow-hidden shadow-lg border border-[#3D3D43] relative">
+              {/* 編集ボタンは自分のプロフィールの場合のみ表示 */}
+              {!isEditing && isCurrentUser && (
+                <div className="absolute top-4 right-4 z-10">
+                  <button
+                    onClick={handleEdit}
+                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[#5b63d3] text-white transition-all duration-200 active:bg-[#7A7FD0] md:hover:bg-[#7A7FD0] shadow-md"
+                    aria-label="編集"
+                  >
+                    <EditIcon fontSize="small" />
+                  </button>
+                </div>
+              )}
+
+              {/* 編集モード時のボタンも自分のプロフィールの場合のみ表示 */}
+              {isEditing && isCurrentUser && (
+                <div className="flex w-full border-b border-[#3D3D43]">
+                  <button
+                    onClick={handleCancel}
+                    className="flex-1 py-3 px-4 flex items-center justify-center gap-2 bg-[#23232A] text-[#FCFCFC] transition-all duration-200 active:bg-[#3A3B40] md:hover:bg-[#3A3B40]"
+                    aria-label="キャンセル"
+                  >
+                    <CloseIcon fontSize="small" />
+                    <span className="font-medium">キャンセル</span>
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="flex-1 py-3 px-4 flex items-center justify-center gap-2 bg-[#5b63d3] text-white transition-all duration-200 active:bg-[#7A7FD0] md:hover:bg-[#7A7FD0] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:bg-[#5b63d3] disabled:hover:bg-[#5b63d3]"
+                    aria-label="保存"
+                  >
+                    <SaveIcon fontSize="small" />
+                    <span className="font-medium">{isSaving ? '保存中...' : '保存'}</span>
+                  </button>
+                </div>
+              )}
+
               {/* プロフィールヘッダー */}
               <div className="p-4 flex items-start gap-3 border-b border-[#3D3D43]">
                 {/* プロフィール画像エリア */}
@@ -499,7 +529,7 @@ const EmpProfilePage = () => {
                       </div>
                     )}
                   </div>
-                  {isEditing && (
+                  {isEditing && isCurrentUser && (
                     <div className="flex gap-1">
                       <input
                         type="file"
@@ -538,7 +568,7 @@ const EmpProfilePage = () => {
                 
                 {/* 名前と性別 */}
                 <div className="flex-1 min-w-0">
-                  {isEditing ? (
+                  {isEditing && isCurrentUser ? (
                     <div className="space-y-2">
                       <div className="grid grid-cols-2 gap-2">
                         <TextField
@@ -725,12 +755,156 @@ const EmpProfilePage = () => {
                     <div className="ml-3 flex-1">
                       <div className="text-[10px] text-[#AEAEB2] opacity-75">生年月日</div>
                       {isEditing ? (
-                        <input
-                          type="date"
-                          value={editedProfile?.birthday ? new Date(editedProfile.birthday).toISOString().split('T')[0] : ''}
-                          onChange={(e) => setEditedProfile(prev => prev ? {...prev, birthday: e.target.value} : null)}
-                          className="w-full p-1 rounded bg-[#23232A] text-[#FCFCFC] border border-[#3D3D43] focus:outline-none focus:border-[#8E93DA] [&::-webkit-calendar-picker-indicator]:invert"
-                        />
+                        <LocalizationProvider 
+                          dateAdapter={AdapterDateFns}
+                          adapterLocale={ja}
+                        >
+                          <DatePicker
+                            value={editedProfile?.birthday ? new Date(editedProfile.birthday) : null}
+                            onChange={(newValue) => {
+                              setEditedProfile(prev => 
+                                prev ? {
+                                  ...prev,
+                                  birthday: newValue ? newValue.toISOString().split('T')[0] : null
+                                } : null
+                              );
+                            }}
+                            format="yyyy年MM月dd日"
+                            localeText={{
+                              cancelButtonLabel: "キャンセル",
+                              okButtonLabel: "選択",
+                              toolbarTitle: "日付を選択",
+                            }}
+                            views={['year', 'month', 'day']}
+                            slotProps={{
+                              toolbar: {
+                                toolbarFormat: "yyyy年MM月dd日",
+                                hidden: false,
+                              },
+                              actionBar: {
+                                actions: ['cancel', 'accept'],
+                              },
+                              field: {
+                                format: "yyyy年MM月dd日",
+                              },
+                              textField: {
+                                variant: "standard",
+                                fullWidth: true,
+                                placeholder: "生年月日を選択",
+                                InputProps: {
+                                  endAdornment: null,
+                                },
+                                sx: {
+                                  '& .MuiInputBase-input': {
+                                    color: '#FCFCFC',
+                                    fontSize: '0.875rem',
+                                    padding: '4px 0',
+                                    cursor: 'pointer',
+                                    fontFamily: '"Noto Sans JP", sans-serif',
+                                  },
+                                  '& .MuiInput-underline:before': {
+                                    borderBottomColor: '#3D3D43',
+                                  },
+                                  '& .MuiInput-underline:hover:not(.Mui-disabled):before': {
+                                    borderBottomColor: '#8E93DA',
+                                  },
+                                  '& .MuiInput-underline:after': {
+                                    borderBottomColor: '#8E93DA',
+                                  },
+                                },
+                              },
+                              dialog: {
+                                sx: {
+                                  '& .MuiDialog-paper': {
+                                    backgroundColor: '#2D2D33',
+                                    color: '#FCFCFC',
+                                  },
+                                  '& .MuiPickersLayout-root': {
+                                    backgroundColor: '#2D2D33',
+                                    color: '#FCFCFC',
+                                    fontFamily: '"Noto Sans JP", sans-serif',
+                                  },
+                                  '& .MuiPickersToolbar-root': {
+                                    backgroundColor: '#23232A',
+                                    color: '#FCFCFC',
+                                    '& .MuiTypography-root': {
+                                      color: '#FCFCFC',
+                                      fontFamily: '"Noto Sans JP", sans-serif',
+                                    },
+                                    '& .MuiButton-root': {
+                                      color: '#8E93DA',
+                                      fontFamily: '"Noto Sans JP", sans-serif',
+                                    },
+                                  },
+                                  '& .MuiPickersDay-root': {
+                                    color: '#FCFCFC',
+                                    fontSize: '0.875rem',
+                                    fontFamily: '"Noto Sans JP", sans-serif',
+                                    '&:hover': {
+                                      backgroundColor: '#3D3D43',
+                                    },
+                                    '&.Mui-selected': {
+                                      backgroundColor: '#5b63d3',
+                                      '&:hover': {
+                                        backgroundColor: '#7A7FD0',
+                                      },
+                                    },
+                                  },
+                                  '& .MuiDayCalendar-weekDayLabel': {
+                                    color: '#AEAEB2',
+                                    fontFamily: '"Noto Sans JP", sans-serif',
+                                  },
+                                  '& .MuiPickersCalendarHeader-root': {
+                                    '& .MuiPickersCalendarHeader-label': {
+                                      color: '#FCFCFC',
+                                      fontFamily: '"Noto Sans JP", sans-serif',
+                                    },
+                                    '& .MuiIconButton-root': {
+                                      color: '#8E93DA',
+                                    },
+                                  },
+                                  '& .MuiDialogActions-root': {
+                                    backgroundColor: '#23232A',
+                                    borderTop: '1px solid #3D3D43',
+                                    '& .MuiButton-root': {
+                                      color: '#8E93DA',
+                                      fontFamily: '"Noto Sans JP", sans-serif',
+                                      '&:hover': {
+                                        backgroundColor: '#3D3D43',
+                                      },
+                                    },
+                                  },
+                                  '& .MuiYearCalendar-root': {
+                                    '& .MuiPickersYear-yearButton': {
+                                      color: '#FCFCFC',
+                                      fontFamily: '"Noto Sans JP", sans-serif',
+                                      '&:hover': {
+                                        backgroundColor: '#3D3D43',
+                                      },
+                                      '&.Mui-selected': {
+                                        backgroundColor: '#5b63d3',
+                                      },
+                                    },
+                                  },
+                                  '& .MuiMonthCalendar-root': {
+                                    '& .MuiPickersMonth-monthButton': {
+                                      color: '#FCFCFC',
+                                      fontSize: '0.875rem',
+                                      fontFamily: '"Noto Sans JP", sans-serif',
+                                      '&:hover': {
+                                        backgroundColor: '#3D3D43',
+                                      },
+                                      '&.Mui-selected': {
+                                        backgroundColor: '#5b63d3',
+                                      },
+                                    },
+                                  },
+                                },
+                              },
+                            }}
+                            formatDensity="spacious"
+                          />
+                        </LocalizationProvider>
                       ) : (
                         <div className="text-[#FCFCFC]">
                           {profile?.birthday ? new Date(profile.birthday).toLocaleDateString('ja-JP', {
@@ -750,114 +924,116 @@ const EmpProfilePage = () => {
       </div>
 
       {/* トリミングダイアログ */}
-      <Dialog
-        open={showCropDialog}
-        onClose={cleanupCropper}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            height: { xs: 'calc(100dvh - 200px)', sm: 'auto' },
-            maxHeight: { xs: 'calc(100dvh - 200px)', sm: '90vh' },
-            margin: { xs: 0, sm: 2 },
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            backgroundColor: '#2D2D33',
-          }
-        }}
-      >
-        <DialogContent 
-          sx={{
-            flex: 1,
-            overflow: 'hidden',
-            position: 'relative',
-            padding: '0 !important',
-            backgroundColor: '#2D2D33',
+      {isCurrentUser && (
+        <Dialog
+          open={showCropDialog}
+          onClose={cleanupCropper}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              height: { xs: 'calc(100dvh - 200px)', sm: 'auto' },
+              maxHeight: { xs: 'calc(100dvh - 200px)', sm: '90vh' },
+              margin: { xs: 0, sm: 2 },
+              position: 'relative',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              backgroundColor: '#2D2D33',
+            }
           }}
         >
-          {cropImage && (
-            <div className="flex-1 overflow-hidden h-full flex items-center justify-center bg-[#23232A]">
-              <Cropper
-                key={cropperKey}
-                src={cropImage}
-                className="w-full h-full"
-                stencilProps={{
-                  aspectRatio: 1,
-                  grid: true,
-                  handlers: {
-                    eastNorth: true,
-                    north: false,
-                    westNorth: true,
-                    west: false,
-                    westSouth: true,
-                    south: false,
-                    eastSouth: true,
-                    east: false,
-                  },
-                  movable: true,
-                  resizable: true,
-                  lines: {
-                    cols: 2,
-                    rows: 2
-                  }
-                }}
-                defaultSize={{
-                  width: 250,
-                  height: 250
-                }}
-                minWidth={250}
-                minHeight={250}
-                ref={cropperRef}
-              />
-            </div>
-          )}
-        </DialogContent>
-        <DialogActions 
-          sx={{
-            position: 'sticky',
-            bottom: 0,
-            backgroundColor: '#2D2D33',
-            borderTop: '1px solid #3D3D43',
-            zIndex: 1,
-            padding: '1rem',
-            marginTop: 'auto'
-          }}
-        >
-          <Button
-            onClick={cleanupCropper}
-            className="flex-1"
-            variant="contained"
+          <DialogContent 
             sx={{
-              backgroundColor: '#4A4B50',
-              '&:hover': {
-                backgroundColor: '#3A3B40',
-              },
-              boxShadow: 'none',
-              color: '#FCFCFC',
+              flex: 1,
+              overflow: 'hidden',
+              position: 'relative',
+              padding: '0 !important',
+              backgroundColor: '#2D2D33',
             }}
           >
-            キャンセル
-          </Button>
-          <Button
-            onClick={handleCropComplete}
-            disabled={isCropping}
-            className="flex-1"
-            variant="contained"
+            {cropImage && (
+              <div className="flex-1 overflow-hidden h-full flex items-center justify-center bg-[#23232A]">
+                <Cropper
+                  key={cropperKey}
+                  src={cropImage}
+                  className="w-full h-full"
+                  stencilProps={{
+                    aspectRatio: 1,
+                    grid: true,
+                    handlers: {
+                      eastNorth: true,
+                      north: false,
+                      westNorth: true,
+                      west: false,
+                      westSouth: true,
+                      south: false,
+                      eastSouth: true,
+                      east: false,
+                    },
+                    movable: true,
+                    resizable: true,
+                    lines: {
+                      cols: 2,
+                      rows: 2
+                    }
+                  }}
+                  defaultSize={{
+                    width: 250,
+                    height: 250
+                  }}
+                  minWidth={250}
+                  minHeight={250}
+                  ref={cropperRef}
+                />
+              </div>
+            )}
+          </DialogContent>
+          <DialogActions 
             sx={{
-              backgroundColor: '#5b63d3',
-              '&:hover': {
-                backgroundColor: '#7A7FD0',
-              },
-              boxShadow: 'none',
-              color: '#FCFCFC',
+              position: 'sticky',
+              bottom: 0,
+              backgroundColor: '#2D2D33',
+              borderTop: '1px solid #3D3D43',
+              zIndex: 1,
+              padding: '1rem',
+              marginTop: 'auto'
             }}
           >
-            {isCropping ? '処理中...' : '保存'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+            <Button
+              onClick={cleanupCropper}
+              className="flex-1"
+              variant="contained"
+              sx={{
+                backgroundColor: '#4A4B50',
+                '&:hover': {
+                  backgroundColor: '#3A3B40',
+                },
+                boxShadow: 'none',
+                color: '#FCFCFC',
+              }}
+            >
+              キャンセル
+            </Button>
+            <Button
+              onClick={handleCropComplete}
+              disabled={isCropping}
+              className="flex-1"
+              variant="contained"
+              sx={{
+                backgroundColor: '#5b63d3',
+                '&:hover': {
+                  backgroundColor: '#7A7FD0',
+                },
+                boxShadow: 'none',
+                color: '#FCFCFC',
+              }}
+            >
+              {isCropping ? '処理中...' : '保存'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </Box>
   );
 };

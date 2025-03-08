@@ -137,7 +137,12 @@ export default function Header() {
       <header className="fixed top-0 left-0 right-0 z-50 flex flex-col bg-[#3D3E42] text-white" style={{ paddingTop: 'calc(env(safe-area-inset-top))' }}>
         <div className="flex items-center justify-between px-6 py-4">
           {/* 左側：ユーザー情報 */}
-          <div className="flex items-center">
+          <div 
+            className="flex items-center cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => router.push('/employeePages/empProfilePage')}
+            role="button"
+            aria-label="プロフィールを表示"
+          >
             <div className="w-10 h-10 rounded-full mr-3 overflow-hidden bg-[#8E93DA]">
               {userInfo?.icon_url ? (
                 <Image
