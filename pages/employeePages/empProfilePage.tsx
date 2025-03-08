@@ -350,26 +350,11 @@ const EmpProfilePage = () => {
       setIsUploading(true);
       setError("");
 
-      const filePath = editedProfile.icon_url.split('/').pop();
-      if (filePath) {
-        const { error: deleteError } = await supabase.storage
-          .from('profile-images')
-          .remove([filePath]);
-
-        if (deleteError) throw deleteError;
-      }
-
+      // 編集中のプロフィールのアイコンURLのみを更新
       setEditedProfile({
         ...editedProfile,
         icon_url: null
       });
-      setProfile({
-        ...editedProfile,
-        icon_url: null
-      });
-
-      // 未使用画像のクリーンアップを実行
-      await cleanupUnusedImages();
 
     } catch (error) {
       console.error("画像削除エラー:", error);
