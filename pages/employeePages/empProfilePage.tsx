@@ -422,7 +422,13 @@ const EmpProfilePage = () => {
       URL.revokeObjectURL(cropImage);
       setCropImage(null);
     }
-  }, [showCropDialog]);
+    
+    return () => {
+      if (cropImage) {
+        URL.revokeObjectURL(cropImage);
+      }
+    };
+  }, [showCropDialog, cropImage]);
 
   const handleImageDelete = async () => {
     if (!editedProfile?.icon_url) return;

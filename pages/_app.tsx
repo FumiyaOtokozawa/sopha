@@ -11,6 +11,7 @@ import Header from "../components/Header";
 import FooterMenu from "../components/FooterMenu";
 import { useEffect, useState } from "react";
 import { supabase } from "../utils/supabaseClient";
+import Head from 'next/head';
 
 // ログインが必要なパスのパターン
 const AUTH_REQUIRED_PATHS = [
@@ -76,6 +77,10 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <>
+      <Head>
+        <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover' />
+        <meta name='description' content='Sopha - スケジュール管理アプリケーション' />
+      </Head>
       <div className="min-h-screen flex flex-col">
         {isAuthenticated && !isPublicPage && <Header />}
         {isPublicPage ? (
