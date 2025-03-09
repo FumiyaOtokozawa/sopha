@@ -5,6 +5,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { supabase } from "../utils/supabaseClient";
 import type { User } from '../types/user';
 import Image from 'next/image';
+import { Skeleton } from '@mui/material';
 
 interface UserSelectModalProps {
   open: boolean;
@@ -21,6 +22,15 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [users, setUsers] = useState<User[]>([]);
+  const [loadingImages, setLoadingImages] = useState<{[key: number]: boolean}>({});
+
+  // 画像の読み込み状態を管理
+  const handleImageLoad = (empNo: number) => {
+    setLoadingImages(prev => ({
+      ...prev,
+      [empNo]: false
+    }));
+  };
 
   // 検索処理
   const handleSearch = useCallback(async (e?: React.FormEvent) => {
@@ -46,6 +56,12 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
     if (error) {
       console.error("検索エラー:", error);
     } else {
+      // 画像の読み込み状態を初期化
+      const initialLoadingState = (data || []).reduce((acc, user) => ({
+        ...acc,
+        [user.emp_no]: true
+      }), {});
+      setLoadingImages(initialLoadingState);
       setUsers(data || []);
     }
   }, [searchTerm, excludeEmpNo]);
@@ -138,13 +154,27 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
                     onClick={() => handleUserSelect(user)}
                   >
                     {user.icon_url ? (
-                      <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-3">
+                      <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-3 relative">
+                        {loadingImages[user.emp_no] && (
+                          <Skeleton
+                            variant="circular"
+                            width={32}
+                            height={32}
+                            className="absolute inset-0 z-10"
+                            sx={{
+                              backgroundColor: '#3D3D45',
+                            }}
+                          />
+                        )}
                         <Image
                           src={user.icon_url}
                           alt={`${user.myoji} ${user.namae}のアイコン`}
                           width={32}
                           height={32}
                           className="object-cover"
+                          onLoadingComplete={() => handleImageLoad(user.emp_no)}
+                          loading="eager"
+                          priority={true}
                         />
                       </div>
                     ) : (
