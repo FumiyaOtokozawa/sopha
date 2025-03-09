@@ -4,6 +4,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import { supabase } from "../utils/supabaseClient";
 import type { User } from '../types/user';
+import Image from 'next/image';
 
 interface UserSelectModalProps {
   open: boolean;
@@ -27,7 +28,7 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
     
     let query = supabase
       .from("USER_INFO")
-      .select("emp_no, myoji, namae, last_nm, first_nm")
+      .select("emp_no, myoji, namae, last_nm, first_nm, icon_url")
       .eq("act_kbn", true);
 
     if (excludeEmpNo) {
@@ -100,7 +101,6 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full rounded py-2 pl-3 pr-10 bg-[#1D1D21] border border-[#3D3D45] focus:outline-none focus:border-[#8E93DA] text-sm"
-                autoFocus
               />
               <button
                 type="submit"
@@ -137,9 +137,21 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
                     className="px-3 py-2 flex items-center w-full text-left"
                     onClick={() => handleUserSelect(user)}
                   >
-                    <div className="w-8 h-8 bg-[#8E93DA] rounded-full flex items-center justify-center text-black font-medium flex-shrink-0 mr-3">
-                      {user.myoji.charAt(0)}
-                    </div>
+                    {user.icon_url ? (
+                      <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-3">
+                        <Image
+                          src={user.icon_url}
+                          alt={`${user.myoji} ${user.namae}のアイコン`}
+                          width={32}
+                          height={32}
+                          className="object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-8 h-8 bg-[#8E93DA] rounded-full flex items-center justify-center text-black font-medium flex-shrink-0 mr-3">
+                        {user.myoji.charAt(0)}
+                      </div>
+                    )}
                     <div>
                       <p className="text-sm font-medium">{`${user.myoji} ${user.namae}`}</p>
                       <p className="text-xs text-[#ACACAC]">{`${user.last_nm} ${user.first_nm}`}</p>

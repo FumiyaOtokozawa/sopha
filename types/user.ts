@@ -4,4 +4,5 @@ export interface User {
   namae: string;
   last_nm: string;
   first_nm: string;
+  icon_url?: string;
 } 

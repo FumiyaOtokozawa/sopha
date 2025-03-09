@@ -386,7 +386,7 @@ const EventAddPage = () => {
                         fontSize: '14px',
                       },
                       '& .MuiInputBase-input': {
-                        padding: '8px 14px',
+                        padding: '8px 8px',
                         height: '24px',
                         '&::placeholder': {
                           color: '#6B7280',
@@ -419,7 +419,7 @@ const EventAddPage = () => {
                         fontSize: '14px',
                       },
                       '& .MuiInputBase-input': {
-                        padding: '8px 14px',
+                        padding: '8px 8px',
                         height: '24px',
                         '&::placeholder': {
                           color: '#6B7280',
