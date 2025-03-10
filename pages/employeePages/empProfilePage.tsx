@@ -634,9 +634,13 @@ const EmpProfilePage = () => {
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <TextField
-                          label="LastName"
+                          label="LASTNAME"
                           value={editedProfile?.last_nm || ''}
-                          onChange={(e) => setEditedProfile(prev => prev ? {...prev, last_nm: e.target.value} : null)}
+                          onChange={(e) => {
+                            // 大文字半角英語のみを許可
+                            const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+                            setEditedProfile(prev => prev ? {...prev, last_nm: value} : null);
+                          }}
                           variant="outlined"
                           size="small"
                           InputProps={{
@@ -661,9 +665,13 @@ const EmpProfilePage = () => {
                           }}
                         />
                         <TextField
-                          label="FirstName"
+                          label="FIRSTNAME"
                           value={editedProfile?.first_nm || ''}
-                          onChange={(e) => setEditedProfile(prev => prev ? {...prev, first_nm: e.target.value} : null)}
+                          onChange={(e) => {
+                            // 大文字半角英語のみを許可
+                            const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+                            setEditedProfile(prev => prev ? {...prev, first_nm: value} : null);
+                          }}
                           variant="outlined"
                           size="small"
                           InputProps={{

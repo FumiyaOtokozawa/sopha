@@ -151,26 +151,34 @@ const EmpProfSettingPage = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[#FCFCFC] mb-1">
-                    Last Name
+                    LASTNAME
                   </label>
                   <input
                     type="text"
                     value={profile.last_nm}
-                    onChange={(e) => setProfile({ ...profile, last_nm: e.target.value })}
+                    onChange={(e) => {
+                      // 大文字半角英語のみを許可
+                      const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+                      setProfile({ ...profile, last_nm: value });
+                    }}
                     className={inputClassName}
-                    placeholder="Konsai"
+                    placeholder="KONSAI"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[#FCFCFC] mb-1">
-                    First Name
+                    FIRSTNAME
                   </label>
                   <input
                     type="text"
                     value={profile.first_nm}
-                    onChange={(e) => setProfile({ ...profile, first_nm: e.target.value })}
+                    onChange={(e) => {
+                      // 大文字半角英語のみを許可
+                      const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+                      setProfile({ ...profile, first_nm: value });
+                    }}
                     className={inputClassName}
-                    placeholder="Taro"
+                    placeholder="TARO"
                   />
                 </div>
               </div>
