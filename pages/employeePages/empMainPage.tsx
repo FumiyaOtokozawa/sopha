@@ -2,9 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from '../../utils/supabaseClient';
-import { Dialog, Tabs, Tab, Box } from '@mui/material';
+import { Dialog, Tabs, Tab, Box} from '@mui/material';
 import { useRouter } from 'next/router';
 import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import EventIcon from '@mui/icons-material/Event';
+import { format } from 'date-fns';
+import { ja } from 'date-fns/locale';
+import EventDetailModal from '../../components/EventDetailModal';
 
 type HistoryItem = {
   history_id: number;
@@ -13,6 +17,7 @@ type HistoryItem = {
   ciz: number;
   reason: string;
   created_at: string;
+  event_id: number;
 };
 
 type EventParticipation = {
@@ -30,7 +35,18 @@ type EventParticipationHistory = {
   EVENT_LIST: {
     title: string;
     genre: '0' | '1';
+    event_id: number;
   };
+};
+
+type TodayEvent = {
+  event_id: number;
+  title: string;
+  start_date: string;
+  end_date: string;
+  venue_nm: string;
+  ownerName?: string;
+  genre: '0' | '1';
 };
 
 const ITEMS_PER_PAGE = 20;
@@ -50,6 +66,11 @@ const EmpMainPage = () => {
   const [hasMorePoints, setHasMorePoints] = useState<boolean>(true);
   const [hasMoreEvents, setHasMoreEvents] = useState<boolean>(true);
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+  const [showTodayEventsModal, setShowTodayEventsModal] = useState(false);
+  const [todayEvents, setTodayEvents] = useState<TodayEvent[]>([]);
+  const [isLoadingTodayEvents, setIsLoadingTodayEvents] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [isEventDetailModalOpen, setIsEventDetailModalOpen] = useState(false);
 
   // アニメーション用の値
   const pointsMotionValue = useMotionValue(0);
@@ -248,7 +269,7 @@ const EmpMainPage = () => {
         .from("EVENT_PAR_HISTORY")
         .select(`
           *,
-          EVENT_LIST(title, genre)
+          EVENT_LIST(title, genre, event_id)
         `)
         .eq("emp_no", employeeNumber)
         .order("participated_at", { ascending: false })
@@ -297,6 +318,101 @@ const EmpMainPage = () => {
     fetchHistory();
   }, [fetchHistory]);
 
+  // 本日のイベントを取得する関数
+  const fetchTodayEvents = async () => {
+    try {
+      setIsLoadingTodayEvents(true);
+      console.log('本日のイベント取得開始');
+
+      // 日本時間の今日の日付を取得（00:00:00）
+      const today = new Date();
+      // 日本時間の0時に設定（UTC+9）
+      today.setHours(9, 0, 0, 0);
+      
+      // 日本時間の今日の終了時刻（23:59:59）
+      const todayEnd = new Date(today);
+      // 日本時間の23:59:59に設定（UTC+9）
+      todayEnd.setHours(32, 59, 59, 999);
+
+      console.log('検索期間:', {
+        start: format(today, 'yyyy年MM月dd日 HH:mm:ss', { locale: ja }),
+        end: format(todayEnd, 'yyyy年MM月dd日 HH:mm:ss', { locale: ja }),
+        startUTC: today.toISOString(),
+        endUTC: todayEnd.toISOString()
+      });
+
+      const { data: events, error } = await supabase
+        .from('EVENT_LIST')
+        .select(`
+          *,
+          venue:EVENT_VENUE!venue_id(venue_nm)
+        `)
+        .gte('start_date', today.toISOString())
+        .lte('start_date', todayEnd.toISOString())
+        .eq('act_kbn', true)
+        .order('start_date', { ascending: true });
+
+      if (error) throw error;
+
+      console.log('取得したイベント数:', events?.length);
+      if (events?.length) {
+        console.log('取得したイベントの日時:', events.map(event => ({
+          title: event.title,
+          start_date: event.start_date,
+          start_date_formatted: format(new Date(event.start_date), 'yyyy年MM月dd日 HH:mm:ss', { locale: ja })
+        })));
+      }
+
+      // イベントの主催者情報を取得
+      const eventsWithOwner = await Promise.all(
+        events.map(async (event) => {
+          const { data: ownerData } = await supabase
+            .from('USER_INFO')
+            .select('myoji, namae')
+            .eq('emp_no', event.owner)
+            .single();
+
+          return {
+            event_id: event.event_id,
+            title: event.title,
+            start_date: event.start_date,
+            end_date: event.end_date,
+            venue_nm: event.venue?.venue_nm,
+            ownerName: ownerData ? `${ownerData.myoji} ${ownerData.namae}` : undefined,
+            genre: event.genre
+          };
+        })
+      );
+
+      console.log('主催者情報を含むイベント:', eventsWithOwner);
+      setTodayEvents(eventsWithOwner);
+    } catch (error) {
+      console.error('本日のイベント取得エラー:', error);
+    } finally {
+      setIsLoadingTodayEvents(false);
+    }
+  };
+
+  // モーダルを開く際にイベントを取得
+  const handleOpenTodayEventsModal = async () => {
+    if (!showTodayEventsModal) {
+      await fetchTodayEvents();
+    }
+    setShowTodayEventsModal(!showTodayEventsModal);
+  };
+
+  // イベント詳細モーダルを開く関数
+  const handleOpenEventDetail = (eventId: string) => {
+    setSelectedEventId(eventId);
+    setIsEventDetailModalOpen(true);
+  };
+
+  // イベント詳細モーダルを閉じる関数
+  const handleCloseEventDetail = () => {
+    setIsEventDetailModalOpen(false);
+    setSelectedEventId(null);
+  };
+
   return (
     <Box sx={{ 
       position: 'relative',
@@ -328,6 +444,76 @@ const EmpMainPage = () => {
                   </div>
                 </div>
               </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+              className="bg-[#2f3033] rounded-lg shadow-md p-4 py-2 flex flex-col items-center"
+            >
+              <button
+                onClick={handleOpenTodayEventsModal}
+                className="w-full py-2.5 px-2.5 bg-[#5b63d3] text-white font-bold rounded-md hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2"
+              >
+                <EventIcon />
+                本日のイベント
+                <motion.span
+                  animate={{ 
+                    scaleY: showTodayEventsModal ? -1 : 1,
+                    y: showTodayEventsModal ? -2 : 0
+                  }}
+                  transition={{ duration: 0.3 }}
+                  className="ml-auto"
+                >
+                  ▼
+                </motion.span>
+              </button>
+
+              {/* イベントリスト */}
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ 
+                  height: showTodayEventsModal ? "auto" : 0,
+                  opacity: showTodayEventsModal ? 1 : 0
+                }}
+                transition={{ duration: 0.3 }}
+                className="w-full overflow-hidden"
+              >
+                {isLoadingTodayEvents ? (
+                  <div className="flex flex-col items-center justify-center py-4">
+                    <div className="w-5 h-5 border-t-2 border-b-2 border-[#8E93DA] rounded-full animate-spin mb-2"></div>
+                    <p className="text-gray-400 text-xs">読み込み中...</p>
+                  </div>
+                ) : todayEvents.length === 0 ? (
+                  <div className="text-center py-4">
+                    <p className="text-gray-400 text-xs">本日開催予定のイベントはありません</p>
+                  </div>
+                ) : (
+                  <div className="mt-3 space-y-2">
+                    {todayEvents.map((event) => (
+                      <div
+                        key={event.event_id}
+                        className="bg-[#37373F] p-2.5 rounded-md hover:bg-[#404049] transition-colors cursor-pointer"
+                        onClick={() => handleOpenEventDetail(event.event_id.toString())}
+                      >
+                        <div className="flex items-center gap-2">
+                          {event.genre === '1' && (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-[#8E93DA]" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                          <span className="text-[#FCFCFC] text-sm font-medium">{event.title}</span>
+                          <span className="text-xs text-gray-400 ml-auto">
+                            {format(new Date(event.start_date), 'HH:mm', { locale: ja })} - 
+                            {format(new Date(event.end_date), ' HH:mm', { locale: ja })}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
             </motion.div>
 
             <motion.div
@@ -389,7 +575,8 @@ const EmpMainPage = () => {
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ duration: 0.3, delay: index * 0.05 }}
-                              className="bg-[#404040] px-3 py-2 rounded-md"
+                              className="bg-[#404040] px-3 py-2 rounded-md cursor-pointer hover:bg-[#4a4a4a] transition-colors"
+                              onClick={() => handleOpenEventDetail(item.event_id.toString())}
                             >
                               <div className="flex justify-between items-center">
                                 <div className="flex-1 mr-4">
@@ -447,7 +634,8 @@ const EmpMainPage = () => {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.3, delay: index * 0.05 }}
-                            className="bg-[#404040] px-3 py-2 rounded-md"
+                            className="bg-[#404040] px-3 py-2 rounded-md cursor-pointer hover:bg-[#4a4a4a] transition-colors"
+                            onClick={() => handleOpenEventDetail(item.EVENT_LIST.event_id.toString())}
                           >
                             <div className="flex justify-between items-center">
                               <div className="flex-1 mr-4">
@@ -526,6 +714,13 @@ const EmpMainPage = () => {
             </div>
           </motion.div>
         </Dialog>
+
+        {/* イベント詳細モーダル */}
+        <EventDetailModal
+          isOpen={isEventDetailModalOpen}
+          onClose={handleCloseEventDetail}
+          eventId={selectedEventId || ''}
+        />
       </div>
     </Box>
   );
