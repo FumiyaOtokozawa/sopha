@@ -405,8 +405,23 @@ export default function EventListPage() {
       );
     }
 
+    // イベントを日付ごとにグループ化
+    const groupedEvents = filteredEvents.reduce((groups, event) => {
+      const date = format(new Date(event.start_date), 'yyyy年MM月dd日', { locale: ja });
+      if (!groups[date]) {
+        groups[date] = [];
+      }
+      groups[date].push(event);
+      return groups;
+    }, {} as { [key: string]: Event[] });
+
+    // 日付でソート
+    const sortedDates = Object.keys(groupedEvents).sort((a, b) => 
+      new Date(a).getTime() - new Date(b).getTime()
+    );
+
     return (
-      <div className="bg-[#2d2d33] rounded-lg p-2 sm:p-3 md:p-4 h-full overflow-y-auto">
+      <div className="bg-[#2d2d33] rounded-lg p-2 sm:p-3 md:p-4 h-full overflow-y-auto overflow-x-hidden w-full">
         <div className="mb-2 sm:mb-3 md:mb-4 flex justify-end">
           <button
             className={`px-2 sm:px-3 md:px-4 py-0.5 sm:py-0.75 md:py-1 rounded-md transition-colors text-xs sm:text-sm flex items-center gap-1 sm:gap-2 ${
@@ -418,40 +433,51 @@ export default function EventListPage() {
             <div className={`w-2.5 sm:w-3 md:w-3.5 h-2.5 sm:h-3 md:h-3.5 rounded-full ${!showAllEvents ? 'bg-white' : 'bg-gray-600'}`} />
           </button>
         </div>
-        {filteredEvents.map((event) => (
-          <div
-            key={event.event_id}
-            className="mb-2 sm:mb-3 md:mb-4 p-2 sm:p-3 md:p-4 bg-[#37373F] rounded-md sm:rounded-lg cursor-pointer hover:bg-[#404049] transition-colors relative"
-            onClick={() => handleEventClick(event)}
-          >
-            {event.abbreviation && (
-              <div className="text-xs sm:text-sm text-gray-400 mb-0.5">
-                {event.abbreviation}
+        <div className="w-full">
+          {sortedDates.map((date) => (
+            <div key={date} className="mb-4 w-full">
+              <div className="sticky top-0 bg-[#2d2d33] py-2 px-4 rounded-md z-10 w-full border-l-4 border-[#8E93DA]">
+                <h3 className="text-sm font-medium text-[#8E93DA]">{date}</h3>
               </div>
-            )}
-            <div className="text-base sm:text-lg font-medium mb-1 sm:mb-2 flex items-center gap-1 sm:gap-2">
-              {event.genre === '1' && (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 text-[#8E93DA]" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              )}
-              {event.title}
+              <div className="p-2 sm:p-3 md:p-4 bg-[#2d2d33] w-full">
+                {groupedEvents[date].map((event) => (
+                  <div
+                    key={event.event_id}
+                    className="mb-2 sm:mb-3 md:mb-4 p-2 sm:p-3 md:p-4 bg-[#37373F] rounded-md sm:rounded-lg cursor-pointer hover:bg-[#404049] transition-colors relative last:mb-0"
+                    onClick={() => handleEventClick(event)}
+                  >
+                    {event.abbreviation && (
+                      <div className="text-xs sm:text-sm text-gray-400 mb-0.5">
+                        {event.abbreviation}
+                      </div>
+                    )}
+                    <div className="text-base sm:text-lg font-medium mb-1 sm:mb-2 flex items-center gap-1 sm:gap-2">
+                      {event.genre === '1' && (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5 text-[#8E93DA]" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      {event.title}
+                    </div>
+                    <div className="text-xs sm:text-sm text-gray-400">
+                      <div>場　所：{event.venue_nm || '未定'}</div>
+                      <div>主催者：{event.ownerName}</div>
+                      <div>時　間：
+                        {format(new Date(event.start_date), 'HH:mm', { locale: ja })} - 
+                        {format(new Date(event.end_date), ' HH:mm', { locale: ja })}
+                      </div>
+                    </div>
+                    {event.repeat_id && (
+                      <div className="absolute bottom-2 right-2">
+                        <RepeatIcon className="h-4 w-4 text-gray-400" />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="text-xs sm:text-sm text-gray-400">
-              <div>場　所：{event.venue_nm || '未定'}</div>
-              <div>主催者：{event.ownerName}</div>
-              <div>日　時：
-                {format(new Date(event.start_date), 'M月d日 HH:mm', { locale: ja })} - 
-                {format(new Date(event.end_date), ' M月d日 HH:mm', { locale: ja })}
-              </div>
-            </div>
-            {event.repeat_id && (
-              <div className="absolute bottom-2 right-2">
-                <RepeatIcon className="h-4 w-4 text-gray-400" />
-              </div>
-            )}
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     );
   };

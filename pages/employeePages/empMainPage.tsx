@@ -438,7 +438,7 @@ const EmpMainPage = () => {
                 ) : (
                   <div className="space-y-2">
                     {participationHistory.length === 0 ? (
-                      <p className="text-gray-400">参加履歴はありません</p>
+                      <p className="text-gray-400">履歴はありません</p>
                     ) : (
                       <>
                         {participationHistory.map((item, index) => (
