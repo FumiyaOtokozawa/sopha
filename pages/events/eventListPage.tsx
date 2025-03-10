@@ -169,7 +169,7 @@ export default function EventListPage() {
         startDate = new Date(date.getFullYear(), date.getMonth(), 1);
         endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
       } else {
-        // 予定リスト表示の場合：システム日付のJST 0時から1ヶ月先まで
+        // 予定リスト表示の場合：システム日付のJST 0時から3ヶ月先まで
         const today = new Date();
         
         // 現在の日付をJST基準で取得
@@ -180,10 +180,10 @@ export default function EventListPage() {
         // 当日の0時を開始日時として設定
         startDate = today;
         
-        // 1ヶ月後の日付を計算
-        const oneMonthLater = new Date(today);
-        oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
-        endDate = oneMonthLater;
+        // 3ヶ月後の日付を計算
+        const threeMonthsLater = new Date(today);
+        threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3);
+        endDate = threeMonthsLater;
         
         // 取得期間のログ出力を追加（デバッグ用）
         console.log('イベント取得期間（詳細）:', {
@@ -307,7 +307,10 @@ export default function EventListPage() {
 
   // 月が変更されたときにイベントを再取得
   const handleMonthChange = (date: Date) => {
+    console.log('月が変更されました:', format(date, 'yyyy年MM月', { locale: ja }));
     setCurrentMonth(date);
+    // 即座にイベントを再取得
+    fetchEvents(date, view);
   };
 
   // イベントをクリックした時の処理を修正
@@ -519,6 +522,7 @@ export default function EventListPage() {
         defaultView="month"
         views={['month']}
         onNavigate={handleMonthChange}
+        date={currentMonth}
         components={{
           toolbar: CustomToolbar,
           event: CustomEvent  // メモ化したコンポーネントを使用
