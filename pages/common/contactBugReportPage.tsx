@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../utils/supabaseClient';
-import Header from '../../components/Header';
 import { Box, Alert, CircularProgress } from '@mui/material';
-import FooterMenu from '../../components/FooterMenu';
 
 type FormData = {
   category: string;
@@ -92,7 +90,6 @@ export default function ContactBugReportPage() {
 
   return (
     <Box sx={{ pb: 7 }}>
-      <Header />
       <div className="p-4">
         <h1 className="text-xl font-bold mb-4 text-[#FCFCFC]">お問い合わせ / 不具合報告</h1>
         
@@ -184,7 +181,7 @@ export default function ContactBugReportPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-2 rounded bg-[#8E93DA] text-black font-bold hover:bg-opacity-80 flex items-center justify-center min-w-[100px]"
+                className="px-4 py-2 rounded bg-[#5b63d3] text-white font-bold hover:bg-opacity-80 flex items-center justify-center min-w-[100px]"
               >
                 {isSubmitting ? (
                   <CircularProgress size={24} color="inherit" />
@@ -196,7 +193,6 @@ export default function ContactBugReportPage() {
           </div>
         </form>
       </div>
-      <FooterMenu />
     </Box>
   );
 } 
