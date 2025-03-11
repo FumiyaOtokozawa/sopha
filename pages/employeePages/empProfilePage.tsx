@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../utils/supabaseClient';
 import Image from 'next/image';
-import { Box, CircularProgress, TextField, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, Dialog, DialogContent, DialogActions, Button } from '@mui/material';
+import { Box, CircularProgress, TextField, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, Dialog, DialogContent, DialogActions, Button, FormHelperText } from '@mui/material';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { ja } from 'date-fns/locale';
@@ -138,7 +138,7 @@ const EmpProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editedProfile, setEditedProfile] = useState<UserProfile | null>(null);
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isCurrentUser, setIsCurrentUser] = useState(false); // 表示中のプロフィールが自分のものかどうか
@@ -185,7 +185,7 @@ const EmpProfilePage = () => {
 
       } catch (error) {
         console.error('Error fetching profile:', error);
-        setError('プロフィールの取得に失敗しました');
+        setErrors({ general: 'プロフィールの取得に失敗しました' });
       } finally {
         setLoading(false);
       }
@@ -211,12 +211,31 @@ const EmpProfilePage = () => {
     if (!editedProfile) return;
     
     setIsSaving(true);
-    setError("");
+    setErrors({});
     
     try {
-      // 入力値の検証
-      if (!editedProfile.myoji || !editedProfile.namae || !editedProfile.last_nm || !editedProfile.first_nm) {
-        throw new Error("すべての項目を入力してください");
+      const newErrors: {[key: string]: string} = {};
+
+      // 必須項目のバリデーション
+      if (!editedProfile.myoji) newErrors.myoji = "名字を入力してください";
+      if (!editedProfile.namae) newErrors.namae = "名前を入力してください";
+      if (!editedProfile.last_nm) newErrors.last_nm = "LASTNAMEを入力してください";
+      if (!editedProfile.first_nm) newErrors.first_nm = "FIRSTNAMEを入力してください";
+      if (!editedProfile.gender) newErrors.gender = "性別を選択してください";
+
+      // 英語名のバリデーション
+      if (editedProfile.last_nm && !/^[A-Za-z]+$/.test(editedProfile.last_nm)) {
+        newErrors.last_nm = "LASTNAMEは半角英字のみ入力可能です";
+      }
+      if (editedProfile.first_nm && !/^[A-Za-z]+$/.test(editedProfile.first_nm)) {
+        newErrors.first_nm = "FIRSTNAMEは半角英字のみ入力可能です";
+      }
+
+      // エラーがある場合は処理を中断
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        setIsSaving(false);
+        return;
       }
 
       // 新しい画像がアップロードされている場合の処理
@@ -270,8 +289,8 @@ const EmpProfilePage = () => {
         .update({
           myoji: editedProfile.myoji,
           namae: editedProfile.namae,
-          last_nm: editedProfile.last_nm,
-          first_nm: editedProfile.first_nm,
+          last_nm: editedProfile.last_nm.toUpperCase(),
+          first_nm: editedProfile.first_nm.toUpperCase(),
           gender: editedProfile.gender,
           birthday: editedProfile.birthday,
           icon_url: iconUrl,
@@ -283,6 +302,8 @@ const EmpProfilePage = () => {
       // 更新成功後、表示を更新
       setProfile({
         ...editedProfile,
+        last_nm: editedProfile.last_nm.toUpperCase(),
+        first_nm: editedProfile.first_nm.toUpperCase(),
         icon_url: iconUrl
       });
       setIsEditing(false);
@@ -300,9 +321,11 @@ const EmpProfilePage = () => {
       // 未使用画像のクリーンアップを実行
       await cleanupUnusedImages();
 
-    } catch (error: Error | unknown) {
+    } catch (error: unknown) {
       console.error("更新エラー:", error);
-      setError(error instanceof Error ? error.message : "プロフィールの更新に失敗しました");
+      if (error instanceof Error && !Object.keys(errors).length) {
+        setErrors({ general: "プロフィールの更新に失敗しました" });
+      }
     } finally {
       setIsSaving(false);
     }
@@ -311,7 +334,7 @@ const EmpProfilePage = () => {
   const handleCancel = () => {
     setIsEditing(false);
     setEditedProfile(profile);
-    setError("");
+    setErrors({});
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -320,7 +343,7 @@ const EmpProfilePage = () => {
 
     try {
       setIsUploading(true);
-      setError("");
+      setErrors({});
 
       // ファイルタイプのチェック
       if (!file.type.startsWith('image/')) {
@@ -347,7 +370,7 @@ const EmpProfilePage = () => {
 
     } catch (error) {
       console.error("画像アップロードエラー:", error);
-      setError(error instanceof Error ? error.message : "画像のアップロードに失敗しました");
+      setErrors({ general: error instanceof Error ? error.message : "画像のアップロードに失敗しました" });
     } finally {
       setIsUploading(false);
     }
@@ -358,7 +381,7 @@ const EmpProfilePage = () => {
 
     try {
       setIsCropping(true);
-      setError("");
+      setErrors({});
 
       // クロップされた画像をcanvasとして取得
       const canvas = cropperRef.current.getCanvas();
@@ -400,7 +423,7 @@ const EmpProfilePage = () => {
 
     } catch (error) {
       console.error("画像処理エラー:", error);
-      setError(error instanceof Error ? error.message : "画像の処理に失敗しました");
+      setErrors({ general: error instanceof Error ? error.message : "画像の処理に失敗しました" });
     } finally {
       setIsCropping(false);
       setIsUploading(false);
@@ -435,7 +458,7 @@ const EmpProfilePage = () => {
 
     try {
       setIsUploading(true);
-      setError("");
+      setErrors({});
 
       // 編集中のプロフィールのアイコンURLのみを更新
       setEditedProfile({
@@ -445,7 +468,7 @@ const EmpProfilePage = () => {
 
     } catch (error) {
       console.error("画像削除エラー:", error);
-      setError("画像の削除に失敗しました");
+      setErrors({ general: "画像の削除に失敗しました" });
     } finally {
       setIsUploading(false);
     }
@@ -471,9 +494,9 @@ const EmpProfilePage = () => {
             <div className="flex justify-between items-center">
             </div>
 
-            {error && (
-              <div className="bg-red-500 bg-opacity-20 text-red-100 text-sm p-2 rounded-lg mb-4">
-                {error}
+            {errors.general && (
+              <div className="mb-4 p-3 rounded bg-red-500 bg-opacity-10 border border-red-500 text-red-500">
+                {errors.general}
               </div>
             )}
 
@@ -583,6 +606,8 @@ const EmpProfilePage = () => {
                           onChange={(e) => setEditedProfile(prev => prev ? {...prev, myoji: e.target.value} : null)}
                           variant="outlined"
                           size="small"
+                          error={!!errors.myoji}
+                          helperText={errors.myoji}
                           InputProps={{
                             style: { color: '#FCFCFC', fontSize: '0.875rem' }
                           }}
@@ -592,7 +617,7 @@ const EmpProfilePage = () => {
                           sx={{
                             '& .MuiOutlinedInput-root': {
                               '& fieldset': {
-                                borderColor: '#3D3D43',
+                                borderColor: errors.myoji ? '#ef4444' : '#3D3D43',
                               },
                               '&:hover fieldset': {
                                 borderColor: '#8E93DA',
@@ -602,6 +627,9 @@ const EmpProfilePage = () => {
                               },
                               backgroundColor: '#23232A',
                             },
+                            '& .MuiFormHelperText-root': {
+                              color: '#ef4444',
+                            },
                           }}
                         />
                         <TextField
@@ -610,6 +638,8 @@ const EmpProfilePage = () => {
                           onChange={(e) => setEditedProfile(prev => prev ? {...prev, namae: e.target.value} : null)}
                           variant="outlined"
                           size="small"
+                          error={!!errors.namae}
+                          helperText={errors.namae}
                           InputProps={{
                             style: { color: '#FCFCFC', fontSize: '0.875rem' }
                           }}
@@ -636,13 +666,11 @@ const EmpProfilePage = () => {
                         <TextField
                           label="LASTNAME"
                           value={editedProfile?.last_nm || ''}
-                          onChange={(e) => {
-                            // 大文字半角英語のみを許可
-                            const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
-                            setEditedProfile(prev => prev ? {...prev, last_nm: value} : null);
-                          }}
+                          onChange={(e) => setEditedProfile(prev => prev ? {...prev, last_nm: e.target.value} : null)}
                           variant="outlined"
                           size="small"
+                          error={!!errors.last_nm}
+                          helperText={errors.last_nm}
                           InputProps={{
                             style: { color: '#FCFCFC', fontSize: '0.875rem' }
                           }}
@@ -652,7 +680,7 @@ const EmpProfilePage = () => {
                           sx={{
                             '& .MuiOutlinedInput-root': {
                               '& fieldset': {
-                                borderColor: '#3D3D43',
+                                borderColor: errors.last_nm ? '#ef4444' : '#3D3D43',
                               },
                               '&:hover fieldset': {
                                 borderColor: '#8E93DA',
@@ -662,18 +690,19 @@ const EmpProfilePage = () => {
                               },
                               backgroundColor: '#23232A',
                             },
+                            '& .MuiFormHelperText-root': {
+                              color: '#ef4444',
+                            },
                           }}
                         />
                         <TextField
                           label="FIRSTNAME"
                           value={editedProfile?.first_nm || ''}
-                          onChange={(e) => {
-                            // 大文字半角英語のみを許可
-                            const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
-                            setEditedProfile(prev => prev ? {...prev, first_nm: value} : null);
-                          }}
+                          onChange={(e) => setEditedProfile(prev => prev ? {...prev, first_nm: e.target.value} : null)}
                           variant="outlined"
                           size="small"
+                          error={!!errors.first_nm}
+                          helperText={errors.first_nm}
                           InputProps={{
                             style: { color: '#FCFCFC', fontSize: '0.875rem' }
                           }}
@@ -683,7 +712,7 @@ const EmpProfilePage = () => {
                           sx={{
                             '& .MuiOutlinedInput-root': {
                               '& fieldset': {
-                                borderColor: '#3D3D43',
+                                borderColor: errors.first_nm ? '#ef4444' : '#3D3D43',
                               },
                               '&:hover fieldset': {
                                 borderColor: '#8E93DA',
@@ -692,6 +721,9 @@ const EmpProfilePage = () => {
                                 borderColor: '#8E93DA',
                               },
                               backgroundColor: '#23232A',
+                            },
+                            '& .MuiFormHelperText-root': {
+                              color: '#ef4444',
                             },
                           }}
                         />

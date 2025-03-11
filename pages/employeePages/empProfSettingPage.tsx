@@ -37,7 +37,7 @@ const EmpProfSettingPage = () => {
     first_nm: "",
     gender: "",
   });
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isLoading, setIsLoading] = useState(false);
 
   // 初期データの取得
@@ -70,12 +70,31 @@ const EmpProfSettingPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError("");
+    setErrors({});
 
     try {
-      // 入力値の検証
-      if (!profile.myoji || !profile.namae || !profile.last_nm || !profile.first_nm || !profile.gender) {
-        throw new Error("氏名の項目を入力してください");
+      const newErrors: {[key: string]: string} = {};
+
+      // 必須項目のバリデーション
+      if (!profile.myoji) newErrors.myoji = "名字を入力してください";
+      if (!profile.namae) newErrors.namae = "名前を入力してください";
+      if (!profile.last_nm) newErrors.last_nm = "LASTNAMEを入力してください";
+      if (!profile.first_nm) newErrors.first_nm = "FIRSTNAMEを入力してください";
+      if (!profile.gender) newErrors.gender = "性別を選択してください";
+
+      // 英語名のバリデーション
+      if (profile.last_nm && !/^[A-Za-z]+$/.test(profile.last_nm)) {
+        newErrors.last_nm = "LASTNAMEは半角英字のみ入力可能です";
+      }
+      if (profile.first_nm && !/^[A-Za-z]+$/.test(profile.first_nm)) {
+        newErrors.first_nm = "FIRSTNAMEは半角英字のみ入力可能です";
+      }
+
+      // エラーがある場合は処理を中断
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        setIsLoading(false);
+        return;
       }
 
       // プロフィールの更新
@@ -84,23 +103,31 @@ const EmpProfSettingPage = () => {
         .update({
           myoji: profile.myoji,
           namae: profile.namae,
-          last_nm: profile.last_nm,
-          first_nm: profile.first_nm,
+          last_nm: profile.last_nm.toUpperCase(),
+          first_nm: profile.first_nm.toUpperCase(),
           gender: profile.gender,
         })
         .eq("emp_no", profile.emp_no);
 
       if (error) throw error;
 
+      // カスタムイベントを発行してヘッダーに通知
+      const userUpdateEvent = new CustomEvent('userProfileUpdate', {
+        detail: {
+          myoji: profile.myoji,
+          namae: profile.namae,
+          icon_url: null // アイコンURLがある場合は適切な値を設定
+        }
+      });
+      window.dispatchEvent(userUpdateEvent);
+
       // 更新成功後、メインページへ遷移
       router.push("/employeePages/empMainPage");
 
     } catch (error: unknown) {
       console.error("更新エラー:", error);
-      if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError("プロフィールの更新に失敗しました");
+      if (error instanceof Error && !Object.keys(errors).length) {
+        setErrors({ general: "プロフィールの更新に失敗しました" });
       }
     } finally {
       setIsLoading(false);
@@ -118,7 +145,13 @@ const EmpProfSettingPage = () => {
           <h1 className="text-2xl font-bold mb-2 text-[#FCFCFC]">プロフィール設定</h1>
 
           <div className="bg-[#2f3033] rounded-lg shadow-md p-6">
-            <form onSubmit={handleSubmit} className="space-y-2">
+            {errors.general && (
+              <div className="mb-4 p-3 rounded bg-red-500 bg-opacity-10 border border-red-500 text-red-500">
+                {errors.general}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
               {/* 漢字名 */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -129,9 +162,12 @@ const EmpProfSettingPage = () => {
                     type="text"
                     value={profile.myoji}
                     onChange={(e) => setProfile({ ...profile, myoji: e.target.value })}
-                    className={inputClassName}
+                    className={`${inputClassName} ${errors.myoji ? 'border-red-500 border-2' : ''}`}
                     placeholder="根菜"
                   />
+                  {errors.myoji && (
+                    <p className="mt-1 text-sm text-red-500">{errors.myoji}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[#FCFCFC] mb-1">
@@ -141,9 +177,12 @@ const EmpProfSettingPage = () => {
                     type="text"
                     value={profile.namae}
                     onChange={(e) => setProfile({ ...profile, namae: e.target.value })}
-                    className={inputClassName}
+                    className={`${inputClassName} ${errors.namae ? 'border-red-500 border-2' : ''}`}
                     placeholder="太郎"
                   />
+                  {errors.namae && (
+                    <p className="mt-1 text-sm text-red-500">{errors.namae}</p>
+                  )}
                 </div>
               </div>
 
@@ -156,14 +195,13 @@ const EmpProfSettingPage = () => {
                   <input
                     type="text"
                     value={profile.last_nm}
-                    onChange={(e) => {
-                      // 大文字半角英語のみを許可
-                      const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
-                      setProfile({ ...profile, last_nm: value });
-                    }}
-                    className={inputClassName}
+                    onChange={(e) => setProfile({ ...profile, last_nm: e.target.value })}
+                    className={`${inputClassName} ${errors.last_nm ? 'border-red-500 border-2' : ''}`}
                     placeholder="KONSAI"
                   />
+                  {errors.last_nm && (
+                    <p className="mt-1 text-sm text-red-500">{errors.last_nm}</p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[#FCFCFC] mb-1">
@@ -172,18 +210,17 @@ const EmpProfSettingPage = () => {
                   <input
                     type="text"
                     value={profile.first_nm}
-                    onChange={(e) => {
-                      // 大文字半角英語のみを許可
-                      const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
-                      setProfile({ ...profile, first_nm: value });
-                    }}
-                    className={inputClassName}
+                    onChange={(e) => setProfile({ ...profile, first_nm: e.target.value })}
+                    className={`${inputClassName} ${errors.first_nm ? 'border-red-500 border-2' : ''}`}
                     placeholder="TARO"
                   />
+                  {errors.first_nm && (
+                    <p className="mt-1 text-sm text-red-500">{errors.first_nm}</p>
+                  )}
                 </div>
               </div>
 
-              {/* 性別選択欄を修正 */}
+              {/* 性別選択欄 */}
               <div>
                 <label className="block text-sm font-medium text-[#FCFCFC] mb-1">
                   性別
@@ -195,7 +232,7 @@ const EmpProfSettingPage = () => {
                       value={GENDER.MALE}
                       checked={profile.gender === GENDER.MALE}
                       onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
-                      className="text-[#8E93DA] focus:ring-[#8E93DA]"
+                      className={`text-[#8E93DA] focus:ring-[#8E93DA] ${errors.gender ? 'border-red-500' : ''}`}
                     />
                     <span className="text-[#FCFCFC]">男性</span>
                   </label>
@@ -205,7 +242,7 @@ const EmpProfSettingPage = () => {
                       value={GENDER.FEMALE}
                       checked={profile.gender === GENDER.FEMALE}
                       onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
-                      className="text-[#8E93DA] focus:ring-[#8E93DA]"
+                      className={`text-[#8E93DA] focus:ring-[#8E93DA] ${errors.gender ? 'border-red-500' : ''}`}
                     />
                     <span className="text-[#FCFCFC]">女性</span>
                   </label>
@@ -215,20 +252,18 @@ const EmpProfSettingPage = () => {
                       value={GENDER.OTHER}
                       checked={profile.gender === GENDER.OTHER}
                       onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
-                      className="text-[#8E93DA] focus:ring-[#8E93DA]"
+                      className={`text-[#8E93DA] focus:ring-[#8E93DA] ${errors.gender ? 'border-red-500' : ''}`}
                     />
                     <span className="text-[#FCFCFC]">その他</span>
                   </label>
                 </div>
+                {errors.gender && (
+                  <p className="mt-1 text-sm text-red-500">{errors.gender}</p>
+                )}
               </div>
 
-              {/* エラーメッセージ */}
-              {error && (
-                <div className="text-red-500 text-sm">{error}</div>
-              )}
-
               {/* ボタングループ */}
-              <div className="flex justify-end gap-4">
+              <div className="flex justify-end gap-4 pt-4">
                 <button
                   type="button"
                   onClick={handleCancel}
