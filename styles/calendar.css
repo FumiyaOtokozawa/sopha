@@ -355,13 +355,18 @@ body .rbc-overlay {
   background-color: #2d2d33 !important;
   border: 1px solid #3f3f46 !important;
   border-radius: 8px !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-  padding: 12px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+  padding: 8px !important;
   z-index: 1000 !important;
-  min-width: 280px !important; /* ポップアップの最小幅を設定 */
-  max-width: 90vw !important; /* 画面幅の90%を超えないように */
-  transform: translateY(-100%) !important; /* 上部に表示するための変換 */
-  margin-bottom: 10px !important; /* 「他 X 件」との間隔 */
+  min-width: 280px !important;
+  max-width: 90vw !important;
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  margin: 0 !important;
+  max-height: 80vh !important;
+  overflow-y: auto !important;
 }
 
 body .rbc-overlay-header {
@@ -369,26 +374,26 @@ body .rbc-overlay-header {
 }
 
 body .rbc-overlay .rbc-event {
-  margin: 2px 0 !important;
-  padding: 4px 4px !important;
-  background-color: #5b63d3 !important;
-  border-radius: 6px !important;
-  min-height: 44px !important; /* タップしやすい最小高さ */
+  margin: 4px 0 !important;
+  padding: 8px 12px !important;
+  background-color: #37373F !important;
+  border-radius: 4px !important;
+  min-height: 36px !important;
   display: flex !important;
   align-items: center !important;
   color: white !important;
+  transition: background-color 0.2s ease !important;
 }
 
 body .rbc-overlay .rbc-event:hover {
   background-color: #404049 !important;
 }
 
-/* ポップアップ内のイベントテキストを見やすく */
 body .rbc-overlay .rbc-event .rbc-event-content {
-  font-size: 1.5rem !important;
+  font-size: 0.875rem !important;
   line-height: 1.4 !important;
   height: auto !important;
-  white-space: normal !important; /* テキストを折り返し可能に */
+  white-space: normal !important;
   overflow: visible !important;
   color: white !important;
 }
@@ -396,13 +401,31 @@ body .rbc-overlay .rbc-event .rbc-event-content {
 /* スマホ表示時のポップアップ調整 */
 @media (max-width: 640px) {
   body .rbc-overlay {
-    min-width: 25px !important;
-    max-width: 95vw !important;
-    padding: 10px !important;
+    min-width: 85vw !important;
+    max-height: 70vh !important;
+    padding: 12px !important;
   }
   
   body .rbc-overlay .rbc-event {
-    padding: 1px 12px !important;
-    min-height: 30px !important;
+    padding: 6px 8px !important;
+    min-height: 32px !important;
   }
+
+  body .rbc-overlay .rbc-event .rbc-event-content {
+    font-size: 0.75rem !important;
+  }
+}
+
+/* スクロールバーのスタイル */
+body .rbc-overlay::-webkit-scrollbar {
+  width: 4px !important;
+}
+
+body .rbc-overlay::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+body .rbc-overlay::-webkit-scrollbar-thumb {
+  background: #4a4a4f !important;
+  border-radius: 2px !important;
 } 
