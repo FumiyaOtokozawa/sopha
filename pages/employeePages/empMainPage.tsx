@@ -454,7 +454,7 @@ const EmpMainPage = () => {
             >
               <button
                 onClick={handleOpenTodayEventsModal}
-                className="w-full py-2.5 px-2.5 bg-[#5b63d3] text-white font-bold rounded-md hover:bg-opacity-90 transition-colors flex items-center justify-center gap-2"
+                className="w-full py-2.5 px-2.5 bg-[#5b63d3] text-white font-bold rounded-md transition-colors flex items-center justify-center gap-2"
               >
                 <EventIcon />
                 本日のイベント
@@ -494,7 +494,7 @@ const EmpMainPage = () => {
                     {todayEvents.map((event) => (
                       <div
                         key={event.event_id}
-                        className="bg-[#37373F] p-2.5 rounded-md hover:bg-[#404049] transition-colors cursor-pointer"
+                        className="bg-[#37373F] p-2.5 rounded-md transition-colors cursor-pointer"
                         onClick={() => handleOpenEventDetail(event.event_id.toString())}
                       >
                         <div className="flex items-center gap-2">
@@ -521,7 +521,7 @@ const EmpMainPage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.1 }}
               className="bg-[#2f3033] rounded-lg shadow-md p-4 py-2 flex flex-col"
-              style={{ height: 'calc(100vh - 25rem)' }}
+              style={{ height: 'calc(100vh - 30rem)' }}
             >
               <div className="flex justify-center items-center mb-2">
                 <Tabs 
@@ -575,7 +575,7 @@ const EmpMainPage = () => {
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ duration: 0.3, delay: index * 0.05 }}
-                              className="bg-[#404040] px-3 py-2 rounded-md cursor-pointer hover:bg-[#4a4a4a] transition-colors"
+                              className="bg-[#404040] px-3 py-2 rounded-md cursor-pointer transition-colors"
                               onClick={() => handleOpenEventDetail(item.event_id.toString())}
                             >
                               <div className="flex justify-between items-center">
@@ -606,7 +606,7 @@ const EmpMainPage = () => {
                             <button
                               onClick={handleLoadMore}
                               disabled={isLoadingMore}
-                              className="bg-[#363636] text-[#FCFCFC] py-2.5 rounded-md text-xs xs:text-sm font-medium hover:bg-[#404040] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 w-full"
+                              className="bg-[#363636] text-[#FCFCFC] py-2.5 rounded-md text-xs xs:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 w-full"
                             >
                               {isLoadingMore ? (
                                 <span className="flex items-center justify-center gap-2">
@@ -634,7 +634,7 @@ const EmpMainPage = () => {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.3, delay: index * 0.05 }}
-                            className="bg-[#404040] px-3 py-2 rounded-md cursor-pointer hover:bg-[#4a4a4a] transition-colors"
+                            className="bg-[#404040] px-3 py-2 rounded-md cursor-pointer transition-colors"
                             onClick={() => handleOpenEventDetail(item.EVENT_LIST.event_id.toString())}
                           >
                             <div className="flex justify-between items-center">
@@ -665,7 +665,7 @@ const EmpMainPage = () => {
                             <button
                               onClick={handleLoadMore}
                               disabled={isLoadingMore}
-                              className="bg-[#363636] text-[#FCFCFC] py-2.5 rounded-md text-xs xs:text-sm font-medium hover:bg-[#404040] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 w-full"
+                              className="bg-[#363636] text-[#FCFCFC] py-2.5 rounded-md text-xs xs:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 w-full"
                             >
                               {isLoadingMore ? (
                                 <span className="flex items-center justify-center gap-2">
