@@ -39,6 +39,25 @@ type EventParticipationHistory = {
   };
 };
 
+type ScheduledEvent = {
+  entry_id: number;
+  emp_no: number;
+  event_id: number;
+  status: string;
+  updated_at: string;
+  EVENT_LIST: {
+    title: string;
+    genre: string;
+    event_id: number;
+    start_date: string;
+    end_date: string;
+    venue_id: number;
+    venue: {
+      venue_nm: string;
+    }
+  };
+};
+
 type TodayEvent = {
   event_id: number;
   title: string;
@@ -59,8 +78,9 @@ const EmpMainPage = () => {
   const [monthlyChange, setMonthlyChange] = useState<number>(0);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [participation, setParticipation] = useState<EventParticipation | null>(null);
-  const [activeTab, setActiveTab] = useState<'points' | 'events'>('points');
+  const [activeTab, setActiveTab] = useState<'scheduled' | 'points' | 'events'>('scheduled');
   const [participationHistory, setParticipationHistory] = useState<EventParticipationHistory[]>([]);
+  const [scheduledEvents, setScheduledEvents] = useState<ScheduledEvent[]>([]);
   const [pointsPage, setPointsPage] = useState<number>(1);
   const [eventsPage, setEventsPage] = useState<number>(1);
   const [hasMorePoints, setHasMorePoints] = useState<boolean>(true);
@@ -303,12 +323,12 @@ const EmpMainPage = () => {
     }
   };
 
-  const handleTabChange = (_: React.SyntheticEvent, newValue: 'points' | 'events') => {
+  const handleTabChange = (_: React.SyntheticEvent, newValue: 'scheduled' | 'points' | 'events') => {
     setActiveTab(newValue);
     if (newValue === 'points') {
       setPointsPage(1);
       fetchHistory(1);
-    } else {
+    } else if (newValue === 'events') {
       setEventsPage(1);
       fetchParticipationHistory(1);
     }
@@ -413,6 +433,47 @@ const EmpMainPage = () => {
     setSelectedEventId(null);
   };
 
+  const fetchScheduledEvents = useCallback(async () => {
+    if (!employeeNumber) return;
+
+    try {
+      const now = new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from("EVENT_TEMP_ENTRY")
+        .select(`
+          *,
+          EVENT_LIST!inner (
+            title,
+            genre,
+            event_id,
+            start_date,
+            end_date,
+            venue_id,
+            venue:EVENT_VENUE!inner (
+              venue_nm
+            )
+          )
+        `)
+        .eq("emp_no", employeeNumber)
+        .eq("status", '1')
+        .gte("EVENT_LIST.start_date", now)
+        .order("EVENT_LIST(start_date)", { ascending: true });
+
+      if (error) throw error;
+      
+      setScheduledEvents(data || []);
+    } catch (error) {
+      console.error("参加予定イベントの取得エラー:", error);
+    }
+  }, [employeeNumber]);
+
+  useEffect(() => {
+    if (activeTab === 'scheduled') {
+      fetchScheduledEvents();
+    }
+  }, [activeTab, employeeNumber, fetchScheduledEvents]);
+
   return (
     <Box sx={{ 
       position: 'relative',
@@ -430,7 +491,7 @@ const EmpMainPage = () => {
             >
               <div className="text-right">
                 <div className="text-[#FCFCFC] text-4xl font-bold mb-2">
-                  <motion.span>{animatedPoints}</motion.span> <span className="text-2xl">ciz</span>
+                  <motion.span>{animatedPoints}</motion.span> <span className="text-2xl">CIZ</span>
                 </div>
                 <div className={`text-sm ${monthlyChange >= 0 ? 'text-green-400' : 'text-red-400'} mb-3`}>
                   <motion.span>{animatedMonthlyChange}</motion.span>
@@ -547,7 +608,8 @@ const EmpMainPage = () => {
                     },
                   }}
                 >
-                  <Tab value="points" label="ポイント履歴" />
+                  <Tab value="scheduled" label="参加予定" />
+                  <Tab value="points" label="CIZ履歴" />
                   <Tab value="events" label="参加履歴" />
                 </Tabs>
               </div>
@@ -558,7 +620,41 @@ const EmpMainPage = () => {
                 transition={{ duration: 0.3, delay: 0.2 }}
                 className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent overscroll-contain"
               >
-                {activeTab === 'points' ? (
+                {activeTab === 'scheduled' ? (
+                  <div className="space-y-2">
+                    {scheduledEvents.length === 0 ? (
+                      <p className="text-gray-400">参加予定のイベントはありません</p>
+                    ) : (
+                      scheduledEvents.map((event, index) => (
+                        <motion.div
+                          key={`scheduled-${event.entry_id}`}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.3, delay: index * 0.05 }}
+                          className="bg-[#404040] px-3 py-2 rounded-md cursor-pointer transition-colors"
+                          onClick={() => handleOpenEventDetail(event.EVENT_LIST.event_id.toString())}
+                        >
+                          <div className="flex justify-between items-center">
+                            <div className="flex-1 mr-4">
+                              <p className="text-xs xs:text-sm sm:text-base font-medium break-all text-[#FCFCFC] leading-relaxed">
+                                {event.EVENT_LIST.title}
+                              </p>
+                              <p className="text-[10px] xs:text-xs sm:text-sm text-gray-400 mt-1.5">
+                                {format(new Date(event.EVENT_LIST.start_date), 'yyyy年MM月dd日 HH:mm', { locale: ja })} - 
+                                {format(new Date(event.EVENT_LIST.end_date), ' HH:mm', { locale: ja })}
+                              </p>
+                            </div>
+                            <div className={`text-xs xs:text-sm font-medium ${
+                              event.EVENT_LIST.genre === '1' ? 'text-blue-400' : 'text-green-400'
+                            }`}>
+                              {event.EVENT_LIST.genre === '1' ? '公式' : '有志'}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))
+                    )}
+                  </div>
+                ) : activeTab === 'points' ? (
                   <div className="space-y-2">
                     {historyList.length === 0 ? (
                       <p className="text-gray-400">履歴はありません</p>
