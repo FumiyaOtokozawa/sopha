@@ -51,8 +51,8 @@ interface Event {
 interface EventParticipant {
   entry_id: number;
   emp_no: number;
-  myoji: string;
-  namae: string;
+  myoji: string | null;
+  namae: string | null;
   status: '1' | '2' | '11';
   icon_url: string | null;
 }
@@ -62,10 +62,10 @@ interface SupabaseEntry {
   emp_no: number;
   status: '1' | '2' | '11';
   USER_INFO: {
-    myoji: string;
-    namae: string;
+    myoji: string | null;
+    namae: string | null;
     icon_url: string | null;
-  };
+  } | null;
 }
 
 export const isConfirmationAllowed = (startDate: string): { isValid: boolean; message?: string } => {
@@ -370,10 +370,10 @@ const EventDetailPage: React.FC = () => {
             const formattedParticipants = (participantsData as unknown as SupabaseEntry[])?.map(entry => ({
               entry_id: entry.entry_id,
               emp_no: entry.emp_no,
-              myoji: entry.USER_INFO.myoji,
-              namae: entry.USER_INFO.namae,
+              myoji: entry.USER_INFO?.myoji || null,
+              namae: entry.USER_INFO?.namae || null,
               status: entry.status,
-              icon_url: entry.USER_INFO.icon_url
+              icon_url: entry.USER_INFO?.icon_url || null
             })) || [];
 
             setParticipants(formattedParticipants);
@@ -474,8 +474,8 @@ const EventDetailPage: React.FC = () => {
           updatedParticipants.push({
             entry_id: -1, // 仮のID（バックエンドで実際のIDが生成される）
             emp_no: currentUserEmpNo,
-            myoji: userData.myoji,
-            namae: userData.namae,
+            myoji: userData.myoji || null,
+            namae: userData.namae || null,
             status: status,
             icon_url: null
           });
@@ -523,10 +523,10 @@ const EventDetailPage: React.FC = () => {
             const formattedParticipants = (data as unknown as SupabaseEntry[])?.map(entry => ({
               entry_id: entry.entry_id,
               emp_no: entry.emp_no,
-              myoji: entry.USER_INFO.myoji,
-              namae: entry.USER_INFO.namae,
+              myoji: entry.USER_INFO?.myoji || null,
+              namae: entry.USER_INFO?.namae || null,
               status: entry.status,
-              icon_url: entry.USER_INFO.icon_url
+              icon_url: entry.USER_INFO?.icon_url || null
             })) || [];
             
             setParticipants(formattedParticipants);
@@ -654,10 +654,10 @@ const EventDetailPage: React.FC = () => {
       const formattedParticipants = (updatedParticipants as unknown as SupabaseEntry[])?.map(entry => ({
         entry_id: entry.entry_id,
         emp_no: entry.emp_no,
-        myoji: entry.USER_INFO.myoji,
-        namae: entry.USER_INFO.namae,
+        myoji: entry.USER_INFO?.myoji || null,
+        namae: entry.USER_INFO?.namae || null,
         status: entry.status,
-        icon_url: entry.USER_INFO.icon_url
+        icon_url: entry.USER_INFO?.icon_url || null
       })) || [];
 
       setParticipants(formattedParticipants);
@@ -1113,14 +1113,16 @@ const EventDetailPage: React.FC = () => {
                                           : '#22c55e',
                                       }}
                                     >
-                                      {participant.myoji[0]}
+                                      {participant.myoji ? participant.myoji[0] : '?'}
                                     </Avatar>
                                     <span className={`ml-1 text-[10px] ${
                                       participant.status === '11' 
                                         ? 'text-white' 
                                         : 'text-green-500'
                                     }`}>
-                                      {participant.myoji} {participant.namae}
+                                      {participant.myoji && participant.namae 
+                                        ? `${participant.myoji} ${participant.namae}`
+                                        : `未設定(${participant.emp_no})`}
                                     </span>
                                   </div>
                                 ))}
@@ -1163,10 +1165,12 @@ const EventDetailPage: React.FC = () => {
                                         color: '#ef4444',
                                       }}
                                     >
-                                      {participant.myoji[0]}
+                                      {participant.myoji ? participant.myoji[0] : '?'}
                                     </Avatar>
                                     <span className="ml-1 text-[10px] text-red-500">
-                                      {participant.myoji} {participant.namae}
+                                      {participant.myoji && participant.namae 
+                                        ? `${participant.myoji} ${participant.namae}`
+                                        : `未設定(${participant.emp_no})`}
                                     </span>
                                   </div>
                                 ))}
