@@ -154,13 +154,19 @@ export default function Header() {
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-white text-base font-medium">
-                  {userInfo ? `${userInfo.myoji.charAt(0)}${userInfo.namae.charAt(0)}` : ""}
+                  {userInfo?.myoji && userInfo?.namae ? 
+                    `${userInfo.myoji.charAt(0)}${userInfo.namae.charAt(0)}` : 
+                    ""
+                  }
                 </div>
               )}
             </div>
             <div>
               <p className="font-bold">
-                {userInfo ? `${userInfo.myoji} ${userInfo.namae}` : "Loading..."}
+                {userInfo?.myoji && userInfo?.namae ? 
+                  `${userInfo.myoji} ${userInfo.namae}` : 
+                  "Loading..."
+                }
               </p>
               <p className="text-sm text-[#FCFCFC]">
                 {userInfo ? `No.\u2068${userInfo.emp_no}\u2069` : ""}
