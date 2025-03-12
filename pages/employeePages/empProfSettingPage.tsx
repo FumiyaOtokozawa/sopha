@@ -78,16 +78,16 @@ const EmpProfSettingPage = () => {
       // 必須項目のバリデーション
       if (!profile.myoji) newErrors.myoji = "名字を入力してください";
       if (!profile.namae) newErrors.namae = "名前を入力してください";
-      if (!profile.last_nm) newErrors.last_nm = "LASTNAMEを入力してください";
-      if (!profile.first_nm) newErrors.first_nm = "FIRSTNAMEを入力してください";
+      if (!profile.last_nm) newErrors.last_nm = "MYOJIを入力してください";
+      if (!profile.first_nm) newErrors.first_nm = "NAMAEを入力してください";
       if (!profile.gender) newErrors.gender = "性別を選択してください";
 
       // 英語名のバリデーション
       if (profile.last_nm && !/^[A-Za-z]+$/.test(profile.last_nm)) {
-        newErrors.last_nm = "LASTNAMEは半角英字のみ入力可能です";
+        newErrors.last_nm = "MYOJIは半角英字のみ入力可能です";
       }
       if (profile.first_nm && !/^[A-Za-z]+$/.test(profile.first_nm)) {
-        newErrors.first_nm = "FIRSTNAMEは半角英字のみ入力可能です";
+        newErrors.first_nm = "NAMAEは半角英字のみ入力可能です";
       }
 
       // エラーがある場合は処理を中断
@@ -190,7 +190,7 @@ const EmpProfSettingPage = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-[#FCFCFC] mb-1">
-                    LASTNAME
+                    MYOJI
                   </label>
                   <input
                     type="text"
@@ -205,7 +205,7 @@ const EmpProfSettingPage = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[#FCFCFC] mb-1">
-                    FIRSTNAME
+                    NAMAE
                   </label>
                   <input
                     type="text"

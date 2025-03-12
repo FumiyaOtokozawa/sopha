@@ -219,16 +219,16 @@ const EmpProfilePage = () => {
       // 必須項目のバリデーション
       if (!editedProfile.myoji) newErrors.myoji = "名字を入力してください";
       if (!editedProfile.namae) newErrors.namae = "名前を入力してください";
-      if (!editedProfile.last_nm) newErrors.last_nm = "LASTNAMEを入力してください";
-      if (!editedProfile.first_nm) newErrors.first_nm = "FIRSTNAMEを入力してください";
+      if (!editedProfile.last_nm) newErrors.last_nm = "MYOJIを入力してください";
+      if (!editedProfile.first_nm) newErrors.first_nm = "NAMAEを入力してください";
       if (!editedProfile.gender) newErrors.gender = "性別を選択してください";
 
       // 英語名のバリデーション
       if (editedProfile.last_nm && !/^[A-Za-z]+$/.test(editedProfile.last_nm)) {
-        newErrors.last_nm = "LASTNAMEは半角英字のみ入力可能です";
+        newErrors.last_nm = "MYOJIは半角英字のみ入力可能です";
       }
       if (editedProfile.first_nm && !/^[A-Za-z]+$/.test(editedProfile.first_nm)) {
-        newErrors.first_nm = "FIRSTNAMEは半角英字のみ入力可能です";
+        newErrors.first_nm = "NAMAEは半角英字のみ入力可能です";
       }
 
       // エラーがある場合は処理を中断
@@ -664,7 +664,7 @@ const EmpProfilePage = () => {
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <TextField
-                          label="LASTNAME"
+                          label="MYOJI"
                           value={editedProfile?.last_nm || ''}
                           onChange={(e) => setEditedProfile(prev => prev ? {...prev, last_nm: e.target.value} : null)}
                           variant="outlined"
@@ -696,7 +696,7 @@ const EmpProfilePage = () => {
                           }}
                         />
                         <TextField
-                          label="FIRSTNAME"
+                          label="NAMAE"
                           value={editedProfile?.first_nm || ''}
                           onChange={(e) => setEditedProfile(prev => prev ? {...prev, first_nm: e.target.value} : null)}
                           variant="outlined"
