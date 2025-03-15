@@ -184,6 +184,9 @@ const MOCK_POSITIONS = {
   FAR: { // 会場から離れた位置
     latitude: 35.6895014,
     longitude: 139.7087834
+  },
+  TIMEOUT: { // タイムアウトをシミュレート
+    shouldTimeout: true
   }
 };
 
@@ -197,16 +200,6 @@ const isWithinEventPeriod = (event: Event | null): boolean => {
   // データベースの日時をJSTとして扱う
   const eventStart = new Date(event.start_date);
   const eventEnd = new Date(event.end_date);
-
-  console.log('時間チェック:', {
-    現在時刻: format(nowJST, 'yyyy/MM/dd HH:mm:ss'),
-    開始時刻: format(eventStart, 'yyyy/MM/dd HH:mm:ss'),
-    終了時刻: format(eventEnd, 'yyyy/MM/dd HH:mm:ss'),
-    開始時刻より後か: nowJST >= eventStart,
-    終了時刻より前か: nowJST <= eventEnd,
-    生の開始時刻: event.start_date,
-    生の終了時刻: event.end_date
-  });
 
   return nowJST >= eventStart && nowJST <= eventEnd;
 };
@@ -276,7 +269,7 @@ const EventDetailPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [useMockLocation, setUseMockLocation] = useState(false);
-  const [mockLocationType, setMockLocationType] = useState<'VENUE' | 'FAR'>('VENUE');
+  const [mockLocationType, setMockLocationType] = useState<'VENUE' | 'FAR' | 'TIMEOUT'>('VENUE');
   const [isCopied, setIsCopied] = useState(false);
   const [manageMembers, setManageMembers] = useState<string[]>([]);
   const [confirmationDialog, setConfirmationDialog] = useState<{open: boolean, message: string}>({
@@ -545,12 +538,23 @@ const EventDetailPage: React.FC = () => {
 
   // 位置情報を取得して出席確認を行う関数
   const handleConfirmAttendance = async () => {
+    let timeoutId: NodeJS.Timeout | undefined;
+
     try {
       setIsGettingLocation(true);
 
       // 位置情報の取得（開発環境用のモック機能を追加）
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         if (process.env.NODE_ENV === 'development' && useMockLocation) {
+          // タイムアウトのシミュレーション
+          if (mockLocationType === 'TIMEOUT') {
+            timeoutId = setTimeout(() => {
+              setIsGettingLocation(false);
+              reject(new Error('位置情報の取得がタイムアウトしました'));
+            }, 20000); // 20秒後にタイムアウト
+            return;
+          }
+
           // モックの位置情報を返す
           const mockPosition = {
             coords: {
@@ -565,124 +569,117 @@ const EventDetailPage: React.FC = () => {
             timestamp: Date.now()
           } as GeolocationPosition;
 
-          console.log('モック位置情報:', {
-            latitude: mockPosition.coords.latitude,
-            longitude: mockPosition.coords.longitude,
-            type: mockLocationType
-          });
-
           resolve(mockPosition);
           return;
         }
 
         if (!navigator.geolocation) {
+          setIsGettingLocation(false);
           reject(new Error('このブラウザは位置情報をサポートしていません'));
           return;
         }
 
-        navigator.geolocation.getCurrentPosition(
+        const watchId = navigator.geolocation.watchPosition(
           (pos) => {
-            console.log('取得した位置情報:', {
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-              accuracy: pos.coords.accuracy
-            });
+            navigator.geolocation.clearWatch(watchId);
             resolve(pos);
           },
           (error) => {
-            console.error('位置情報取得エラー:', {
-              code: error.code,
-              message: error.message
-            });
+            navigator.geolocation.clearWatch(watchId);
+
+            let errorMessage = '';
             switch(error.code) {
               case error.PERMISSION_DENIED:
-                reject(new Error('位置情報の使用が許可されていません。\nブラウザの設定をご確認ください'));
+                errorMessage = '位置情報の使用が許可されていません。\nブラウザの設定をご確認ください';
                 break;
               case error.POSITION_UNAVAILABLE:
-                reject(new Error('位置情報を取得できませんでした'));
+                errorMessage = '位置情報を取得できませんでした';
                 break;
               case error.TIMEOUT:
-                reject(new Error('位置情報の取得がタイムアウトしました'));
+                errorMessage = '位置情報の取得がタイムアウトしました';
                 break;
               default:
-                reject(error);
+                errorMessage = '位置情報の取得に失敗しました';
             }
+
+            setIsGettingLocation(false);
+            reject(new Error(errorMessage));
           },
           {
             enableHighAccuracy: true,
-            timeout: 10000,
+            timeout: 15000, // 15秒でタイムアウト
             maximumAge: 0
           }
         );
+
+        // クリーンアップ関数を設定
+        return () => {
+          if (timeoutId) clearTimeout(timeoutId);
+          navigator.geolocation.clearWatch(watchId);
+        };
       });
 
-      // 出席確認処理の実行
-      const result = await handleAttendanceConfirmation(
-        supabase,
-        router.query.event_id,
-        event,
-        currentUserEmpNo,
-        position
-      );
+      // 位置情報の取得に成功した場合のみ、以降の処理を実行
+      if (position) {
+        try {
+          // 出席確認処理の実行
+          const result = await handleAttendanceConfirmation(
+            supabase,
+            router.query.event_id,
+            event,
+            currentUserEmpNo,
+            position
+          );
 
-      if (!result.success) {
-        setConfirmationDialog({
-          open: true,
-          message: result.message || 'エラーが発生しました'
-        });
-        return;
+          if (!result.success) {
+            throw new Error(result.message || '本出席の確定に失敗しました');
+          }
+
+          // 成功時の処理（参加者一覧の更新など）
+          const { data: updatedParticipants, error: participantsError } = await supabase
+            .from('EVENT_TEMP_ENTRY')
+            .select(`
+              entry_id,
+              emp_no,
+              status,
+              USER_INFO!inner(myoji, namae, icon_url)
+            `)
+            .eq('event_id', router.query.event_id)
+            .order('entry_id', { ascending: true });
+
+          if (participantsError) {
+            throw new Error('参加者一覧の更新に失敗しました');
+          }
+
+          const formattedParticipants = (updatedParticipants as unknown as SupabaseEntry[])?.map(entry => ({
+            entry_id: entry.entry_id,
+            emp_no: entry.emp_no,
+            myoji: entry.USER_INFO?.myoji || null,
+            namae: entry.USER_INFO?.namae || null,
+            status: entry.status,
+            icon_url: entry.USER_INFO?.icon_url || null
+          })) || [];
+
+          setParticipants(formattedParticipants);
+          setEntryStatus('11'); // 出席済みステータスに更新
+          setConfirmationDialog({
+            open: true,
+            message: result.message || '出席を確定しました'
+          });
+        } catch (error) {
+          if (error instanceof Error) {
+            throw error;
+          }
+          throw new Error('予期せぬエラーが発生しました');
+        }
       }
-
-      // 成功時の処理（参加者一覧の更新など）
-      const { data: updatedParticipants, error: participantsError } = await supabase
-        .from('EVENT_TEMP_ENTRY')
-        .select(`
-          entry_id,
-          emp_no,
-          status,
-          USER_INFO!inner(myoji, namae, icon_url)
-        `)
-        .eq('event_id', router.query.event_id)
-        .order('entry_id', { ascending: true });
-
-      if (participantsError) {
-        console.error('参加者一覧の更新に失敗:', participantsError);
-        setConfirmationDialog({
-          open: true,
-          message: '参加者一覧の更新に失敗しました'
-        });
-        return;
-      }
-
-      const formattedParticipants = (updatedParticipants as unknown as SupabaseEntry[])?.map(entry => ({
-        entry_id: entry.entry_id,
-        emp_no: entry.emp_no,
-        myoji: entry.USER_INFO?.myoji || null,
-        namae: entry.USER_INFO?.namae || null,
-        status: entry.status,
-        icon_url: entry.USER_INFO?.icon_url || null
-      })) || [];
-
-      setParticipants(formattedParticipants);
-      setEntryStatus('11'); // 出席済みステータスに更新
-      setConfirmationDialog({
-        open: true,
-        message: result.message || '出席を確定しました'
-      });
-
     } catch (error) {
       if (error instanceof Error) {
-        setConfirmationDialog({
-          open: true,
-          message: error.message
-        });
-      } else {
-        setConfirmationDialog({
-          open: true,
-          message: '予期せぬエラーが発生しました'
-        });
+        throw error;
       }
+      throw new Error('予期せぬエラーが発生しました');
     } finally {
+      if (timeoutId) clearTimeout(timeoutId);
       setIsGettingLocation(false);
     }
   };
@@ -1351,10 +1348,25 @@ const EventDetailPage: React.FC = () => {
             </button>
             {useMockLocation && (
               <button
-                onClick={() => setMockLocationType(type => type === 'VENUE' ? 'FAR' : 'VENUE')}
+                onClick={() => setMockLocationType(type => {
+                  switch (type) {
+                    case 'VENUE':
+                      return 'FAR';
+                    case 'FAR':
+                      return 'TIMEOUT';
+                    default:
+                      return 'VENUE';
+                  }
+                })}
                 className="w-full px-4 py-2 rounded text-sm bg-blue-500 text-white"
               >
-                現在の位置: {mockLocationType === 'VENUE' ? '会場近く' : '会場から遠い'}
+                現在の位置: {
+                  mockLocationType === 'VENUE' 
+                    ? '会場近く' 
+                    : mockLocationType === 'FAR' 
+                      ? '会場から遠い'
+                      : 'タイムアウト'
+                }
               </button>
             )}
           </div>
