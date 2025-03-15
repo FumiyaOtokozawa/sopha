@@ -94,6 +94,7 @@ const EmpMainPage = () => {
   const [showTodayEventsModal, setShowTodayEventsModal] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [isEventDetailModalOpen, setIsEventDetailModalOpen] = useState(false);
+  const [now, setNow] = useState(new Date());
 
   // CIZ履歴の取得
   const {
@@ -196,6 +197,11 @@ const EmpMainPage = () => {
       return data || [];
     },
     enabled: !!employeeNumber && activeTab === 'scheduled',
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    gcTime: 0,
+    staleTime: 0
   });
 
   // 本日のイベントの取得
@@ -460,6 +466,41 @@ const EmpMainPage = () => {
     setActiveTab(newValue);
   };
 
+  // カウントダウン計算用の関数
+  const calculateTimeRemaining = (startDate: string) => {
+    const start = new Date(startDate);
+    const diffMs = start.getTime() - now.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffMs <= 0) {
+      return "開催中";
+    }
+    
+    if (diffMs > 24 * 60 * 60 * 1000) {
+      return `${diffDays}日前`;
+    }
+    
+    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+    
+    const parts = [];
+    if (hours > 0) parts.push(`${hours}時間`);
+    if (minutes > 0) parts.push(`${minutes}分`);
+    parts.push(`${seconds}秒前`);
+    
+    return parts.join('');
+  };
+
+  // 1秒ごとにカウントダウンを更新
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <Box sx={{ 
       position: 'relative',
@@ -630,10 +671,12 @@ const EmpMainPage = () => {
                                 {format(new Date(event.EVENT_LIST.end_date), ' HH:mm', { locale: ja })}
                               </p>
                             </div>
-                            <div className={`text-xs xs:text-sm font-medium ${
-                              event.EVENT_LIST.genre === '1' ? 'text-blue-400' : 'text-green-400'
-                            }`}>
-                              {event.EVENT_LIST.genre === '1' ? '公式' : '有志'}
+                            <div className="flex flex-col items-end">
+                              <div className="text-xs xs:text-sm font-medium text-yellow-400 flex items-center justify-end">
+                                <span className="font-mono tracking-wider tabular-nums whitespace-nowrap">
+                                  {calculateTimeRemaining(event.EVENT_LIST.start_date)}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </motion.div>
