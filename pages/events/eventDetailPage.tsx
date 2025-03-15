@@ -2,14 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../utils/supabaseClient';
 import { Box, Avatar, Dialog, CircularProgress } from '@mui/material';
-import ChangeCircleIcon from '@mui/icons-material/ChangeCircle';
 import { ja } from 'date-fns/locale';
 import { handleAttendanceConfirmation } from '../../utils/attendanceApprovalLogic';
-import Tooltip, { tooltipClasses, TooltipProps } from '@mui/material/Tooltip';
-import { styled } from '@mui/material/styles';
-import InfoIcon from '@mui/icons-material/Info';
-import EventEditForm from '../../components/EventEditForm';
 import { format } from 'date-fns';
+import EventEditForm from '../../components/EventEditForm';
 import EventDetailModal from '../../components/EventDetailModal';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -17,12 +13,10 @@ import PersonIcon from '@mui/icons-material/Person';
 import LinkIcon from '@mui/icons-material/Link';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import CloseIcon from '@mui/icons-material/Close';
 import CancelIcon from '@mui/icons-material/Cancel';
 import GroupIcon from '@mui/icons-material/Group';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import CheckIcon from '@mui/icons-material/Check';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import VideocamIcon from '@mui/icons-material/Videocam';
 import PeopleIcon from '@mui/icons-material/People';
@@ -96,83 +90,6 @@ export const isConfirmationAllowed = (startDate: string): { isValid: boolean; me
   }
 
   return { isValid: true };
-};
-
-// カスタムTooltipの定義を追加
-const CustomTooltip = styled(({ className, ...props }: { className?: string } & TooltipProps) => (
-  <Tooltip {...props} classes={{ popper: className }} />
-))(() => ({
-  [`& .${tooltipClasses.tooltip}`]: {
-    backgroundColor: '#2D2D33',
-    color: '#FCFCFC',
-    maxWidth: 300,
-    fontSize: '0.875rem',
-    border: '1px solid #4A4B50',
-    borderRadius: '8px',
-    padding: '12px 16px',
-    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-  },
-  [`& .${tooltipClasses.arrow}`]: {
-    color: '#2D2D33',
-    '&::before': {
-      border: '1px solid #4A4B50',
-    },
-  },
-}));
-
-// カスタムTooltipコンポーネントを作成
-const TooltipButton = ({ 
-  message, 
-  isDisabled, 
-  onClick,
-  children 
-}: { 
-  message?: string;
-  isDisabled: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) => {
-  const [showTooltip, setShowTooltip] = useState(false);
-
-  return (
-    <div className="relative w-full">
-      <button
-        onClick={() => {
-          if (!isDisabled) {
-            onClick();
-          }
-        }}
-        disabled={isDisabled}
-        className={`
-          w-full h-12 rounded-xl font-bold flex items-center justify-center gap-2
-          ${!isDisabled 
-            ? 'bg-[#5b63d3] text-white hover:bg-opacity-80' 
-            : 'bg-gray-500 text-gray-300 cursor-not-allowed'}
-        `}
-      >
-        {children}
-      </button>
-      {isDisabled && message && (
-        <CustomTooltip
-          title={message}
-          placement="top"
-          arrow
-          open={showTooltip}
-          onClose={() => setShowTooltip(false)}
-        >
-          <button
-            onClick={() => {
-              setShowTooltip(true);
-              setTimeout(() => setShowTooltip(false), 2000);
-            }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-300"
-          >
-            <InfoIcon />
-          </button>
-        </CustomTooltip>
-      )}
-    </div>
-  );
 };
 
 // 開発環境用のモック位置情報

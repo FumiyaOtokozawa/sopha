@@ -69,7 +69,7 @@ type TodayEvent = {
   genre: '0' | '1';
 };
 
-type QueryResult<T = any> = {
+type QueryResult<T> = {
   data: T[];
   nextPage: number | null;
 };
