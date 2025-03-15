@@ -1,6 +1,6 @@
 // pages/employeePages/empMainPage.tsx
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from '../../utils/supabaseClient';
 import { Dialog, Tabs, Tab, Box} from '@mui/material';
 import { useRouter } from 'next/router';
@@ -9,6 +9,7 @@ import EventIcon from '@mui/icons-material/Event';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import EventDetailModal from '../../components/EventDetailModal';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 
 type HistoryItem = {
   history_id: number;
@@ -68,29 +69,220 @@ type TodayEvent = {
   genre: '0' | '1';
 };
 
-const ITEMS_PER_PAGE = 20;
+type QueryResult<T = any> = {
+  data: T[];
+  nextPage: number | null;
+};
+
+const ITEMS_PER_PAGE = 10;
+
+const QUERY_KEYS = {
+  HISTORY: 'empCizHistory',
+  PARTICIPATION: 'eventParHistory',
+  SCHEDULED_EVENTS: 'scheduledEvents',
+  TODAY_EVENTS: 'todayEvents',
+  MONTHLY_CHANGE: 'monthlyChange',
+} as const;
 
 const EmpMainPage = () => {
   const router = useRouter();
   const [employeeNumber, setEmployeeNumber] = useState<number | null>(null);
   const [points, setPoints] = useState<number | null>(null);
-  const [historyList, setHistoryList] = useState<HistoryItem[]>([]);
-  const [monthlyChange, setMonthlyChange] = useState<number>(0);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [participation, setParticipation] = useState<EventParticipation | null>(null);
   const [activeTab, setActiveTab] = useState<'scheduled' | 'points' | 'events'>('scheduled');
-  const [participationHistory, setParticipationHistory] = useState<EventParticipationHistory[]>([]);
-  const [scheduledEvents, setScheduledEvents] = useState<ScheduledEvent[]>([]);
-  const [pointsPage, setPointsPage] = useState<number>(1);
-  const [eventsPage, setEventsPage] = useState<number>(1);
-  const [hasMorePoints, setHasMorePoints] = useState<boolean>(true);
-  const [hasMoreEvents, setHasMoreEvents] = useState<boolean>(true);
-  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
   const [showTodayEventsModal, setShowTodayEventsModal] = useState(false);
-  const [todayEvents, setTodayEvents] = useState<TodayEvent[]>([]);
-  const [isLoadingTodayEvents, setIsLoadingTodayEvents] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [isEventDetailModalOpen, setIsEventDetailModalOpen] = useState(false);
+
+  // CIZ履歴の取得
+  const {
+    data: historyData,
+    fetchNextPage: fetchNextHistory,
+    hasNextPage: hasMoreHistory,
+    isFetchingNextPage: isLoadingMoreHistory
+  } = useInfiniteQuery({
+    queryKey: [QUERY_KEYS.HISTORY, employeeNumber],
+    queryFn: async ({ pageParam = 0 }): Promise<QueryResult<HistoryItem>> => {
+      if (!employeeNumber) return { data: [], nextPage: null };
+      
+      const from = pageParam * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
+      
+      const { data, error } = await supabase
+        .from("EMP_CIZ_HISTORY")
+        .select("*")
+        .eq("emp_no", employeeNumber)
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+      if (error) throw error;
+      
+      return {
+        data: data || [],
+        nextPage: data?.length === ITEMS_PER_PAGE ? pageParam + 1 : null,
+      };
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    enabled: !!employeeNumber,
+  });
+
+  // イベント参加履歴の取得
+  const {
+    data: participationData,
+    fetchNextPage: fetchNextParticipation,
+    hasNextPage: hasMoreParticipation,
+    isFetchingNextPage: isLoadingMoreParticipation
+  } = useInfiniteQuery({
+    queryKey: [QUERY_KEYS.PARTICIPATION, employeeNumber],
+    queryFn: async ({ pageParam = 0 }): Promise<QueryResult<EventParticipationHistory>> => {
+      if (!employeeNumber) return { data: [], nextPage: null };
+      
+      const from = pageParam * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
+      
+      const { data, error } = await supabase
+        .from("EVENT_PAR_HISTORY")
+        .select(`
+          *,
+          EVENT_LIST(title, genre, event_id)
+        `)
+        .eq("emp_no", employeeNumber)
+        .order("participated_at", { ascending: false })
+        .range(from, to);
+
+      if (error) throw error;
+      
+      return {
+        data: data || [],
+        nextPage: data?.length === ITEMS_PER_PAGE ? pageParam + 1 : null,
+      };
+    },
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    enabled: !!employeeNumber,
+  });
+
+  // スケジュールされたイベントの取得
+  const { data: scheduledEvents = [] } = useQuery({
+    queryKey: [QUERY_KEYS.SCHEDULED_EVENTS, employeeNumber],
+    queryFn: async (): Promise<ScheduledEvent[]> => {
+      if (!employeeNumber) return [];
+      
+      const now = new Date().toISOString();
+      const { data, error } = await supabase
+        .from("EVENT_TEMP_ENTRY")
+        .select(`
+          *,
+          EVENT_LIST!inner (
+            title,
+            genre,
+            event_id,
+            start_date,
+            end_date,
+            venue_id,
+            venue:EVENT_VENUE!inner (
+              venue_nm
+            )
+          )
+        `)
+        .eq("emp_no", employeeNumber)
+        .eq("status", '1')
+        .gte("EVENT_LIST.start_date", now)
+        .order("EVENT_LIST(start_date)", { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!employeeNumber && activeTab === 'scheduled',
+  });
+
+  // 本日のイベントの取得
+  const { data: todayEvents = [], isLoading: isLoadingTodayEvents } = useQuery({
+    queryKey: [QUERY_KEYS.TODAY_EVENTS],
+    queryFn: async (): Promise<TodayEvent[]> => {
+      const today = new Date();
+      today.setHours(9, 0, 0, 0);
+      
+      const todayEnd = new Date(today);
+      todayEnd.setHours(32, 59, 59, 999);
+
+      const { data: events, error } = await supabase
+        .from('EVENT_LIST')
+        .select(`
+          *,
+          venue:EVENT_VENUE!venue_id(venue_nm)
+        `)
+        .gte('start_date', today.toISOString())
+        .lte('start_date', todayEnd.toISOString())
+        .eq('act_kbn', true)
+        .order('start_date', { ascending: true });
+
+      if (error) throw error;
+
+      // イベントの主催者情報を取得
+      const eventsWithOwner = await Promise.all(
+        (events || []).map(async (event) => {
+          const { data: ownerData } = await supabase
+            .from('USER_INFO')
+            .select('myoji, namae')
+            .eq('emp_no', event.owner)
+            .single();
+
+          return {
+            event_id: event.event_id,
+            title: event.title,
+            start_date: event.start_date,
+            end_date: event.end_date,
+            venue_nm: event.venue?.venue_nm,
+            ownerName: ownerData ? `${ownerData.myoji} ${ownerData.namae}` : undefined,
+            genre: event.genre
+          };
+        })
+      );
+
+      return eventsWithOwner;
+    },
+    enabled: showTodayEventsModal,
+  });
+
+  // 月間変更の取得
+  const { data: monthlyChange = 0 } = useQuery({
+    queryKey: [QUERY_KEYS.MONTHLY_CHANGE, employeeNumber],
+    queryFn: async (): Promise<number> => {
+      if (!employeeNumber) return 0;
+
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+      const { data, error } = await supabase
+        .from("EMP_CIZ_HISTORY")
+        .select("change_type, ciz")
+        .eq("emp_no", employeeNumber)
+        .gte("created_at", oneMonthAgo.toISOString());
+
+      if (error) throw error;
+
+      return (data || []).reduce((acc, curr) => {
+        return acc + (curr.change_type === "add" ? curr.ciz : -curr.ciz);
+      }, 0);
+    },
+    enabled: !!employeeNumber,
+  });
+
+  // 履歴データの整形
+  const historyList = historyData?.pages.flatMap(page => page.data) ?? [];
+  const participationHistory = participationData?.pages.flatMap(page => page.data) ?? [];
+
+  // さらに読み込むボタンのハンドラー
+  const handleLoadMore = async () => {
+    if (activeTab === 'points') {
+      await fetchNextHistory();
+    } else {
+      await fetchNextParticipation();
+    }
+  };
 
   // アニメーション用の値
   const pointsMotionValue = useMotionValue(0);
@@ -191,40 +383,6 @@ const EmpMainPage = () => {
     fetchEmployeeData();
   }, [employeeNumber]);
 
-  const fetchHistory = useCallback(async (page: number = 1) => {
-    if (!employeeNumber) return;
-
-    try {
-      setIsLoadingMore(true);
-      const { data, error } = await supabase
-        .from("EMP_CIZ_HISTORY")
-        .select("*")
-        .eq("emp_no", employeeNumber)
-        .order("created_at", { ascending: false })
-        .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
-
-      if (error) throw error;
-      
-      if (page === 1) {
-        setHistoryList(data || []);
-      } else {
-        setHistoryList(prev => [...prev, ...(data || [])]);
-      }
-      
-      setHasMorePoints(data?.length === ITEMS_PER_PAGE);
-    } catch (error) {
-      console.error("履歴取得エラー:", error);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  }, [employeeNumber]);
-
-  useEffect(() => {
-    if (employeeNumber) {
-      fetchHistory(1);
-    }
-  }, [employeeNumber, fetchHistory]);
-
   useEffect(() => {
     const fetchMonthlyChange = async () => {
       if (!employeeNumber) return;
@@ -245,14 +403,15 @@ const EmpMainPage = () => {
           return acc + (curr.change_type === "add" ? curr.ciz : -curr.ciz);
         }, 0);
 
-        setMonthlyChange(totalChange);
+        monthlyChangeMotionValue.set(0);
+        animate(monthlyChangeMotionValue, totalChange, { duration: 1, ease: "easeOut" });
       } catch (error) {
         console.error("月間増減の取得エラー:", error);
       }
     };
 
     fetchMonthlyChange();
-  }, [employeeNumber]);
+  }, [employeeNumber, monthlyChangeMotionValue]);
 
   useEffect(() => {
     const fetchParticipation = async () => {
@@ -280,144 +439,8 @@ const EmpMainPage = () => {
     fetchParticipation();
   }, [employeeNumber]);
 
-  const fetchParticipationHistory = async (page: number = 1) => {
-    if (!employeeNumber) return;
-
-    try {
-      setIsLoadingMore(true);
-      const { data, error } = await supabase
-        .from("EVENT_PAR_HISTORY")
-        .select(`
-          *,
-          EVENT_LIST(title, genre, event_id)
-        `)
-        .eq("emp_no", employeeNumber)
-        .order("participated_at", { ascending: false })
-        .range((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE - 1);
-
-      if (error) throw error;
-
-      if (page === 1) {
-        setParticipationHistory(data || []);
-      } else {
-        setParticipationHistory(prev => [...prev, ...(data || [])]);
-      }
-      
-      setHasMoreEvents(data?.length === ITEMS_PER_PAGE);
-    } catch (error) {
-      console.error("参加履歴取得エラー:", error);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
-
-  const handleLoadMore = async () => {
-    if (activeTab === 'points') {
-      const nextPage = pointsPage + 1;
-      await fetchHistory(nextPage);
-      setPointsPage(nextPage);
-    } else {
-      const nextPage = eventsPage + 1;
-      await fetchParticipationHistory(nextPage);
-      setEventsPage(nextPage);
-    }
-  };
-
-  const handleTabChange = (_: React.SyntheticEvent, newValue: 'scheduled' | 'points' | 'events') => {
-    setActiveTab(newValue);
-    if (newValue === 'points') {
-      setPointsPage(1);
-      fetchHistory(1);
-    } else if (newValue === 'events') {
-      setEventsPage(1);
-      fetchParticipationHistory(1);
-    }
-  };
-
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
-
-  // 本日のイベントを取得する関数
-  const fetchTodayEvents = async () => {
-    try {
-      setIsLoadingTodayEvents(true);
-      console.log('本日のイベント取得開始');
-
-      // 日本時間の今日の日付を取得（00:00:00）
-      const today = new Date();
-      // 日本時間の0時に設定（UTC+9）
-      today.setHours(9, 0, 0, 0);
-      
-      // 日本時間の今日の終了時刻（23:59:59）
-      const todayEnd = new Date(today);
-      // 日本時間の23:59:59に設定（UTC+9）
-      todayEnd.setHours(32, 59, 59, 999);
-
-      console.log('検索期間:', {
-        start: format(today, 'yyyy年MM月dd日 HH:mm:ss', { locale: ja }),
-        end: format(todayEnd, 'yyyy年MM月dd日 HH:mm:ss', { locale: ja }),
-        startUTC: today.toISOString(),
-        endUTC: todayEnd.toISOString()
-      });
-
-      const { data: events, error } = await supabase
-        .from('EVENT_LIST')
-        .select(`
-          *,
-          venue:EVENT_VENUE!venue_id(venue_nm)
-        `)
-        .gte('start_date', today.toISOString())
-        .lte('start_date', todayEnd.toISOString())
-        .eq('act_kbn', true)
-        .order('start_date', { ascending: true });
-
-      if (error) throw error;
-
-      console.log('取得したイベント数:', events?.length);
-      if (events?.length) {
-        console.log('取得したイベントの日時:', events.map(event => ({
-          title: event.title,
-          start_date: event.start_date,
-          start_date_formatted: format(new Date(event.start_date), 'yyyy年MM月dd日 HH:mm:ss', { locale: ja })
-        })));
-      }
-
-      // イベントの主催者情報を取得
-      const eventsWithOwner = await Promise.all(
-        events.map(async (event) => {
-          const { data: ownerData } = await supabase
-            .from('USER_INFO')
-            .select('myoji, namae')
-            .eq('emp_no', event.owner)
-            .single();
-
-          return {
-            event_id: event.event_id,
-            title: event.title,
-            start_date: event.start_date,
-            end_date: event.end_date,
-            venue_nm: event.venue?.venue_nm,
-            ownerName: ownerData ? `${ownerData.myoji} ${ownerData.namae}` : undefined,
-            genre: event.genre
-          };
-        })
-      );
-
-      console.log('主催者情報を含むイベント:', eventsWithOwner);
-      setTodayEvents(eventsWithOwner);
-    } catch (error) {
-      console.error('本日のイベント取得エラー:', error);
-    } finally {
-      setIsLoadingTodayEvents(false);
-    }
-  };
-
   // モーダルを開く際にイベントを取得
-  const handleOpenTodayEventsModal = async () => {
-    if (!showTodayEventsModal) {
-      await fetchTodayEvents();
-    }
+  const handleOpenTodayEventsModal = () => {
     setShowTodayEventsModal(!showTodayEventsModal);
   };
 
@@ -433,46 +456,9 @@ const EmpMainPage = () => {
     setSelectedEventId(null);
   };
 
-  const fetchScheduledEvents = useCallback(async () => {
-    if (!employeeNumber) return;
-
-    try {
-      const now = new Date().toISOString();
-
-      const { data, error } = await supabase
-        .from("EVENT_TEMP_ENTRY")
-        .select(`
-          *,
-          EVENT_LIST!inner (
-            title,
-            genre,
-            event_id,
-            start_date,
-            end_date,
-            venue_id,
-            venue:EVENT_VENUE!inner (
-              venue_nm
-            )
-          )
-        `)
-        .eq("emp_no", employeeNumber)
-        .eq("status", '1')
-        .gte("EVENT_LIST.start_date", now)
-        .order("EVENT_LIST(start_date)", { ascending: true });
-
-      if (error) throw error;
-      
-      setScheduledEvents(data || []);
-    } catch (error) {
-      console.error("参加予定イベントの取得エラー:", error);
-    }
-  }, [employeeNumber]);
-
-  useEffect(() => {
-    if (activeTab === 'scheduled') {
-      fetchScheduledEvents();
-    }
-  }, [activeTab, employeeNumber, fetchScheduledEvents]);
+  const handleTabChange = (_: React.SyntheticEvent, newValue: 'scheduled' | 'points' | 'events') => {
+    setActiveTab(newValue);
+  };
 
   return (
     <Box sx={{ 
@@ -692,7 +678,7 @@ const EmpMainPage = () => {
                           );
                         })}
                         
-                        {hasMorePoints && (
+                        {hasMoreHistory && (
                           <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -701,10 +687,10 @@ const EmpMainPage = () => {
                           >
                             <button
                               onClick={handleLoadMore}
-                              disabled={isLoadingMore}
+                              disabled={isLoadingMoreHistory}
                               className="bg-[#363636] text-[#FCFCFC] py-2.5 rounded-md text-xs xs:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 w-full"
                             >
-                              {isLoadingMore ? (
+                              {isLoadingMoreHistory ? (
                                 <span className="flex items-center justify-center gap-2">
                                   <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[#FCFCFC] border-t-transparent"></span>
                                   読み込み中
@@ -751,7 +737,7 @@ const EmpMainPage = () => {
                           </motion.div>
                         ))}
                         
-                        {hasMoreEvents && (
+                        {hasMoreParticipation && (
                           <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -760,10 +746,10 @@ const EmpMainPage = () => {
                           >
                             <button
                               onClick={handleLoadMore}
-                              disabled={isLoadingMore}
+                              disabled={isLoadingMoreParticipation}
                               className="bg-[#363636] text-[#FCFCFC] py-2.5 rounded-md text-xs xs:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 w-full"
                             >
-                              {isLoadingMore ? (
+                              {isLoadingMoreParticipation ? (
                                 <span className="flex items-center justify-center gap-2">
                                   <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[#FCFCFC] border-t-transparent"></span>
                                   読み込み中

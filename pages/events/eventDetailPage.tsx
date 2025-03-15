@@ -29,6 +29,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProfileModal from '../../components/ProfileModal';
+import AttendanceButtons from '../../components/AttendanceButtons';
 
 interface Event {
   event_id: number;
@@ -1249,89 +1250,15 @@ const EventDetailPage: React.FC = () => {
 
         {/* 出欠席ボタン */}
         {!isEditing && (
-          <motion.div 
-            initial={{ y: 100 }}
-            animate={{ y: 0 }}
-            transition={{ 
-              type: "spring",
-              stiffness: 300,
-              damping: 100,
-              delay: 0.4
-            }}
-            className="fixed bottom-[calc(64px+19px)] left-0 right-0 bg-[#1D1D21] border-t border-gray-700/70 z-[999]"
-          >
-            <div className="max-w-2xl mx-auto p-3">
-              {entryStatus ? (
-                <>
-                  {entryStatus === '1' && (
-                    <div className="flex-1 mb-3">
-                      <TooltipButton
-                        onClick={handleConfirmAttendance}
-                        isDisabled={isGettingLocation || !isWithinEventPeriod(event)}
-                        message={!isWithinEventPeriod(event) ? 'イベントの開催時間外です' : undefined}
-                      >
-                        {isGettingLocation ? (
-                          <>
-                            <CircularProgress size={20} className="text-white" />
-                            <span className="ml-2">位置情報を確認中...</span>
-                          </>
-                        ) : (
-                          <>
-                            <CheckIcon className="h-5 w-5" />
-                            <span className="ml-2">本出席を確定する</span>
-                          </>
-                        )}
-                      </TooltipButton>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex-1">
-                      <div 
-                        className={`
-                          text-lg font-bold h-12 flex items-center justify-center rounded-xl w-full
-                          ${entryStatus === '1' 
-                            ? 'bg-green-600/30 text-green-400' 
-                            : entryStatus === '2' 
-                              ? 'bg-red-600/30 text-red-400'
-                              : 'bg-blue-600/30 text-blue-400'
-                          }
-                        `}
-                      >
-                        {entryStatus === '1' ? '出席予定' : entryStatus === '2' ? '欠席予定' : '出席済み'}
-                      </div>
-                    </div>
-                    {entryStatus !== '11' && (
-                      <button
-                        onClick={() => setEntryStatus(null)}
-                        className="p-2 rounded-xl bg-[#37373F] text-gray-300 hover:bg-[#4A4B50] hover:text-white transition-all duration-300"
-                        aria-label="ステータスを変更"
-                      >
-                        <ChangeCircleIcon sx={{ fontSize: 32 }} />
-                      </button>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="flex justify-between gap-3">
-                  <button
-                    onClick={() => handleEventEntry('1')}
-                    className="h-12 px-8 rounded-xl bg-gradient-to-r from-green-600 to-green-500 text-white font-bold hover:opacity-90 transition-opacity duration-300 flex-1 flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
-                  >
-                    <CheckIcon className="h-5 w-5" />
-                    仮出席
-                  </button>
-                  <button
-                    onClick={() => handleEventEntry('2')}
-                    className="h-12 px-8 rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white font-bold hover:opacity-90 transition-opacity duration-300 flex-1 flex items-center justify-center gap-2 shadow-lg shadow-red-600/20"
-                  >
-                    <CloseIcon className="h-5 w-5" />
-                    仮欠席
-                  </button>
-                </div>
-              )}
-            </div>
-          </motion.div>
+          <AttendanceButtons
+            event={event}
+            entryStatus={entryStatus}
+            setEntryStatus={setEntryStatus}
+            handleEventEntry={handleEventEntry}
+            handleConfirmAttendance={handleConfirmAttendance}
+            isGettingLocation={isGettingLocation}
+            isWithinEventPeriod={isWithinEventPeriod}
+          />
         )}
 
         {/* モーダル類 */}

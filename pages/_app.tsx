@@ -12,6 +12,7 @@ import FooterMenu from "../components/FooterMenu";
 import { useEffect, useState } from "react";
 import { supabase } from "../utils/supabaseClient";
 import Head from 'next/head';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // ログインが必要なパスのパターン
 const AUTH_REQUIRED_PATHS = [
@@ -28,6 +29,15 @@ const publicPages = [
   '/registerPages/registInputPage'
   
 ];
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5分間キャッシュを保持
+      gcTime: 30 * 60 * 1000, // 30分間キャッシュを保持
+    },
+  },
+});
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
@@ -76,7 +86,7 @@ export default function App({ Component, pageProps }: AppProps) {
   }
 
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <Head>
         <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover' />
         <meta name='description' content='Sopha - スケジュール管理アプリケーション' />
@@ -105,6 +115,6 @@ export default function App({ Component, pageProps }: AppProps) {
       </div>
       <Analytics />
       <SpeedInsights />
-    </>
+    </QueryClientProvider>
   );
 }
