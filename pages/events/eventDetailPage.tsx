@@ -26,6 +26,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import VideocamIcon from '@mui/icons-material/Videocam';
 import PeopleIcon from '@mui/icons-material/People';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProfileModal from '../../components/ProfileModal';
 
@@ -283,6 +284,7 @@ const EventDetailPage: React.FC = () => {
   });
   const [selectedEmpNo, setSelectedEmpNo] = useState<number | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     const fetchEventAndCheckOwner = async () => {
@@ -769,6 +771,48 @@ const EventDetailPage: React.FC = () => {
     setIsProfileModalOpen(true);
   };
 
+  // 追加：参加者情報を再取得する関数
+  const refreshParticipants = async () => {
+    if (!event?.event_id || isRefreshing) return;
+
+    try {
+      setIsRefreshing(true);
+      const { data: participantsData, error: participantsError } = await supabase
+        .from('EVENT_TEMP_ENTRY')
+        .select(`
+          entry_id,
+          emp_no,
+          status,
+          USER_INFO!inner(myoji, namae, icon_url)
+        `)
+        .eq('event_id', event.event_id)
+        .order('entry_id', { ascending: true });
+
+      if (participantsError) throw participantsError;
+
+      const formattedParticipants = (participantsData as unknown as SupabaseEntry[])?.map(entry => ({
+        entry_id: entry.entry_id,
+        emp_no: entry.emp_no,
+        myoji: entry.USER_INFO?.myoji || null,
+        namae: entry.USER_INFO?.namae || null,
+        status: entry.status,
+        icon_url: entry.USER_INFO?.icon_url || null
+      })) || [];
+
+      setParticipants(formattedParticipants);
+
+      // 現在のユーザーの参加ステータスを更新
+      const userEntry = formattedParticipants.find(p => p.emp_no === currentUserEmpNo);
+      if (userEntry) {
+        setEntryStatus(userEntry.status);
+      }
+    } catch (error) {
+      console.error('参加者情報の更新に失敗:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   if (!event) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -1064,15 +1108,32 @@ const EventDetailPage: React.FC = () => {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.3, delay: 0.7 }}
-                            className="bg-[#37373F]/50 rounded-xl p-3 border border-[#4A4B50]/30"
+                            className="bg-[#37373F]/50 rounded-xl p-3 border border-[#4A4B50]/30 relative"
                           >
-                            <h3 className="text-xs font-medium text-gray-300 mb-2 flex items-center gap-2">
-                              <GroupIcon className="h-3 w-3 text-green-500" fontSize="small" />
-                              <span className="text-green-400">出席者</span>
-                              <span className="bg-green-500/20 text-green-400 text-xs px-1.5 py-0.5 rounded-full">
-                                {participants.filter(p => p.status === '11').length}／{participants.filter(p => p.status === '1' || p.status === '11').length}
-                              </span>
-                            </h3>
+                            <div className="flex items-center justify-between mb-2">
+                              <h3 className="text-xs font-medium text-gray-300 flex items-center gap-2">
+                                <GroupIcon className="h-3 w-3 text-green-500" fontSize="small" />
+                                <span className="text-green-400">出席者</span>
+                                <span className="bg-green-500/20 text-green-400 text-xs px-1.5 py-0.5 rounded-full">
+                                  {participants.filter(p => p.status === '11').length}／{participants.filter(p => p.status === '1' || p.status === '11').length}
+                                </span>
+                              </h3>
+                              <button
+                                onClick={refreshParticipants}
+                                disabled={isRefreshing}
+                                className={`w-5 h-5 flex items-center justify-center rounded-md transition-opacity duration-300 ${
+                                  isRefreshing 
+                                    ? 'opacity-50 cursor-not-allowed' 
+                                    : 'opacity-100'
+                                }`}
+                                title="参加者情報を更新"
+                              >
+                                <RefreshIcon 
+                                  className={`h-3.5 w-3.5 text-gray-400 ${isRefreshing ? 'animate-spin' : ''}`} 
+                                  fontSize="small"
+                                />
+                              </button>
+                            </div>
                             <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
                               {participants
                                 .filter(p => p.status === '1' || p.status === '11')
