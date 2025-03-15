@@ -327,18 +327,6 @@ const EmpMainPage = () => {
     }
   }, [participation, officialCountMotionValue, unofficialCountMotionValue]);
 
-  const formatDate = (dateString: string) => {
-    const d = new Date(dateString);
-    return d.toLocaleString('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-  };
-
   useEffect(() => {
     const fetchEmployeeInfo = async () => {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
