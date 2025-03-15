@@ -130,12 +130,16 @@ interface ConfirmationDialogProps {
 
 // 出席確定完了ダイアログコンポーネント
 const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({ open, message, onClose }) => {
-  // 3秒後に自動的に閉じる
+  const [isVisible, setIsVisible] = useState(false);
+
+  // openの値が変更されたときの処理
   useEffect(() => {
     if (open) {
+      setIsVisible(true);
       const timer = setTimeout(() => {
-        onClose();
-      }, 3000);
+        setIsVisible(false);
+        setTimeout(onClose, 200); // フェードアウトアニメーション後にダイアログを閉じる
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [open, onClose]);
@@ -151,24 +155,36 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({ open, message, 
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={() => {
+        setIsVisible(false);
+        setTimeout(onClose, 200);
+      }}
       PaperProps={{
         style: {
           backgroundColor: '#2D2D33',
           borderRadius: '1rem',
           maxWidth: '20rem',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          transition: 'all 0.2s ease-in-out',
+          opacity: isVisible ? 1 : 0,
+          transform: isVisible ? 'scale(1)' : 'scale(0.95)'
         },
       }}
     >
-      <div className="p-4">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.2 }}
+        className="p-4"
+      >
         <div className="flex items-center justify-center mb-4">
           <div className="bg-blue-500/20 p-3 rounded-full">
             <CheckCircleIcon className="h-8 w-8 text-blue-500" />
           </div>
         </div>
         <h3 className="text-sm font-bold text-white text-center mb-2">{formattedMessage}</h3>
-      </div>
+      </motion.div>
     </Dialog>
   );
 };
@@ -454,10 +470,59 @@ const EventDetailPage: React.FC = () => {
   };
 
   // 位置情報を取得して出席確認を行う関数
-  const handleConfirmAttendance = async () => {
+  const handleConfirmAttendance = async (format?: 'online' | 'offline') => {
     let timeoutId: NodeJS.Timeout | undefined;
 
     try {
+      // オンラインイベントまたはオンライン参加の場合は位置情報取得をスキップ
+      if (format === 'online') {
+        const result = await handleAttendanceConfirmation(
+          supabase,
+          router.query.event_id,
+          event,
+          currentUserEmpNo,
+          null,
+          'online'
+        );
+
+        if (!result.success) {
+          throw new Error(result.message || '本出席の確定に失敗しました');
+        }
+
+        // 成功時の処理（参加者一覧の更新など）
+        const { data: updatedParticipants, error: participantsError } = await supabase
+          .from('EVENT_TEMP_ENTRY')
+          .select(`
+            entry_id,
+            emp_no,
+            status,
+            USER_INFO!inner(myoji, namae, icon_url)
+          `)
+          .eq('event_id', router.query.event_id)
+          .order('entry_id', { ascending: true });
+
+        if (participantsError) {
+          throw new Error('参加者一覧の更新に失敗しました');
+        }
+
+        const formattedParticipants = (updatedParticipants as unknown as SupabaseEntry[])?.map(entry => ({
+          entry_id: entry.entry_id,
+          emp_no: entry.emp_no,
+          myoji: entry.USER_INFO?.myoji || null,
+          namae: entry.USER_INFO?.namae || null,
+          status: entry.status,
+          icon_url: entry.USER_INFO?.icon_url || null
+        })) || [];
+
+        setParticipants(formattedParticipants);
+        setEntryStatus('11'); // 出席済みステータスに更新
+        setConfirmationDialog({
+          open: true,
+          message: result.message || 'オンラインで出席を確定しました'
+        });
+        return;
+      }
+
       setIsGettingLocation(true);
 
       // 位置情報の取得（開発環境用のモック機能を追加）

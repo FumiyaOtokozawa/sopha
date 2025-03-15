@@ -7,6 +7,7 @@ interface Event {
   start_date: string;
   end_date?: string;
   venue_id?: number;
+  format: 'hybrid' | 'online' | 'offline';
 }
 
 interface ValidationResult {
@@ -48,7 +49,8 @@ export const handleAttendanceConfirmation = async (
   eventId: string | string[] | undefined,
   event: Event | null,
   currentUserEmpNo: number | null,
-  currentPosition: GeolocationPosition
+  currentPosition: GeolocationPosition | null,
+  attendanceFormat?: 'online' | 'offline'
 ): Promise<{ success: boolean; message?: string }> => {
   try {
     console.log('出席確定処理開始');
@@ -72,48 +74,76 @@ export const handleAttendanceConfirmation = async (
       };
     }
 
-    // イベント会場の位置情報を取得
-    const { data: venueData, error: venueError } = await supabase
-      .from('EVENT_VENUE')
-      .select('latitude, longitude, venue_nm')
-      .eq('venue_id', event?.venue_id)
-      .single();
-
-    if (venueError) throw venueError;
-
-    console.log('イベント会場の位置情報:', {
-      venue_name: venueData.venue_nm,
-      latitude: venueData.latitude,
-      longitude: venueData.longitude
-    });
-
-    // 位置情報チェック
-    const distance = calculateDistance(
-      currentPosition.coords.latitude,
-      currentPosition.coords.longitude,
-      venueData.latitude,
-      venueData.longitude
-    );
-
-    console.log('位置情報の計算結果:', {
-      distance: Math.round(distance), // メートル単位で小数点以下を四捨五入
-      isWithinRange: distance <= 100,
-      currentPosition: {
-        latitude: currentPosition.coords.latitude,
-        longitude: currentPosition.coords.longitude
+    // オンライン出席の場合は位置情報チェックをスキップ
+    const isOnlineAttendance = event.format === 'online' || (event.format === 'hybrid' && attendanceFormat === 'online');
+    
+    if (!isOnlineAttendance) {
+      // オフライン出席の場合のみ位置情報チェックを実行
+      if (!currentPosition) {
+        return {
+          success: false,
+          message: '位置情報が取得できませんでした'
+        };
       }
-    });
 
-    if (distance > 100) {
-      return {
-        success: false,
-        message: 'イベント会場から離れすぎています（100m以内に近づいてください）'
-      };
+      if (!event.venue_id) {
+        return {
+          success: false,
+          message: 'イベント会場が設定されていません'
+        };
+      }
+
+      // イベント会場の位置情報を取得
+      const { data: venueData, error: venueError } = await supabase
+        .from('EVENT_VENUE')
+        .select('latitude, longitude, venue_nm')
+        .eq('venue_id', event.venue_id)
+        .single();
+
+      if (venueError) {
+        console.error('会場情報の取得に失敗:', venueError);
+        return {
+          success: false,
+          message: '会場情報の取得に失敗しました'
+        };
+      }
+
+      console.log('イベント会場の位置情報:', {
+        venue_name: venueData.venue_nm,
+        latitude: venueData.latitude,
+        longitude: venueData.longitude
+      });
+
+      // 位置情報チェック
+      const distance = calculateDistance(
+        currentPosition.coords.latitude,
+        currentPosition.coords.longitude,
+        venueData.latitude,
+        venueData.longitude
+      );
+
+      console.log('位置情報の計算結果:', {
+        distance: Math.round(distance),
+        isWithinRange: distance <= 100,
+        currentPosition: {
+          latitude: currentPosition.coords.latitude,
+          longitude: currentPosition.coords.longitude
+        }
+      });
+
+      if (distance > 100) {
+        return {
+          success: false,
+          message: 'イベント会場から離れすぎています（100m以内に近づいてください）'
+        };
+      }
+    } else {
+      console.log('オンライン出席のため、位置情報チェックをスキップします');
     }
 
     // イベント開催期間チェック
     const now = new Date();
-    const jstOffset = 9 * 60; // JSTは+9時間
+    const jstOffset = 9 * 60;
     const nowJST = new Date(now.getTime() + (jstOffset * 60 * 1000));
 
     console.log('イベント開催時間の詳細:', {
@@ -218,14 +248,15 @@ export const handleAttendanceConfirmation = async (
     const nextHistoryId = (maxHistoryId?.history_id || 0) + 1;
     console.log('次のhistory_id:', nextHistoryId);
 
-    // 2. EVENT_PAR_HISTORYに出席履歴を追加
+    // 2. EVENT_PAR_HISTORYに出席履歴を追加（出席形式を含む）
     const { error: historyError } = await supabase
       .from('EVENT_PAR_HISTORY')
       .insert({
         history_id: nextHistoryId,
         event_id: eventId,
         emp_no: currentUserEmpNo,
-        participated_at: getCurrentJSTISOString() // 日付のみから時間も含む形式に変更
+        participated_at: getCurrentJSTISOString(),
+        format: isOnlineAttendance ? 'online' : 'offline' // formatカラムに記録
       });
 
     if (historyError) throw historyError;
@@ -236,7 +267,8 @@ export const handleAttendanceConfirmation = async (
       .from('EVENT_TEMP_ENTRY')
       .update({
         status: '11',
-        updated_at: getCurrentJSTISOString() // timestamp without time zone型
+        updated_at: getCurrentJSTISOString(),
+        format: isOnlineAttendance ? 'online' : 'offline' // formatカラムに記録
       })
       .eq('event_id', eventId)
       .eq('emp_no', currentUserEmpNo);
@@ -363,7 +395,10 @@ export const handleAttendanceConfirmation = async (
 
     console.log('全ての処理が完了しました');
 
-    return { success: true, message: '出席を確定しました' };
+    return { 
+      success: true, 
+      message: isOnlineAttendance ? 'オンラインで出席を確定しました' : '出席を確定しました'
+    };
 
   } catch (error) {
     console.error('出席確定処理エラー:', error);

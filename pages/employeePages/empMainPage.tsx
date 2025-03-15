@@ -658,7 +658,7 @@ const EmpMainPage = () => {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.3, delay: index * 0.05 }}
-                          className="bg-[#404040] px-3 py-2 rounded-md cursor-pointer transition-colors"
+                          className="bg-[#404040] px-3 py-2 rounded-md cursor-pointer transition-colors hover:bg-[#454545]"
                           onClick={() => handleOpenEventDetail(event.EVENT_LIST.event_id.toString())}
                         >
                           <div className="flex justify-between items-center">
@@ -700,7 +700,7 @@ const EmpMainPage = () => {
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ duration: 0.3, delay: index * 0.05 }}
-                              className="bg-[#404040] px-3 py-2 rounded-md cursor-pointer transition-colors"
+                              className="bg-[#404040] px-3 py-2 rounded-md cursor-pointer transition-colors hover:bg-[#454545]"
                               onClick={() => handleOpenEventDetail(item.event_id.toString())}
                             >
                               <div className="flex justify-between items-center">
@@ -709,12 +709,12 @@ const EmpMainPage = () => {
                                     {item.reason}
                                   </p>
                                   <p className="text-[10px] xs:text-xs sm:text-sm text-gray-400 mt-1.5">
-                                    {formatDate(item.created_at)}
+                                    {format(new Date(item.created_at), 'yyyy年MM月dd日 HH:mm', { locale: ja })}
                                   </p>
                                 </div>
-                                <div className={`${colorClass} text-base xs:text-lg sm:text-xl font-bold flex-shrink-0 ml-2`}>
+                                <div className={`${colorClass} text-base xs:text-lg sm:text-xl font-bold flex-shrink-0 ml-2 flex items-center`}>
                                   {sign}
-                                  {item.ciz.toLocaleString()} <span className="text-xs xs:text-sm sm:text-base font-medium">ciz</span>
+                                  {item.ciz.toLocaleString()} <span className="text-xs xs:text-sm sm:text-base font-medium ml-1">ciz</span>
                                 </div>
                               </div>
                             </motion.div>
@@ -731,7 +731,7 @@ const EmpMainPage = () => {
                             <button
                               onClick={handleLoadMore}
                               disabled={isLoadingMoreHistory}
-                              className="bg-[#363636] text-[#FCFCFC] py-2.5 rounded-md text-xs xs:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 w-full"
+                              className="bg-[#363636] text-[#FCFCFC] py-2.5 rounded-md text-xs xs:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 w-full hover:bg-[#404040]"
                             >
                               {isLoadingMoreHistory ? (
                                 <span className="flex items-center justify-center gap-2">
@@ -759,7 +759,7 @@ const EmpMainPage = () => {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.3, delay: index * 0.05 }}
-                            className="bg-[#404040] px-3 py-2 rounded-md cursor-pointer transition-colors"
+                            className="bg-[#404040] px-3 py-2 rounded-md cursor-pointer transition-colors hover:bg-[#454545]"
                             onClick={() => handleOpenEventDetail(item.EVENT_LIST.event_id.toString())}
                           >
                             <div className="flex justify-between items-center">
@@ -768,11 +768,13 @@ const EmpMainPage = () => {
                                   {item.EVENT_LIST.title}
                                 </p>
                                 <p className="text-[10px] xs:text-xs sm:text-sm text-gray-400 mt-1.5">
-                                  {formatDate(item.participated_at)}
+                                  {format(new Date(item.participated_at), 'yyyy年MM月dd日 HH:mm', { locale: ja })}
                                 </p>
                               </div>
-                              <div className={`text-xs xs:text-sm font-medium ${
-                                item.EVENT_LIST.genre === '1' ? 'text-blue-400' : 'text-green-400'
+                              <div className={`text-xs xs:text-sm font-medium px-2.5 py-1 rounded-full ${
+                                item.EVENT_LIST.genre === '1' 
+                                  ? 'bg-blue-400/20 text-blue-400' 
+                                  : 'bg-green-400/20 text-green-400'
                               }`}>
                                 {item.EVENT_LIST.genre === '1' ? '公式' : '有志'}
                               </div>
@@ -790,7 +792,7 @@ const EmpMainPage = () => {
                             <button
                               onClick={handleLoadMore}
                               disabled={isLoadingMoreParticipation}
-                              className="bg-[#363636] text-[#FCFCFC] py-2.5 rounded-md text-xs xs:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 w-full"
+                              className="bg-[#363636] text-[#FCFCFC] py-2.5 rounded-md text-xs xs:text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 w-full hover:bg-[#404040]"
                             >
                               {isLoadingMoreParticipation ? (
                                 <span className="flex items-center justify-center gap-2">
