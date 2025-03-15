@@ -203,7 +203,7 @@ export const handleAttendanceConfirmation = async (
     }
 
     // 出席者のみを抽出
-    const presentAttendees = attendees?.map(a => a.emp_no) || [];
+    const presentAttendees = [currentUserEmpNo]; // 修正：本出席処理を行った人のみを対象とする
     console.log('出席者:', presentAttendees);
 
     // 1. EVENT_PAR_HISTORYの最新history_id取得
