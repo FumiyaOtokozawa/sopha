@@ -50,7 +50,7 @@ export const handleAttendanceConfirmation = async (
   event: Event | null,
   currentUserEmpNo: number | null,
   currentPosition: GeolocationPosition | null,
-  attendanceFormat?: 'online' | 'offline'
+  attendanceFormat?: 'online' | 'offline' | 'admin'
 ): Promise<{ success: boolean; message?: string }> => {
   try {
     console.log('出席確定処理開始');
@@ -74,11 +74,15 @@ export const handleAttendanceConfirmation = async (
       };
     }
 
-    // オンライン出席の場合は位置情報チェックをスキップ
-    const isOnlineAttendance = event.format === 'online' || (event.format === 'hybrid' && attendanceFormat === 'online');
+    // 管理者による一括確定の場合は位置情報チェックをスキップ
+    const isAdminConfirmation = attendanceFormat === 'admin';
     
-    if (!isOnlineAttendance) {
-      // オフライン出席の場合のみ位置情報チェックを実行
+    // オンライン出席または管理者による確定の場合は位置情報チェックをスキップ
+    const skipLocationCheck = event.format === 'online' || 
+      (event.format === 'hybrid' && attendanceFormat === 'online');
+    
+    if (!skipLocationCheck && !isAdminConfirmation) {
+      // 既存の位置情報チェックロジック
       if (!currentPosition) {
         return {
           success: false,
@@ -138,7 +142,7 @@ export const handleAttendanceConfirmation = async (
         };
       }
     } else {
-      console.log('オンライン出席のため、位置情報チェックをスキップします');
+      console.log('位置情報チェックをスキップします');
     }
 
     // イベント開催期間チェック
@@ -256,7 +260,7 @@ export const handleAttendanceConfirmation = async (
         event_id: eventId,
         emp_no: currentUserEmpNo,
         participated_at: getCurrentJSTISOString(),
-        format: isOnlineAttendance ? 'online' : 'offline' // formatカラムに記録
+        format: isAdminConfirmation ? 'admin' : skipLocationCheck ? 'online' : 'offline' // formatの設定を修正
       });
 
     if (historyError) throw historyError;
@@ -268,7 +272,7 @@ export const handleAttendanceConfirmation = async (
       .update({
         status: '11',
         updated_at: getCurrentJSTISOString(),
-        format: isOnlineAttendance ? 'online' : 'offline' // formatカラムに記録
+        format: isAdminConfirmation ? 'admin' : skipLocationCheck ? 'online' : 'offline' // formatの設定を修正
       })
       .eq('event_id', eventId)
       .eq('emp_no', currentUserEmpNo);
@@ -397,7 +401,11 @@ export const handleAttendanceConfirmation = async (
 
     return { 
       success: true, 
-      message: isOnlineAttendance ? 'オンラインで出席を確定しました' : '出席を確定しました'
+      message: isAdminConfirmation 
+        ? '本出席を確定しました'
+        : skipLocationCheck 
+          ? 'オンラインで出席を確定しました' 
+          : '出席を確定しました'
     };
 
   } catch (error) {

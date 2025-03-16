@@ -21,9 +21,11 @@ import VerifiedIcon from '@mui/icons-material/Verified';
 import VideocamIcon from '@mui/icons-material/Videocam';
 import PeopleIcon from '@mui/icons-material/People';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import DoneIcon from '@mui/icons-material/Done';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProfileModal from '../../components/ProfileModal';
 import AttendanceButtons from '../../components/AttendanceButtons';
+import BulkAttendanceConfirmModal from '../../components/BulkAttendanceConfirmModal';
 
 interface Event {
   event_id: number;
@@ -73,19 +75,11 @@ export const isConfirmationAllowed = (startDate: string): { isValid: boolean; me
   const nowJST = new Date(now.getTime() + (jstOffset * 60 * 1000));
 
   const timeDifference = nowJST.getTime() - eventStartTimeJST.getTime();
-  const hoursDifference = timeDifference / (1000 * 60 * 60);
 
   if (timeDifference < 0) {
     return {
       isValid: false,
       message: 'イベントはまだ開始していません'
-    };
-  }
-
-  if (hoursDifference > 24) {
-    return {
-      isValid: false,
-      message: 'イベント開始から24時間以上経過しているため、出席確定はできません'
     };
   }
 
@@ -212,6 +206,7 @@ const EventDetailPage: React.FC = () => {
   const [selectedEmpNo, setSelectedEmpNo] = useState<number | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isBulkConfirmModalOpen, setIsBulkConfirmModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchEventAndCheckOwner = async () => {
@@ -369,12 +364,19 @@ const EventDetailPage: React.FC = () => {
     if (!event || !currentUserEmpNo) return;
 
     try {
-      // 先にUIを更新して体感速度を向上
-      setEntryStatus(status);
-
       // 既存の参加者リストから自分のエントリーを探す
       const existingParticipantIndex = participants.findIndex(p => p.emp_no === currentUserEmpNo);
       const existingParticipant = existingParticipantIndex >= 0 ? participants[existingParticipantIndex] : null;
+
+      // 既に本出席済み（status='11'）の場合は更新をスキップ
+      if (existingParticipant?.status === '11') {
+        // 画面を更新するために最新の参加者情報を取得
+        await refreshParticipants();
+        return;
+      }
+
+      // 先にUIを更新して体感速度を向上
+      setEntryStatus(status);
 
       // 参加者リストを先に更新（楽観的更新）
       const updatedParticipants = [...participants];
@@ -793,6 +795,41 @@ const EventDetailPage: React.FC = () => {
     }
   };
 
+  // 一括本出席処理の関数を修正
+  const handleBulkConfirmAttendance = async (selectedEmpNos: number[]) => {
+    if (!event?.event_id) return;
+
+    try {
+      // 選択された各社員に対して本出席処理を実行
+      for (const empNo of selectedEmpNos) {
+        const result = await handleAttendanceConfirmation(
+          supabase,
+          router.query.event_id,
+          event,
+          empNo,
+          null,
+          // イベントの形式に関わらず、常に'admin'形式として処理
+          'admin'
+        );
+
+        if (!result.success) {
+          throw new Error(`社員番号 ${empNo} の本出席処理に失敗: ${result.message}`);
+        }
+      }
+
+      // 参加者一覧を更新
+      await refreshParticipants();
+
+      setConfirmationDialog({
+        open: true,
+        message: '選択した社員の本出席を確定しました'
+      });
+    } catch (error) {
+      console.error('一括本出席処理に失敗:', error);
+      alert('本出席の確定に失敗しました');
+    }
+  };
+
   if (!event) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -1082,6 +1119,22 @@ const EventDetailPage: React.FC = () => {
                         transition={{ duration: 0.3, delay: 0.6 }}
                         className="mt-4 pt-4 border-t border-gray-700/70"
                       >
+                        {isOwner && (
+                          <div className="w-full mb-4">
+                            <button 
+                              onClick={async () => {
+                                // 先に最新の参加者情報を取得
+                                await refreshParticipants();
+                                // その後モーダルを開く
+                                setIsBulkConfirmModalOpen(true);
+                              }}
+                              className="w-full bg-[#5b63d3] text-white px-4 py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-[#5b63d3]/90 transition-colors"
+                            >
+                              <DoneIcon className="h-5 w-5" />
+                              本出席にする社員を選択する
+                            </button>
+                          </div>
+                        )}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {/* 出席者 */}
                           <motion.div 
@@ -1362,6 +1415,14 @@ const EventDetailPage: React.FC = () => {
             setSelectedEmpNo(null);
           }}
           empNo={selectedEmpNo}
+        />
+
+        {/* 一括本出席確認モーダル */}
+        <BulkAttendanceConfirmModal
+          open={isBulkConfirmModalOpen}
+          onClose={() => setIsBulkConfirmModalOpen(false)}
+          temporaryAttendees={participants.filter(p => p.status === '1')}
+          onConfirm={handleBulkConfirmAttendance}
         />
       </motion.div>
     </Box>
