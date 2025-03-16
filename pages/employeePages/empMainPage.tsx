@@ -126,7 +126,12 @@ const EmpMainPage = () => {
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: !!employeeNumber,
+    enabled: !!employeeNumber && activeTab === 'points',
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    gcTime: 0,
+    staleTime: 0
   });
 
   // イベント参加履歴の取得
@@ -162,7 +167,12 @@ const EmpMainPage = () => {
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: !!employeeNumber,
+    enabled: !!employeeNumber && activeTab === 'events',
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    refetchOnReconnect: true,
+    gcTime: 0,
+    staleTime: 0
   });
 
   // スケジュールされたイベントの取得
@@ -171,7 +181,10 @@ const EmpMainPage = () => {
     queryFn: async (): Promise<ScheduledEvent[]> => {
       if (!employeeNumber) return [];
       
-      const now = new Date().toISOString();
+      const now = new Date();
+      const threeMonthsLater = new Date(now);
+      threeMonthsLater.setMonth(now.getMonth() + 3);
+      
       const { data, error } = await supabase
         .from("EVENT_TEMP_ENTRY")
         .select(`
@@ -190,7 +203,8 @@ const EmpMainPage = () => {
         `)
         .eq("emp_no", employeeNumber)
         .eq("status", '1')
-        .gte("EVENT_LIST.start_date", now)
+        .lte("EVENT_LIST.start_date", threeMonthsLater.toISOString())  // 3ヶ月後まで
+        .gte("EVENT_LIST.end_date", now.toISOString())  // 現在進行中または未来のイベント
         .order("EVENT_LIST(start_date)", { ascending: true });
 
       if (error) throw error;
@@ -574,13 +588,21 @@ const EmpMainPage = () => {
                         onClick={() => handleOpenEventDetail(event.event_id.toString())}
                       >
                         <div className="flex items-center gap-2">
-                          {event.genre === '1' && (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 text-[#8E93DA]" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                            </svg>
-                          )}
-                          <span className="text-[#FCFCFC] text-sm font-medium">{event.title}</span>
-                          <span className="text-xs text-gray-400 ml-auto">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[#FCFCFC] text-sm font-medium break-words line-clamp-2">
+                              {event.title}
+                            </div>
+                            <style jsx>{`
+                              .line-clamp-2 {
+                                display: -webkit-box;
+                                -webkit-line-clamp: 2;
+                                -webkit-box-orient: vertical;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                              }
+                            `}</style>
+                          </div>
+                          <span className="text-xs text-gray-400 flex-shrink-0 w-[80px] text-right">
                             {format(new Date(event.start_date), 'HH:mm', { locale: ja })} - 
                             {format(new Date(event.end_date), ' HH:mm', { locale: ja })}
                           </span>
@@ -660,7 +682,11 @@ const EmpMainPage = () => {
                               </p>
                             </div>
                             <div className="flex flex-col items-end">
-                              <div className="text-xs xs:text-sm font-medium text-yellow-400 flex items-center justify-end">
+                              <div className={`text-xs xs:text-sm font-medium ${
+                                calculateTimeRemaining(event.EVENT_LIST.start_date) === "開催中" 
+                                  ? 'text-green-400' 
+                                  : 'text-yellow-400'
+                              } flex items-center justify-end`}>
                                 <span className="font-mono tracking-wider tabular-nums whitespace-nowrap">
                                   {calculateTimeRemaining(event.EVENT_LIST.start_date)}
                                 </span>
