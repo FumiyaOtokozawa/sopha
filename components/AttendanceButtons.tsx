@@ -264,11 +264,16 @@ const AttendanceButtons: React.FC<AttendanceButtonsProps> = ({
           {entryStatus ? (
             <>
               {entryStatus === '1' && (
-                <div className="flex-1 mb-3">
+                <motion.div 
+                  className="flex-1 mb-3"
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ type: "spring", duration: 0.5 }}
+                >
                   <TooltipButton
                     onClick={handleConfirmAttendanceWithTimeout}
                     isDisabled={
-                      // オンラインイベントの場合は位置情報取得中フラグを無視
                       event?.format === 'online' 
                         ? !isWithinEventPeriod(event)
                         : (isGettingLocation || !isWithinEventPeriod(event))
@@ -287,12 +292,17 @@ const AttendanceButtons: React.FC<AttendanceButtonsProps> = ({
                       </>
                     )}
                   </TooltipButton>
-                </div>
+                </motion.div>
               )}
               
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex-1">
-                  <div 
+              <motion.div 
+                className="flex items-center justify-between gap-3"
+                layout="position"
+                layoutId="status-container"
+              >
+                <motion.div className="flex-1">
+                  <motion.button 
+                    onClick={() => setEntryStatus(null)}
                     className={`
                       text-lg font-bold h-12 flex items-center justify-center rounded-xl w-full
                       ${entryStatus === '1' 
@@ -302,38 +312,146 @@ const AttendanceButtons: React.FC<AttendanceButtonsProps> = ({
                           : 'bg-blue-600/30 text-blue-400'
                       }
                     `}
+                    disabled={entryStatus === '11'}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    initial={false}
+                    animate={{
+                      backgroundColor: entryStatus === '1' 
+                        ? 'rgba(22, 163, 74, 0.3)' 
+                        : entryStatus === '2' 
+                          ? 'rgba(220, 38, 38, 0.3)'
+                          : 'rgba(37, 99, 235, 0.3)',
+                    }}
+                    transition={{ 
+                      type: "spring", 
+                      stiffness: 300, 
+                      damping: 25,
+                      backgroundColor: { 
+                        type: "tween", 
+                        duration: 0.2 
+                      }
+                    }}
                   >
-                    {entryStatus === '1' ? '出席予定' : entryStatus === '2' ? '欠席予定' : '出席済み'}
-                  </div>
-                </div>
-                {entryStatus !== '11' && (
-                  <button
-                    onClick={() => setEntryStatus(null)}
-                    className="p-2 rounded-xl bg-[#37373F] text-gray-300 hover:bg-[#4A4B50] hover:text-white transition-all duration-300"
-                    aria-label="ステータスを変更"
-                  >
-                    <ChangeCircleIcon sx={{ fontSize: 32 }} />
-                  </button>
-                )}
-              </div>
+                    <motion.div 
+                      className="flex items-center gap-2"
+                      layout="position"
+                    >
+                      <motion.span layoutId="status-text">
+                        {entryStatus === '1' ? '出席予定' : entryStatus === '2' ? '欠席予定' : '出席済み'}
+                      </motion.span>
+                      {entryStatus !== '11' && (
+                        <motion.div
+                          initial={{ rotate: 0, opacity: 0, scale: 0 }}
+                          animate={{ rotate: 360, opacity: 1, scale: 1 }}
+                          exit={{ rotate: 0, opacity: 0, scale: 0 }}
+                          transition={{ 
+                            duration: 0.5,
+                            scale: { type: "spring", stiffness: 200, damping: 20 }
+                          }}
+                        >
+                          <ChangeCircleIcon className="h-5 w-5" />
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  </motion.button>
+                </motion.div>
+              </motion.div>
             </>
           ) : (
-            <div className="flex justify-between gap-3">
-              <button
+            <motion.div 
+              className="flex justify-between gap-3"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ 
+                type: "spring", 
+                stiffness: 200,
+                damping: 20
+              }}
+              layoutId="status-container"
+            >
+              <motion.button
                 onClick={() => handleEventEntry('1')}
-                className="h-12 px-8 rounded-xl bg-gradient-to-r from-green-600 to-green-500 text-white font-bold hover:opacity-90 transition-opacity duration-300 flex-1 flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
+                className="h-12 px-8 rounded-xl bg-gradient-to-r from-green-600 to-green-500 text-white font-bold flex-1 flex items-center justify-center gap-2 shadow-lg shadow-green-600/20"
+                whileHover={{ 
+                  scale: 1.02,
+                  backgroundImage: "linear-gradient(to right, #22c55e, #16a34a)"
+                }}
+                whileTap={{ scale: 0.98 }}
+                initial={{ x: -100, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ 
+                  type: "spring", 
+                  stiffness: 200, 
+                  damping: 20,
+                  backgroundImage: {
+                    type: "tween",
+                    duration: 0.2
+                  }
+                }}
               >
-                <CheckIcon className="h-5 w-5" />
-                仮出席
-              </button>
-              <button
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ 
+                    type: "spring",
+                    stiffness: 200,
+                    damping: 20,
+                    delay: 0.2 
+                  }}
+                >
+                  <CheckIcon className="h-5 w-5" />
+                </motion.div>
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  仮出席
+                </motion.span>
+              </motion.button>
+              <motion.button
                 onClick={() => handleEventEntry('2')}
-                className="h-12 px-8 rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white font-bold hover:opacity-90 transition-opacity duration-300 flex-1 flex items-center justify-center gap-2 shadow-lg shadow-red-600/20"
+                className="h-12 px-8 rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white font-bold flex-1 flex items-center justify-center gap-2 shadow-lg shadow-red-600/20"
+                whileHover={{ 
+                  scale: 1.02,
+                  backgroundImage: "linear-gradient(to right, #ef4444, #dc2626)"
+                }}
+                whileTap={{ scale: 0.98 }}
+                initial={{ x: 100, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ 
+                  type: "spring", 
+                  stiffness: 200, 
+                  damping: 20,
+                  backgroundImage: {
+                    type: "tween",
+                    duration: 0.2
+                  }
+                }}
               >
-                <CloseIcon className="h-5 w-5" />
-                仮欠席
-              </button>
-            </div>
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ 
+                    type: "spring",
+                    stiffness: 200,
+                    damping: 20,
+                    delay: 0.2 
+                  }}
+                >
+                  <CloseIcon className="h-5 w-5" />
+                </motion.div>
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  仮欠席
+                </motion.span>
+              </motion.button>
+            </motion.div>
           )}
         </div>
       </motion.div>
