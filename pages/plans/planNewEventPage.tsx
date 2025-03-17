@@ -1,5 +1,5 @@
 import { NextPage } from 'next';
-import { Box, Typography, TextField, Button, Paper, ToggleButton, IconButton } from '@mui/material';
+import { Box, Typography, TextField, Button, Paper, ToggleButton, IconButton, Switch, FormControlLabel } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
@@ -27,6 +27,7 @@ type DateTimeSelection = {
 
 const PlanNewEventPage: NextPage = () => {
   const [selectedDateTimes, setSelectedDateTimes] = useState<DateTimeSelection[]>([]);
+  const [isBulkTimeEdit, setIsBulkTimeEdit] = useState(false);
   
   // スクロール位置を監視するための参照を追加
   const timeScrollRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -62,9 +63,15 @@ const PlanNewEventPage: NextPage = () => {
   };
 
   const handleTimeChange = (dateTime: DateTimeSelection, newTime: string) => {
-    setSelectedDateTimes(prevTimes => prevTimes.map(dt => 
-      dt.id === dateTime.id ? { ...dt, time: newTime } : dt
-    ));
+    setSelectedDateTimes(prevTimes => {
+      if (isBulkTimeEdit) {
+        // 一括編集モードの場合、全ての日付の時間を更新
+        return prevTimes.map(dt => ({ ...dt, time: newTime }));
+      } else {
+        // 個別編集モードの場合、選択された日付の時間のみ更新
+        return prevTimes.map(dt => dt.id === dateTime.id ? { ...dt, time: newTime } : dt);
+      }
+    });
   };
 
   const handleRemoveDateTime = (id: string) => {
@@ -90,52 +97,94 @@ const PlanNewEventPage: NextPage = () => {
 
   // スクロール終了を検知する関数
   const handleScrollEnd = useCallback((dateTime: DateTimeSelection) => {
-    const scrollRef = timeScrollRefs.current[dateTime.id];
-    const buttonRefs = timeButtonRefs.current[dateTime.id];
-    if (!scrollRef || !buttonRefs) return;
+    if (isBulkTimeEdit) {
+      const scrollRef = timeScrollRefs.current['bulk'];
+      const buttonRefs = timeButtonRefs.current['bulk'];
+      if (!scrollRef || !buttonRefs) return;
 
-    const containerRect = scrollRef.getBoundingClientRect();
-    const containerCenter = containerRect.left + (containerRect.width / 2);
+      const containerRect = scrollRef.getBoundingClientRect();
+      const containerCenter = containerRect.left + (containerRect.width / 2);
 
-    let closestTime = dateTime.time;
-    let minDistance = Infinity;
+      let closestTime = selectedDateTimes[0]?.time || '12:00';
+      let minDistance = Infinity;
 
-    Object.entries(buttonRefs).forEach(([time, element]) => {
-      if (!element) return;
-      const rect = element.getBoundingClientRect();
-      const buttonCenter = rect.left + (rect.width / 2);
-      const distance = Math.abs(buttonCenter - containerCenter);
+      Object.entries(buttonRefs).forEach(([time, element]) => {
+        if (!element) return;
+        const rect = element.getBoundingClientRect();
+        const buttonCenter = rect.left + (rect.width / 2);
+        const distance = Math.abs(buttonCenter - containerCenter);
 
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestTime = time;
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestTime = time;
+        }
+      });
+
+      if (closestTime !== selectedDateTimes[0]?.time) {
+        handleTimeChange(dateTime, closestTime);
       }
-    });
+    } else {
+      const scrollRef = timeScrollRefs.current[dateTime.id];
+      const buttonRefs = timeButtonRefs.current[dateTime.id];
+      if (!scrollRef || !buttonRefs) return;
 
-    if (closestTime !== dateTime.time) {
-      setSelectedDateTimes(prevTimes => prevTimes.map(dt => 
-        dt.id === dateTime.id ? { ...dt, time: closestTime } : dt
-      ));
+      const containerRect = scrollRef.getBoundingClientRect();
+      const containerCenter = containerRect.left + (containerRect.width / 2);
+
+      let closestTime = dateTime.time;
+      let minDistance = Infinity;
+
+      Object.entries(buttonRefs).forEach(([time, element]) => {
+        if (!element) return;
+        const rect = element.getBoundingClientRect();
+        const buttonCenter = rect.left + (rect.width / 2);
+        const distance = Math.abs(buttonCenter - containerCenter);
+
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestTime = time;
+        }
+      });
+
+      if (closestTime !== dateTime.time) {
+        handleTimeChange(dateTime, closestTime);
+      }
     }
-  }, []);
+  }, [isBulkTimeEdit, selectedDateTimes]);
 
   useEffect(() => {
     const cleanupFunctions: (() => void)[] = [];
 
+    // 一括設定モードのスクロールハンドラー
+    if (isBulkTimeEdit) {
+      const scrollRef = timeScrollRefs.current['bulk'];
+      if (scrollRef) {
+        let scrollTimeout: NodeJS.Timeout;
+
+        const handleScroll = () => {
+          setIsScrolling(true);
+          clearTimeout(scrollTimeout);
+
+          scrollTimeout = setTimeout(() => {
+            setIsScrolling(false);
+            handleScrollEnd({ id: 'bulk', date: selectedDateTimes[0]?.date, time: selectedDateTimes[0]?.time });
+          }, 150);
+        };
+
+        scrollRef.addEventListener('scroll', handleScroll);
+        cleanupFunctions.push(() => {
+          scrollRef.removeEventListener('scroll', handleScroll);
+          clearTimeout(scrollTimeout);
+        });
+      }
+    }
+
+    // 個別の時間選択のスクロールハンドラー
     selectedDateTimes.forEach(dateTime => {
+      if (isBulkTimeEdit) return;
+
       const scrollRef = timeScrollRefs.current[dateTime.id];
       if (!scrollRef) return;
-
-      // 新しい日付が選択された時に12:00の位置までスクロール
-      if (dateTime.time === '12:00') {
-        const targetElement = timeButtonRefs.current[dateTime.id]?.['12:00'];
-        if (targetElement) {
-          const containerRect = scrollRef.getBoundingClientRect();
-          const targetRect = targetElement.getBoundingClientRect();
-          const scrollOffset = targetRect.left - containerRect.left - (containerRect.width / 2) + (targetRect.width / 2);
-          scrollRef.scrollTo({ left: scrollRef.scrollLeft + scrollOffset, behavior: 'smooth' });
-        }
-      }
 
       let scrollTimeout: NodeJS.Timeout;
 
@@ -159,7 +208,34 @@ const PlanNewEventPage: NextPage = () => {
     return () => {
       cleanupFunctions.forEach(cleanup => cleanup());
     };
-  }, [handleScrollEnd, selectedDateTimes]);
+  }, [handleScrollEnd, selectedDateTimes, isBulkTimeEdit]);
+
+  // モード切り替え時のスクロール位置リセット
+  useEffect(() => {
+    if (isBulkTimeEdit) {
+      // 一括設定モードに切り替わった時
+      const scrollRef = timeScrollRefs.current['bulk'];
+      const targetElement = timeButtonRefs.current['bulk']?.[selectedDateTimes[0]?.time || '12:00'];
+      if (scrollRef && targetElement) {
+        const containerRect = scrollRef.getBoundingClientRect();
+        const targetRect = targetElement.getBoundingClientRect();
+        const scrollOffset = targetRect.left - containerRect.left - (containerRect.width / 2) + (targetRect.width / 2);
+        scrollRef.scrollTo({ left: scrollRef.scrollLeft + scrollOffset, behavior: 'smooth' });
+      }
+    } else {
+      // 個別設定モードに切り替わった時
+      selectedDateTimes.forEach(dateTime => {
+        const scrollRef = timeScrollRefs.current[dateTime.id];
+        const targetElement = timeButtonRefs.current[dateTime.id]?.[dateTime.time];
+        if (scrollRef && targetElement) {
+          const containerRect = scrollRef.getBoundingClientRect();
+          const targetRect = targetElement.getBoundingClientRect();
+          const scrollOffset = targetRect.left - containerRect.left - (containerRect.width / 2) + (targetRect.width / 2);
+          scrollRef.scrollTo({ left: scrollRef.scrollLeft + scrollOffset, behavior: 'smooth' });
+        }
+      });
+    }
+  }, [isBulkTimeEdit, selectedDateTimes]);
 
   const onSubmit = (data: PlanFormData) => {
     const eventData = {
@@ -309,7 +385,6 @@ const PlanNewEventPage: NextPage = () => {
             <Typography 
               variant="body2" 
               sx={{ 
-                  mb: 1,
                 color: 'rgba(255, 255, 255, 0.7)',
                 fontWeight: 'medium',
                   fontSize: '0.875rem',
@@ -326,7 +401,7 @@ const PlanNewEventPage: NextPage = () => {
                       fontSize: '0.75rem',
                       color: '#8E93DA',
                       bgcolor: 'rgba(142, 147, 218, 0.1)',
-                      padding: '2px 8px',
+                      padding: '2px 2px',
                       borderRadius: '12px',
                     }}
                   >
@@ -398,6 +473,9 @@ const PlanNewEventPage: NextPage = () => {
                   '& .MuiPickersDay-today': {
                     borderColor: '#8E93DA',
                   },
+                  '& .MuiDayCalendar-monthContainer': {
+                    marginBottom: 0,
+                  },
                 }}
                 slots={{
                   day: (props: { day: Dayjs | null }) => {
@@ -438,20 +516,202 @@ const PlanNewEventPage: NextPage = () => {
                   pt: 1.5,
                   borderTop: '1px solid rgba(255, 255, 255, 0.1)'
                 }}>
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      mb: 1,
-                      color: 'rgba(255, 255, 255, 0.7)',
-                      fontSize: '0.875rem',
+                  <Box sx={{ 
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    mb: 1,
+                  }}>
+                    <Box sx={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: 0.5,
-                    }}
-                  >
-                    <AccessTimeIcon sx={{ fontSize: '1rem' }} />
-                    開始時間を選択
-                  </Typography>
+                    }}>
+                      <AccessTimeIcon sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '1rem' }} />
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: 'rgba(255, 255, 255, 0.7)',
+                          fontSize: '0.875rem',
+                        }}
+                      >
+                        開始時間を選択
+                      </Typography>
+                    </Box>
+                    <Box
+                      onClick={() => setIsBulkTimeEdit(!isBulkTimeEdit)}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        cursor: 'pointer',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        bgcolor: isBulkTimeEdit ? '#5b63d3' : '#37373F',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          bgcolor: isBulkTimeEdit ? '#4850c9' : '#404049',
+                        },
+                      }}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontSize: '0.75rem',
+                          color: isBulkTimeEdit ? '#FCFCFC' : 'rgba(255, 255, 255, 0.7)',
+                        }}
+                      >
+                        一括設定
+                      </Typography>
+                      <Box
+                        sx={{
+                          width: '10px',
+                          height: '10px',
+                          borderRadius: '50%',
+                          bgcolor: isBulkTimeEdit ? '#FCFCFC' : 'rgba(255, 255, 255, 0.3)',
+                          transition: 'all 0.2s ease',
+                        }}
+                      />
+                    </Box>
+                  </Box>
+
+                  {isBulkTimeEdit && (
+                    <Box sx={{
+                      position: 'relative',
+                      height: '40px',
+                      mb: 2,
+                      bgcolor: '#1D1D21',
+                      '&::before, &::after': {
+                        content: '""',
+                        position: 'absolute',
+                        left: 0,
+                        right: 0,
+                        height: '40%',
+                        pointerEvents: 'none',
+                        zIndex: 1,
+                      },
+                      '&::before': {
+                        top: 0,
+                        background: 'linear-gradient(to bottom, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
+                      },
+                      '&::after': {
+                        bottom: 0,
+                        background: 'linear-gradient(to top, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
+                      },
+                    }}>
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          left: '50%',
+                          top: '50%',
+                          width: '72px',
+                          height: '32px',
+                          transform: 'translate(-50%, -50%)',
+                          border: '2px solid #5b63d3',
+                          borderRadius: '4px',
+                          pointerEvents: 'none',
+                          zIndex: 2,
+                        }}
+                      />
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          top: 0,
+                          bottom: 0,
+                          left: 0,
+                          width: '25%',
+                          background: 'linear-gradient(to right, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
+                          pointerEvents: 'none',
+                          zIndex: 2,
+                        }}
+                      />
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          top: 0,
+                          bottom: 0,
+                          right: 0,
+                          width: '25%',
+                          background: 'linear-gradient(to left, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
+                          pointerEvents: 'none',
+                          zIndex: 2,
+                        }}
+                      />
+                      <Box 
+                        ref={(el: HTMLDivElement | null) => {
+                          if (el) {
+                            timeScrollRefs.current['bulk'] = el;
+                          } else {
+                            delete timeScrollRefs.current['bulk'];
+                          }
+                        }}
+                        sx={{ 
+                          position: 'relative',
+                          display: 'flex',
+                          gap: 2,
+                          height: '100%',
+                          overflowX: 'auto',
+                          overflowY: 'hidden',
+                          scrollSnapType: 'x proximity',
+                          WebkitOverflowScrolling: 'touch',
+                          scrollBehavior: 'smooth',
+                          msOverflowStyle: 'none',
+                          scrollbarWidth: 'none',
+                          '&::-webkit-scrollbar': {
+                            display: 'none'
+                          },
+                        }}
+                      >
+                        <Box sx={{ 
+                          flex: '0 0 calc(50% - 36px)', 
+                          minWidth: 'calc(50% - 36px)',
+                        }} />
+                        {timeOptions.map((time) => (
+                          <Box
+                            key={time}
+                            ref={(el: HTMLDivElement | null) => {
+                              if (el) {
+                                if (!timeButtonRefs.current['bulk']) {
+                                  timeButtonRefs.current['bulk'] = {};
+                                }
+                                timeButtonRefs.current['bulk'][time] = el;
+                              } else if (timeButtonRefs.current['bulk']) {
+                                delete timeButtonRefs.current['bulk'][time];
+                              }
+                            }}
+                            onClick={() => {
+                              setSelectedDateTimes(prevTimes => 
+                                prevTimes.map(dt => ({ ...dt, time }))
+                              );
+                            }}
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '72px',
+                              height: '100%',
+                              color: selectedDateTimes[0]?.time === time ? '#FCFCFC' : 'rgba(255, 255, 255, 0.7)',
+                              fontSize: '0.875rem',
+                              fontWeight: 'bold',
+                              scrollSnapAlign: 'center',
+                              scrollSnapStop: 'normal',
+                              transition: isScrolling ? 'none' : 'all 0.2s ease',
+                              opacity: selectedDateTimes[0]?.time === time ? 1 : 0.7,
+                              userSelect: 'none',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {time}
+                          </Box>
+                        ))}
+                        <Box sx={{ 
+                          flex: '0 0 calc(50% - 36px)', 
+                          minWidth: 'calc(50% - 36px)',
+                        }} />
+                      </Box>
+                    </Box>
+                  )}
+
                   {selectedDateTimes
                     .sort((a, b) => a.date.valueOf() - b.date.valueOf())
                     .map((dateTime) => (
@@ -468,7 +728,7 @@ const PlanNewEventPage: NextPage = () => {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          mb: 0.5,
+                          mb: isBulkTimeEdit ? 0 : 0.5,
                         }}>
                           <Typography
                             variant="body2"
@@ -484,27 +744,29 @@ const PlanNewEventPage: NextPage = () => {
                             }
                           </Typography>
                           <Box sx={{ display: 'flex', gap: 0.5 }}>
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                const newDateTime = { 
-                                  id: generateUniqueId(),
-                                  date: dayjs(dateTime.date),
-                                  time: '12:00' 
-                                };
-                                setSelectedDateTimes(prevTimes => [...prevTimes, newDateTime]);
-                              }}
-                              sx={{
-                                color: 'rgba(255, 255, 255, 0.5)',
-                                padding: 0.5,
-                                '&:hover': {
-                                  color: '#FCFCFC',
-                                  bgcolor: 'rgba(255, 255, 255, 0.1)',
-                                },
-                              }}
-                            >
-                              <AddIcon sx={{ fontSize: '1.25rem' }} />
-                            </IconButton>
+                            {!isBulkTimeEdit && (
+                              <IconButton
+                                size="small"
+                                onClick={() => {
+                                  const newDateTime = { 
+                                    id: generateUniqueId(),
+                                    date: dayjs(dateTime.date),
+                                    time: selectedDateTimes[0]?.time || '12:00'
+                                  };
+                                  setSelectedDateTimes(prevTimes => [...prevTimes, newDateTime]);
+                                }}
+                                sx={{
+                                  color: 'rgba(255, 255, 255, 0.5)',
+                                  padding: 0.5,
+                                  '&:hover': {
+                                    color: '#FCFCFC',
+                                    bgcolor: 'rgba(255, 255, 255, 0.1)',
+                                  },
+                                }}
+                              >
+                                <AddIcon sx={{ fontSize: '1.25rem' }} />
+                              </IconButton>
+                            )}
                             <IconButton
                               size="small"
                               onClick={() => handleRemoveDateTime(dateTime.id)}
@@ -521,136 +783,140 @@ const PlanNewEventPage: NextPage = () => {
                             </IconButton>
                           </Box>
                         </Box>
-                        <Box sx={{
-                          position: 'relative',
-                          height: '40px',
-                          mb: 1,
-                          bgcolor: '#1D1D21',
-                          '&::before, &::after': {
-                            content: '""',
-                            position: 'absolute',
-                            left: 0,
-                            right: 0,
-                            height: '40%',
-                            pointerEvents: 'none',
-                            zIndex: 1,
-                          },
-                          '&::before': {
-                            top: 0,
-                            background: 'linear-gradient(to bottom, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
-                          },
-                          '&::after': {
-                            bottom: 0,
-                            background: 'linear-gradient(to top, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
-                          },
-                        }}>
-                          <Box
-                            sx={{
+                        {!isBulkTimeEdit && (
+                          <Box sx={{
+                            position: 'relative',
+                            height: '40px',
+                            mb: 1,
+                            bgcolor: '#1D1D21',
+                            '&::before, &::after': {
+                              content: '""',
                               position: 'absolute',
-                              left: '50%',
-                              top: '50%',
-                              width: '72px',
-                              height: '32px',
-                              transform: 'translate(-50%, -50%)',
-                              border: '2px solid #5b63d3',
-                              borderRadius: '4px',
-                              pointerEvents: 'none',
-                              zIndex: 2,
-                            }}
-                          />
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              top: 0,
-                              bottom: 0,
                               left: 0,
-                              width: '25%',
-                              background: 'linear-gradient(to right, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
-                              pointerEvents: 'none',
-                              zIndex: 2,
-                            }}
-                          />
-                          <Box
-                            sx={{
-                              position: 'absolute',
-                              top: 0,
-                              bottom: 0,
                               right: 0,
-                              width: '25%',
-                              background: 'linear-gradient(to left, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
+                              height: '40%',
                               pointerEvents: 'none',
-                              zIndex: 2,
-                            }}
-                          />
-                          <Box 
-                            ref={(el: HTMLDivElement | null) => {
-                              if (el) {
-                                timeScrollRefs.current[dateTime.id] = el;
-                              } else {
-                                delete timeScrollRefs.current[dateTime.id];
-                              }
-                            }}
-                            sx={{ 
-                              position: 'relative',
-                              display: 'flex',
-                              gap: 2,
-                              height: '100%',
-                              overflowX: 'auto',
-                              overflowY: 'hidden',
-                              scrollSnapType: 'x proximity',
-                              WebkitOverflowScrolling: 'touch',
-                              scrollBehavior: 'smooth',
-                              msOverflowStyle: 'none',
-                              scrollbarWidth: 'none',
-                              '&::-webkit-scrollbar': {
-                                display: 'none'
-                              },
-                            }}
-                          >
-                            <Box sx={{ 
-                              flex: '0 0 calc(50% - 36px)', 
-                              minWidth: 'calc(50% - 36px)',
-                            }} />
-                            {timeOptions.map((time) => (
-                              <Box
-                                key={time}
-                                ref={(el: HTMLDivElement | null) => {
-                                  if (el) {
-                                    if (!timeButtonRefs.current[dateTime.id]) {
-                                      timeButtonRefs.current[dateTime.id] = {};
+                              zIndex: 1,
+                            },
+                            '&::before': {
+                              top: 0,
+                              background: 'linear-gradient(to bottom, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
+                            },
+                            '&::after': {
+                              bottom: 0,
+                              background: 'linear-gradient(to top, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
+                            },
+                          }}>
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                left: '50%',
+                                top: '50%',
+                                width: '72px',
+                                height: '32px',
+                                transform: 'translate(-50%, -50%)',
+                                border: '2px solid #5b63d3',
+                                borderRadius: '4px',
+                                pointerEvents: 'none',
+                                zIndex: 2,
+                              }}
+                            />
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                top: 0,
+                                bottom: 0,
+                                left: 0,
+                                width: '25%',
+                                background: 'linear-gradient(to right, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
+                                pointerEvents: 'none',
+                                zIndex: 2,
+                              }}
+                            />
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                top: 0,
+                                bottom: 0,
+                                right: 0,
+                                width: '25%',
+                                background: 'linear-gradient(to left, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
+                                pointerEvents: 'none',
+                                zIndex: 2,
+                              }}
+                            />
+                            <Box 
+                              ref={(el: HTMLDivElement | null) => {
+                                if (el) {
+                                  timeScrollRefs.current[dateTime.id] = el;
+                                } else {
+                                  delete timeScrollRefs.current[dateTime.id];
+                                }
+                              }}
+                              sx={{ 
+                                position: 'relative',
+                                display: 'flex',
+                                gap: 2,
+                                height: '100%',
+                                overflowX: 'auto',
+                                overflowY: 'hidden',
+                                scrollSnapType: 'x proximity',
+                                WebkitOverflowScrolling: 'touch',
+                                scrollBehavior: 'smooth',
+                                msOverflowStyle: 'none',
+                                scrollbarWidth: 'none',
+                                '&::-webkit-scrollbar': {
+                                  display: 'none'
+                                },
+                              }}
+                            >
+                              <Box sx={{ 
+                                flex: '0 0 calc(50% - 36px)', 
+                                minWidth: 'calc(50% - 36px)',
+                              }} />
+                              {timeOptions.map((time) => (
+                                <Box
+                                  key={time}
+                                  ref={(el: HTMLDivElement | null) => {
+                                    if (el) {
+                                      if (!timeButtonRefs.current[dateTime.id]) {
+                                        timeButtonRefs.current[dateTime.id] = {};
+                                      }
+                                      timeButtonRefs.current[dateTime.id][time] = el;
+                                    } else if (timeButtonRefs.current[dateTime.id]) {
+                                      delete timeButtonRefs.current[dateTime.id][time];
                                     }
-                                    timeButtonRefs.current[dateTime.id][time] = el;
-                                  } else if (timeButtonRefs.current[dateTime.id]) {
-                                    delete timeButtonRefs.current[dateTime.id][time];
-                                  }
-                                }}
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  width: '72px',
-                                  height: '100%',
-                                  color: dateTime.time === time ? '#FCFCFC' : 'rgba(255, 255, 255, 0.7)',
-                                  fontSize: '0.875rem',
-                                  fontWeight: 'bold',
-                                  scrollSnapAlign: 'center',
-                                  scrollSnapStop: 'normal',
-                                  transition: isScrolling ? 'none' : 'all 0.2s ease',
-                                  opacity: dateTime.time === time ? 1 : 0.7,
-                                  userSelect: 'none',
-                                }}
-                              >
-                                {time}
-                              </Box>
-                            ))}
-                            <Box sx={{ 
-                              flex: '0 0 calc(50% - 36px)', 
-                              minWidth: 'calc(50% - 36px)',
-                            }} />
+                                  }}
+                                  onClick={() => handleTimeChange(dateTime, time)}
+                                  sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '72px',
+                                    height: '100%',
+                                    color: dateTime.time === time ? '#FCFCFC' : 'rgba(255, 255, 255, 0.7)',
+                                    fontSize: '0.875rem',
+                                    fontWeight: 'bold',
+                                    scrollSnapAlign: 'center',
+                                    scrollSnapStop: 'normal',
+                                    transition: isScrolling ? 'none' : 'all 0.2s ease',
+                                    opacity: dateTime.time === time ? 1 : 0.7,
+                                    userSelect: 'none',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  {time}
+                                </Box>
+                              ))}
+                              <Box sx={{ 
+                                flex: '0 0 calc(50% - 36px)', 
+                                minWidth: 'calc(50% - 36px)',
+                              }} />
+                            </Box>
                           </Box>
-                        </Box>
-              </Box>
-            ))}
+                        )}
+                      </Box>
+                    ))}
                 </Box>
               )}
             </Box>
