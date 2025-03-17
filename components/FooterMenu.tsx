@@ -4,7 +4,7 @@ import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import Paper from '@mui/material/Paper';
 import HomeIcon from '@mui/icons-material/Home';
 import EventIcon from '@mui/icons-material/Event';
-import PersonIcon from '@mui/icons-material/Person';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import RedeemIcon from '@mui/icons-material/Redeem';
 import { useRouter } from 'next/router';
 import Snackbar from '@mui/material/Snackbar';
@@ -19,7 +19,7 @@ export default function FooterMenu() {
     if (path.includes('/employeePages/empMainPage')) return 0;
     if (path.includes('/events/')) return 1;  // イベント関連の全てのパスに対応
     if (path.includes('/employeePages/empCizTransPage')) return 2;
-    if (path.includes('/employeePages/empProfilePage')) return 3;
+    if (path.includes('/plans/planEventPage')) return 3;
     return 0;
   };
 
@@ -46,7 +46,7 @@ export default function FooterMenu() {
         router.push('/events/eventListPage');
         break;
       case 3:
-        router.push('/employeePages/empProfilePage');
+        router.push('/plans/planNewEventPage');
         break;
     }
   };
@@ -123,8 +123,8 @@ export default function FooterMenu() {
             }}
           />
           <BottomNavigationAction 
-            label="PROFILE" 
-            icon={<PersonIcon />} 
+            label="PLAN" 
+            icon={<CalendarMonthIcon />} 
           />
         </BottomNavigation>
       </Paper>
