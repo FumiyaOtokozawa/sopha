@@ -27,7 +27,6 @@ type UserInfo = {
 export default function Header() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [showPWAPrompt, setShowPWAPrompt] = useState(false);
   const open = Boolean(anchorEl);
   const router = useRouter();
 
@@ -119,17 +118,6 @@ export default function Header() {
     };
 
     fetchUserInfo();
-
-    // PWAがインストールされているかどうかを確認
-    const isPWAInstalled = 
-      window.matchMedia('(display-mode: standalone)').matches ||
-      window.matchMedia('(display-mode: window-controls-overlay)').matches ||
-      (window.navigator as NavigatorWithStandalone).standalone === true;
-
-    // PWAがインストールされていない場合は常にメッセージを表示
-    if (!isPWAInstalled) {
-      setShowPWAPrompt(true);
-    }
   }, []);
 
   return (
@@ -221,25 +209,6 @@ export default function Header() {
             )}
           </div>
         </div>
-
-        {/* PWAインストールプロンプト */}
-        {showPWAPrompt && (
-          <div className="bg-[#5b63d3] p-2 relative">
-            <div className="container mx-auto relative">
-              <button 
-                onClick={() => setShowPWAPrompt(false)}
-                className="absolute right-2 top-1/2 -translate-y-1/2"
-                aria-label="閉じる"
-              >
-                <CloseIcon fontSize="small" />
-              </button>
-              <p className="text-xs text-center pr-8">
-                SOPHAをホーム画面に追加すると、より快適に利用できます<br/>
-                ※ブラウザで利用するとレイアウトが崩れる可能性があります
-              </p>
-            </div>
-          </div>
-        )}
       </header>
       {/* ヘッダーの高さ分のスペーサー */}
       <div className="h-20" style={{ marginTop: 'env(safe-area-inset-top)' }}></div>
