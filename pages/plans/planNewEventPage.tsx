@@ -8,10 +8,12 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import CloseIcon from '@mui/icons-material/Close';
 import FooterMenu from '../../components/FooterMenu';
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/ja';
-import { useState, useRef, useCallback, useEffect } from 'react';
+import 'dayjs/locale/en';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 
 // フォームの型定義
 type PlanFormData = {
@@ -26,6 +28,9 @@ type DateTimeSelection = {
 };
 
 const PlanNewEventPage: NextPage = () => {
+  // 日本語ロケールを設定
+  dayjs.locale('ja');
+
   const [selectedDateTimes, setSelectedDateTimes] = useState<DateTimeSelection[]>([]);
   const [isBulkTimeEdit, setIsBulkTimeEdit] = useState(false);
   
@@ -44,23 +49,63 @@ const PlanNewEventPage: NextPage = () => {
     defaultValues,
   });
 
-  const generateUniqueId = () => {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  };
+  // 選択された日付のマップをメモ化
+  const selectedDatesMap = useMemo(() => {
+    const map = new Map<string, boolean>();
+    selectedDateTimes.forEach(dt => {
+      map.set(dt.date.format('YYYY-MM-DD'), true);
+    });
+    return map;
+  }, [selectedDateTimes]);
 
-  const handleDateSelect = (date: Dayjs | null) => {
+  // handleDateSelectをuseCallbackでメモ化
+  const handleDateSelect = useCallback((date: Dayjs | null) => {
     if (!date) return;
     
     const formattedDate = date.startOf('day');
-    const dateExists = selectedDateTimes.some(dt => dt.date.isSame(formattedDate, 'day'));
+    const dateKey = formattedDate.format('YYYY-MM-DD');
+    const dateExists = selectedDatesMap.has(dateKey);
 
-    if (dateExists) {
-      setSelectedDateTimes(prevTimes => prevTimes.filter(dt => !dt.date.isSame(formattedDate, 'day')));
-    } else {
-      const newId = generateUniqueId();
-      setSelectedDateTimes(prevTimes => [...prevTimes, { id: newId, date: formattedDate, time: '12:00' }]);
-    }
-  };
+    setSelectedDateTimes(prevTimes => {
+      if (dateExists) {
+        return prevTimes.filter(dt => !dt.date.format('YYYY-MM-DD').includes(dateKey));
+      }
+      return [...prevTimes, { 
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+        date: formattedDate,
+        time: prevTimes[0]?.time || '12:00'
+      }];
+    });
+  }, [selectedDatesMap]);
+
+  // カスタムDayコンポーネントをメモ化
+  const CustomDay = useCallback((props: { day: Dayjs | null }) => {
+    if (!props.day) return null;
+    const isSelected = selectedDatesMap.has(props.day.format('YYYY-MM-DD'));
+    
+    return (
+      <Box
+        onClick={() => handleDateSelect(props.day)}
+        sx={{ 
+          width: 36,
+          height: 36,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          borderRadius: '50%',
+          bgcolor: isSelected ? '#5b63d3' : 'transparent',
+          color: '#FCFCFC',
+          fontSize: '0.875rem',
+          fontWeight: isSelected ? 'bold' : 'normal',
+          margin: '0 auto',
+          transition: 'background-color 0.15s ease-out',
+        }}
+      >
+        {props.day.date()}
+      </Box>
+    );
+  }, [selectedDatesMap, handleDateSelect]);
 
   const handleTimeChange = (dateTime: DateTimeSelection, newTime: string) => {
     setSelectedDateTimes(prevTimes => {
@@ -75,6 +120,11 @@ const PlanNewEventPage: NextPage = () => {
   };
 
   const handleRemoveDateTime = (id: string) => {
+    // ホバー状態をリセットするためにフォーカスを外す
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
     setSelectedDateTimes(prevTimes => {
       const newTimes = prevTimes.filter(dt => dt.id !== id);
       // 削除後、残っているイベントがある場合は最後のイベントにフォーカス
@@ -259,6 +309,7 @@ const PlanNewEventPage: NextPage = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ja">
       <Box 
+        className="plan-new-event-container"
         sx={{ 
           minHeight: '100vh',
           color: '#FCFCFC',
@@ -266,6 +317,7 @@ const PlanNewEventPage: NextPage = () => {
       >
         <Box 
           component="form" 
+          className="plan-new-event-form"
           onSubmit={handleSubmit(onSubmit)}
           sx={{ 
             pb: 'calc(64px + 20px)',
@@ -277,6 +329,7 @@ const PlanNewEventPage: NextPage = () => {
           <Typography 
             variant="subtitle1" 
             component="h1" 
+            className="plan-new-event-title"
             sx={{ 
               py: 1.5,
               fontWeight: 'bold',
@@ -290,6 +343,7 @@ const PlanNewEventPage: NextPage = () => {
 
           <Paper 
             elevation={0} 
+            className="plan-new-event-paper"
             sx={{ 
               p: 1.5, 
               mb: 2,
@@ -381,13 +435,16 @@ const PlanNewEventPage: NextPage = () => {
               bgcolor: '#262626',
               borderRadius: 1,
               p: 1.5,
-            }}>
+            }}
+            className="plan-calendar-section"
+            >
             <Typography 
               variant="body2" 
               sx={{ 
                 color: 'rgba(255, 255, 255, 0.7)',
                 fontWeight: 'medium',
-                  fontSize: '0.875rem',
+                  fontSize: '1rem',
+                  height: '32px',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center'
@@ -395,26 +452,48 @@ const PlanNewEventPage: NextPage = () => {
               >
                 <span>候補日（複数選択可）</span>
                 {selectedDateTimes.length > 0 && (
-                  <Typography
-                    component="span"
+                  <Box
+                    onClick={() => setSelectedDateTimes([])}
                     sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
                       fontSize: '0.75rem',
                       color: '#8E93DA',
                       bgcolor: 'rgba(142, 147, 218, 0.1)',
-                      padding: '2px 2px',
+                      padding: '4px 12px',
                       borderRadius: '12px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease-out',
+                      '&:hover': {
+                        bgcolor: 'rgba(142, 147, 218, 0.2)',
+                      },
+                      '&:active': {
+                        bgcolor: 'rgba(142, 147, 218, 0.3)',
+                      },
                     }}
                   >
-                    {selectedDateTimes.length}日選択中
-                  </Typography>
+                    <Typography
+                      component="span"
+                      sx={{
+                        fontSize: '0.875rem',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      {selectedDateTimes.length}日選択中
+                    </Typography>
+                    <CloseIcon sx={{ fontSize: '1rem' }} />
+                  </Box>
                 )}
             </Typography>
 
               <DateCalendar 
                 value={null}
                 onChange={handleDateSelect}
-                sx={{
+                className="plan-date-calendar"
+                sx={{ 
                   width: '100%',
+                  height: '290px',
                   '& .MuiPickersCalendarHeader-root': {
                     paddingLeft: 1,
                     paddingRight: 1,
@@ -423,6 +502,17 @@ const PlanNewEventPage: NextPage = () => {
                     '& .MuiPickersArrowSwitcher-root': {
                       '& .MuiIconButton-root': {
                         color: '#FCFCFC',
+                      },
+                    },
+                    '& .MuiPickersCalendarHeader-labelContainer': {
+                      color: '#FCFCFC',
+                    },
+                  },
+                  '& .MuiYearCalendar-root': {
+                    '& .MuiPickersYear-yearButton': {
+                      color: '#FCFCFC',
+                      '&.Mui-selected': {
+                        backgroundColor: '#5b63d3',
                       },
                     },
                   },
@@ -442,12 +532,6 @@ const PlanNewEventPage: NextPage = () => {
                     margin: '0 auto',
                     '&.Mui-selected': {
                       bgcolor: '#5b63d3',
-                      '&:hover': {
-                        bgcolor: '#4850c9',
-                      },
-                    },
-                    '&:hover': {
-                      bgcolor: 'rgba(142, 147, 218, 0.04)',
                     },
                   },
                   '& .MuiDayCalendar-weekDayLabel': {
@@ -458,8 +542,8 @@ const PlanNewEventPage: NextPage = () => {
                     fontSize: '0.75rem',
                   },
                   '& .MuiPickersCalendarHeader-label': {
-                    color: '#FCFCFC',
-                    fontSize: '0.875rem',
+                          color: '#FCFCFC',
+                          fontSize: '0.875rem',
                   },
                   '& .MuiPickersCalendarHeader-switchViewButton': {
                     color: '#FCFCFC',
@@ -471,57 +555,35 @@ const PlanNewEventPage: NextPage = () => {
                     color: '#FCFCFC',
                   },
                   '& .MuiPickersDay-today': {
-                    borderColor: '#8E93DA',
-                  },
+                            borderColor: '#8E93DA',
+                          },
                   '& .MuiDayCalendar-monthContainer': {
                     marginBottom: 0,
                   },
                 }}
                 slots={{
-                  day: (props: { day: Dayjs | null }) => {
-                    if (!props.day) return null;
-                    const isSelected = selectedDateTimes.some(dt => 
-                      dt.date.isSame(props.day, 'day')
-                    );
-                    return (
-                      <Box
-                        onClick={() => handleDateSelect(props.day)}
-                      sx={{ 
-                          width: 36,
-                          height: 36,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          borderRadius: '50%',
-                          bgcolor: isSelected ? '#5b63d3' : 'transparent',
-                          color: '#FCFCFC',
-                          fontSize: '0.875rem',
-                          margin: '0 auto',
-                          '&:hover': {
-                            bgcolor: isSelected ? '#4850c9' : 'rgba(142, 147, 218, 0.04)',
-                          },
-                        }}
-                      >
-                        {props.day.date()}
-                      </Box>
-                    );
-                  },
+                  day: CustomDay
                 }}
               />
 
               {selectedDateTimes.length > 0 && (
-                <Box sx={{ 
-                  mt: 1.5,
-                  pt: 1.5,
-                  borderTop: '1px solid rgba(255, 255, 255, 0.1)'
-                }}>
-                  <Box sx={{ 
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    mb: 1,
-                  }}>
+                <Box 
+                  className="plan-time-selection-container"
+                  sx={{ 
+                    mt: 1.5,
+                    pt: 1.5,
+                    borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+                  }}
+                >
+                  <Box 
+                    className="plan-time-selection-header"
+                    sx={{ 
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      mb: 1,
+                    }}
+                  >
                     <Box sx={{
                       display: 'flex',
                       alignItems: 'center',
@@ -539,6 +601,7 @@ const PlanNewEventPage: NextPage = () => {
                       </Typography>
                     </Box>
                     <Box
+                      className="plan-bulk-edit-toggle"
                       onClick={() => setIsBulkTimeEdit(!isBulkTimeEdit)}
                       sx={{
                         display: 'flex',
@@ -549,9 +612,6 @@ const PlanNewEventPage: NextPage = () => {
                         borderRadius: '4px',
                         bgcolor: isBulkTimeEdit ? '#5b63d3' : '#37373F',
                         transition: 'all 0.2s ease',
-                        '&:hover': {
-                          bgcolor: isBulkTimeEdit ? '#4850c9' : '#404049',
-                        },
                       }}
                     >
                       <Typography
@@ -561,7 +621,7 @@ const PlanNewEventPage: NextPage = () => {
                           color: isBulkTimeEdit ? '#FCFCFC' : 'rgba(255, 255, 255, 0.7)',
                         }}
                       >
-                        一括設定
+                        一括時間設定
                       </Typography>
                       <Box
                         sx={{
@@ -576,29 +636,32 @@ const PlanNewEventPage: NextPage = () => {
                   </Box>
 
                   {isBulkTimeEdit && (
-                    <Box sx={{
-                      position: 'relative',
-                      height: '40px',
-                      mb: 2,
-                      bgcolor: '#1D1D21',
-                      '&::before, &::after': {
-                        content: '""',
-                        position: 'absolute',
-                        left: 0,
-                        right: 0,
-                        height: '40%',
-                        pointerEvents: 'none',
-                        zIndex: 1,
-                      },
-                      '&::before': {
-                        top: 0,
-                        background: 'linear-gradient(to bottom, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
-                      },
-                      '&::after': {
-                        bottom: 0,
-                        background: 'linear-gradient(to top, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
-                      },
-                    }}>
+                    <Box 
+                      className="plan-bulk-time-selector"
+                      sx={{
+                        position: 'relative',
+                        height: '40px',
+                        mb: 2,
+                        bgcolor: '#1D1D21',
+                        '&::before, &::after': {
+                          content: '""',
+                          position: 'absolute',
+                          left: 0,
+                          right: 0,
+                          height: '40%',
+                          pointerEvents: 'none',
+                          zIndex: 1,
+                        },
+                        '&::before': {
+                          top: 0,
+                          background: 'linear-gradient(to bottom, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
+                        },
+                        '&::after': {
+                          bottom: 0,
+                          background: 'linear-gradient(to top, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
+                        },
+                      }}
+                    >
                       <Box
                         sx={{
                           position: 'absolute',
@@ -645,6 +708,7 @@ const PlanNewEventPage: NextPage = () => {
                             delete timeScrollRefs.current['bulk'];
                           }
                         }}
+                        className="plan-time-scroll-container"
                         sx={{ 
                           position: 'relative',
                           display: 'flex',
@@ -669,6 +733,7 @@ const PlanNewEventPage: NextPage = () => {
                         {timeOptions.map((time) => (
                           <Box
                             key={time}
+                            className="plan-time-option"
                             ref={(el: HTMLDivElement | null) => {
                               if (el) {
                                 if (!timeButtonRefs.current['bulk']) {
@@ -717,39 +782,54 @@ const PlanNewEventPage: NextPage = () => {
                     .map((dateTime) => (
                       <Box 
                         key={dateTime.id}
+                        className="plan-date-time-item"
                         sx={{
                           mb: 1,
-                          p: 1,
+                          px: 1,
+                          pb: isBulkTimeEdit ? 0 : 1,
                           bgcolor: 'rgba(255, 255, 255, 0.05)',
                           borderRadius: '4px',
                         }}
                       >
-                        <Box sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          mb: isBulkTimeEdit ? 0 : 0.5,
-                        }}>
+                        <Box 
+                          className="plan-date-time-header"
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                          }}
+                        >
                           <Typography
                             variant="body2"
+                            className="plan-date-label"
                             sx={{
                               fontSize: '0.875rem',
+                              pl: 0.5,
                               color: '#FCFCFC',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 0.5,
                             }}
                           >
-                            {dateTime.date.format('M月D日')}
+                            <span>{dateTime.date.format('MM/DD')}</span>
+                            <span>{dateTime.date.locale('en').format('ddd').toLowerCase()}.</span>
                             {selectedDateTimes.filter(dt => dt.date.isSame(dateTime.date, 'day')).length > 1 && 
-                              ` (${selectedDateTimes.filter(dt => dt.date.isSame(dateTime.date, 'day'))
-                                .findIndex(dt => dt.id === dateTime.id) + 1})`
+                              <span>
+                                {` (${selectedDateTimes.filter(dt => dt.date.isSame(dateTime.date, 'day'))
+                                  .findIndex(dt => dt.id === dateTime.id) + 1})`}
+                              </span>
                             }
                           </Typography>
-                          <Box sx={{ display: 'flex', gap: 0.5 }}>
+                          <Box 
+                            className="plan-date-actions"
+                            sx={{ display: 'flex', gap: 0.5 }}
+                          >
                             {!isBulkTimeEdit && (
                               <IconButton
                                 size="small"
                                 onClick={() => {
                                   const newDateTime = { 
-                                    id: generateUniqueId(),
+                                    id: `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
                                     date: dayjs(dateTime.date),
                                     time: selectedDateTimes[0]?.time || '12:00'
                                   };
@@ -758,55 +838,49 @@ const PlanNewEventPage: NextPage = () => {
                                 sx={{
                                   color: 'rgba(255, 255, 255, 0.5)',
                                   padding: 0.5,
-                                  '&:hover': {
-                                    color: '#FCFCFC',
-                                    bgcolor: 'rgba(255, 255, 255, 0.1)',
-                                  },
                                 }}
                               >
                                 <AddIcon sx={{ fontSize: '1.25rem' }} />
                               </IconButton>
                             )}
-                            <IconButton
-                              size="small"
+                <IconButton 
+                  size="small"
                               onClick={() => handleRemoveDateTime(dateTime.id)}
-                              sx={{
+                  sx={{ 
                                 color: 'rgba(255, 255, 255, 0.5)',
-                                padding: 0.5,
-                                '&:hover': {
-                                  color: '#FCFCFC',
-                                  bgcolor: 'rgba(255, 255, 255, 0.1)',
-                                },
+                    padding: 0.5,
                               }}
                             >
                               <DeleteIcon sx={{ fontSize: '1.25rem' }} />
-                            </IconButton>
-                          </Box>
+                </IconButton>
+              </Box>
                         </Box>
                         {!isBulkTimeEdit && (
-                          <Box sx={{
-                            position: 'relative',
-                            height: '40px',
-                            mb: 1,
-                            bgcolor: '#1D1D21',
-                            '&::before, &::after': {
-                              content: '""',
-                              position: 'absolute',
-                              left: 0,
-                              right: 0,
-                              height: '40%',
-                              pointerEvents: 'none',
-                              zIndex: 1,
-                            },
-                            '&::before': {
-                              top: 0,
-                              background: 'linear-gradient(to bottom, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
-                            },
-                            '&::after': {
-                              bottom: 0,
-                              background: 'linear-gradient(to top, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
-                            },
-                          }}>
+                          <Box 
+                            className="plan-individual-time-selector"
+                            sx={{
+                              position: 'relative',
+                              height: '40px',
+                              bgcolor: '#1D1D21',
+                              '&::before, &::after': {
+                                content: '""',
+                                position: 'absolute',
+                                left: 0,
+                                right: 0,
+                                height: '40%',
+                                pointerEvents: 'none',
+                                zIndex: 1,
+                              },
+                              '&::before': {
+                                top: 0,
+                                background: 'linear-gradient(to bottom, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
+                              },
+                              '&::after': {
+                                bottom: 0,
+                                background: 'linear-gradient(to top, rgba(29, 29, 33, 1) 0%, rgba(29, 29, 33, 0) 100%)',
+                              },
+                            }}
+                          >
                             <Box
                               sx={{
                                 position: 'absolute',
@@ -853,7 +927,7 @@ const PlanNewEventPage: NextPage = () => {
                                   delete timeScrollRefs.current[dateTime.id];
                                 }
                               }}
-                              sx={{ 
+              sx={{ 
                                 position: 'relative',
                                 display: 'flex',
                                 gap: 2,
@@ -899,7 +973,7 @@ const PlanNewEventPage: NextPage = () => {
                                     fontWeight: 'bold',
                                     scrollSnapAlign: 'center',
                                     scrollSnapStop: 'normal',
-                                    transition: isScrolling ? 'none' : 'all 0.2s ease',
+                                    transition: isScrolling ? 'none' : 'all 0.15s ease-out',
                                     opacity: dateTime.time === time ? 1 : 0.7,
                                     userSelect: 'none',
                                     cursor: 'pointer',
@@ -927,6 +1001,7 @@ const PlanNewEventPage: NextPage = () => {
             variant="contained"
             fullWidth
             size="large"
+            className="plan-submit-button"
             disabled={selectedDateTimes.length === 0}
             sx={{ 
               bgcolor: '#5b63d3',
