@@ -1,120 +1,232 @@
-| schema_name | table_name          | column_name                 | ordinal_position | data_type                   | is_nullable | column_default          | constraints |
-| ----------- | ------------------- | --------------------------- | ---------------- | --------------------------- | ----------- | ----------------------- | ----------- |
-| auth        | users               | instance_id                 | 1                | uuid                        | YES         | null                    | null        |
-| auth        | users               | id                          | 2                | uuid                        | NO          | null                    | PK          |
-| auth        | users               | aud                         | 3                | character varying           | YES         | null                    | null        |
-| auth        | users               | role                        | 4                | character varying           | YES         | null                    | null        |
-| auth        | users               | email                       | 5                | character varying           | YES         | null                    | null        |
-| auth        | users               | encrypted_password          | 6                | character varying           | YES         | null                    | null        |
-| auth        | users               | email_confirmed_at          | 7                | timestamp with time zone    | YES         | null                    | null        |
-| auth        | users               | invited_at                  | 8                | timestamp with time zone    | YES         | null                    | null        |
-| auth        | users               | confirmation_token          | 9                | character varying           | YES         | null                    | null        |
-| auth        | users               | confirmation_sent_at        | 10               | timestamp with time zone    | YES         | null                    | null        |
-| auth        | users               | recovery_token              | 11               | character varying           | YES         | null                    | null        |
-| auth        | users               | recovery_sent_at            | 12               | timestamp with time zone    | YES         | null                    | null        |
-| auth        | users               | email_change_token_new      | 13               | character varying           | YES         | null                    | null        |
-| auth        | users               | email_change                | 14               | character varying           | YES         | null                    | null        |
-| auth        | users               | email_change_sent_at        | 15               | timestamp with time zone    | YES         | null                    | null        |
-| auth        | users               | last_sign_in_at             | 16               | timestamp with time zone    | YES         | null                    | null        |
-| auth        | users               | raw_app_meta_data           | 17               | jsonb                       | YES         | null                    | null        |
-| auth        | users               | raw_user_meta_data          | 18               | jsonb                       | YES         | null                    | null        |
-| auth        | users               | is_super_admin              | 19               | boolean                     | YES         | null                    | null        |
-| auth        | users               | created_at                  | 20               | timestamp with time zone    | YES         | null                    | null        |
-| auth        | users               | updated_at                  | 21               | timestamp with time zone    | YES         | null                    | null        |
-| auth        | users               | phone                       | 22               | text                        | YES         | NULL::character varying | UQ          |
-| auth        | users               | phone_confirmed_at          | 23               | timestamp with time zone    | YES         | null                    | null        |
-| auth        | users               | phone_change                | 24               | text                        | YES         | ''::character varying   | null        |
-| auth        | users               | phone_change_token          | 25               | character varying           | YES         | ''::character varying   | null        |
-| auth        | users               | phone_change_sent_at        | 26               | timestamp with time zone    | YES         | null                    | null        |
-| auth        | users               | confirmed_at                | 27               | timestamp with time zone    | YES         | null                    | null        |
-| auth        | users               | email_change_token_current  | 28               | character varying           | YES         | ''::character varying   | null        |
-| auth        | users               | email_change_confirm_status | 29               | smallint                    | YES         | 0                       | null        |
-| auth        | users               | banned_until                | 30               | timestamp with time zone    | YES         | null                    | null        |
-| auth        | users               | reauthentication_token      | 31               | character varying           | YES         | ''::character varying   | null        |
-| auth        | users               | reauthentication_sent_at    | 32               | timestamp with time zone    | YES         | null                    | null        |
-| auth        | users               | is_sso_user                 | 33               | boolean                     | NO          | false                   | null        |
-| auth        | users               | deleted_at                  | 34               | timestamp with time zone    | YES         | null                    | null        |
-| auth        | users               | is_anonymous                | 35               | boolean                     | NO          | false                   | null        |
-| public      | ALL_USER_M          | emp_no                      | 1                | bigint                      | NO          | null                    | PK          |
-| public      | ALL_USER_M          | email                       | 2                | text                        | NO          | null                    | null        |
-| public      | ALL_USER_M          | act_kbn                     | 3                | boolean                     | YES         | null                    | null        |
-| public      | CONTACT_REPORTS     | id                          | 1                | bigint                      | NO          | null                    | PK          |
-| public      | CONTACT_REPORTS     | category                    | 2                | text                        | NO          | null                    | null        |
-| public      | CONTACT_REPORTS     | title                       | 3                | text                        | YES         | null                    | null        |
-| public      | CONTACT_REPORTS     | description                 | 4                | text                        | YES         | null                    | null        |
-| public      | CONTACT_REPORTS     | email                       | 5                | text                        | YES         | null                    | null        |
-| public      | CONTACT_REPORTS     | status                      | 6                | text                        | YES         | 'pending'::text         | null        |
-| public      | CONTACT_REPORTS     | created_at                  | 7                | timestamp without time zone | YES         | null                    | null        |
-| public      | CONTACT_REPORTS     | updated_at                  | 8                | timestamp without time zone | YES         | null                    | null        |
-| public      | CONTACT_REPORTS     | resolved_at                 | 9                | timestamp without time zone | YES         | null                    | null        |
-| public      | CONTACT_REPORTS     | resolved_by                 | 10               | bigint                      | YES         | null                    | null        |
-| public      | CONTACT_REPORTS     | response                    | 11               | text                        | YES         | null                    | null        |
-| public      | EMP_CIZ             | ciz_id                      | 1                | bigint                      | NO          | null                    | UQ, PK      |
-| public      | EMP_CIZ             | emp_no                      | 2                | bigint                      | NO          | null                    | FK          |
-| public      | EMP_CIZ             | total_ciz                   | 3                | bigint                      | NO          | null                    | null        |
-| public      | EMP_CIZ             | updated_at                  | 4                | timestamp without time zone | YES         | null                    | null        |
-| public      | EMP_CIZ             | updated_by                  | 5                | text                        | YES         | null                    | null        |
-| public      | EMP_CIZ             | act_kbn                     | 6                | boolean                     | NO          | true                    | null        |
-| public      | EMP_CIZ_HISTORY     | history_id                  | 1                | bigint                      | NO          | null                    | PK          |
-| public      | EMP_CIZ_HISTORY     | emp_no                      | 2                | bigint                      | NO          | null                    | FK          |
-| public      | EMP_CIZ_HISTORY     | change_type                 | 3                | text                        | YES         | ''::text                | null        |
-| public      | EMP_CIZ_HISTORY     | ciz                         | 4                | bigint                      | YES         | null                    | null        |
-| public      | EMP_CIZ_HISTORY     | event_id                    | 5                | bigint                      | YES         | null                    | null        |
-| public      | EMP_CIZ_HISTORY     | reason                      | 6                | text                        | YES         | null                    | null        |
-| public      | EMP_CIZ_HISTORY     | created_at                  | 7                | timestamp without time zone | YES         | null                    | null        |
-| public      | EMP_CIZ_HISTORY     | created_by                  | 8                | text                        | YES         | null                    | null        |
-| public      | EMP_CIZ_HISTORY     | act_kbn                     | 9                | boolean                     | NO          | true                    | null        |
-| public      | EVENT_LIST          | event_id                    | 1                | bigint                      | NO          | null                    | PK          |
-| public      | EVENT_LIST          | title                       | 2                | text                        | NO          | null                    | null        |
-| public      | EVENT_LIST          | owner                       | 4                | bigint                      | YES         | null                    | null        |
-| public      | EVENT_LIST          | start_date                  | 5                | timestamp without time zone | YES         | null                    | null        |
-| public      | EVENT_LIST          | end_date                    | 6                | timestamp without time zone | YES         | null                    | null        |
-| public      | EVENT_LIST          | created_at                  | 7                | timestamp without time zone | YES         | null                    | null        |
-| public      | EVENT_LIST          | created_by                  | 8                | bigint                      | YES         | null                    | null        |
-| public      | EVENT_LIST          | updated_at                  | 9                | timestamp without time zone | YES         | null                    | null        |
-| public      | EVENT_LIST          | updated_by                  | 10               | bigint                      | YES         | null                    | null        |
-| public      | EVENT_LIST          | act_kbn                     | 11               | boolean                     | NO          | true                    | null        |
-| public      | EVENT_LIST          | description                 | 12               | text                        | YES         | null                    | null        |
-| public      | EVENT_LIST          | genre                       | 13               | text                        | YES         | null                    | null        |
-| public      | EVENT_LIST          | repeat_id                   | 14               | bigint                      | YES         | null                    | null        |
-| public      | EVENT_LIST          | abbreviation                | 15               | text                        | YES         | null                    | null        |
-| public      | EVENT_LIST          | format                      | 16               | text                        | YES         | null                    | null        |
-| public      | EVENT_LIST          | url                         | 17               | text                        | YES         | null                    | null        |
-| public      | EVENT_LIST          | venue_radius                | 20               | bigint                      | YES         | null                    | null        |
-| public      | EVENT_LIST          | venue_id                    | 21               | bigint                      | YES         | null                    | FK          |
-| public      | EVENT_LIST          | manage_member               | 22               | text                        | YES         | null                    | null        |
-| public      | EVENT_PARTICIPATION | emp_no                      | 1                | bigint                      | NO          | null                    | PK, FK      |
-| public      | EVENT_PARTICIPATION | official_count              | 2                | bigint                      | NO          | null                    | null        |
-| public      | EVENT_PARTICIPATION | unofficial_count            | 3                | bigint                      | YES         | null                    | null        |
-| public      | EVENT_PARTICIPATION | updated_at                  | 4                | timestamp without time zone | YES         | null                    | null        |
-| public      | EVENT_PAR_HISTORY   | history_id                  | 1                | bigint                      | NO          | null                    | PK          |
-| public      | EVENT_PAR_HISTORY   | emp_no                      | 2                | bigint                      | YES         | null                    | FK          |
-| public      | EVENT_PAR_HISTORY   | event_id                    | 3                | bigint                      | NO          | null                    | FK          |
-| public      | EVENT_PAR_HISTORY   | participated_at             | 5                | timestamp without time zone | YES         | null                    | null        |
-| public      | EVENT_TEMP_ENTRY    | entry_id                    | 1                | bigint                      | NO          | null                    | PK          |
-| public      | EVENT_TEMP_ENTRY    | event_id                    | 2                | bigint                      | NO          | null                    | FK          |
-| public      | EVENT_TEMP_ENTRY    | emp_no                      | 3                | bigint                      | YES         | null                    | FK          |
-| public      | EVENT_TEMP_ENTRY    | status                      | 4                | text                        | YES         | null                    | null        |
-| public      | EVENT_TEMP_ENTRY    | updated_at                  | 5                | timestamp without time zone | YES         | now()                   | null        |
-| public      | EVENT_VENUE         | venue_id                    | 1                | bigint                      | NO          | null                    | PK          |
-| public      | EVENT_VENUE         | venue_nm                    | 2                | text                        | NO          | null                    | null        |
-| public      | EVENT_VENUE         | address                     | 3                | text                        | YES         | null                    | null        |
-| public      | EVENT_VENUE         | latitude                    | 4                | null                        | YES         | null                    | null        |
-| public      | EVENT_VENUE         | longitude                   | 5                | null                        | YES         | null                    | null        |
-| public      | USER_INFO           | emp_no                      | 1                | bigint                      | NO          | null                    | UQ, PK      |
-| public      | USER_INFO           | myoji                       | 3                | text                        | YES         | null                    | null        |
-| public      | USER_INFO           | namae                       | 4                | text                        | YES         | null                    | null        |
-| public      | USER_INFO           | last_nm                     | 5                | text                        | YES         | null                    | null        |
-| public      | USER_INFO           | first_nm                    | 6                | text                        | YES         | null                    | null        |
-| public      | USER_INFO           | gender                      | 7                | text                        | NO          | '1'::text               | null        |
-| public      | USER_INFO           | email                       | 8                | text                        | YES         | null                    | null        |
-| public      | USER_INFO           | act_kbn                     | 9                | boolean                     | NO          | true                    | null        |
-| public      | USER_INFO           | login_count                 | 10               | bigint                      | YES         | '0'::bigint             | null        |
-| public      | USER_INFO           | birthday                    | 11               | date                        | YES         | null                    | null        |
-| public      | USER_INFO           | icon_url                    | 12               | text                        | YES         | null                    | null        |
-| public      | USER_ROLE           | role_id                     | 1                | bigint                      | NO          | null                    | PK          |
-| public      | USER_ROLE           | role                        | 3                | text                        | YES         | null                    | null        |
-| public      | USER_ROLE           | updated_at                  | 4                | timestamp without time zone | YES         | null                    | null        |
-| public      | USER_ROLE           | updated_by                  | 5                | text                        | YES         | null                    | null        |
-| public      | USER_ROLE           | act_kbn                     | 6                | boolean                     | NO          | true                    | null        |
-| public      | USER_ROLE           | emp_no                      | 7                | bigint                      | YES         | null                    | FK          |
+# Supabase Database Schema
+
+## Tables Overview
+
+### PLAN_EVENT (日程調整イベント)
+| Column | Type | Nullable | Default |
+|--------|------|----------|----------|
+| plan_id | bigint | NO | null |
+| plan_title | text | NO | null |
+| description | text | YES | null |
+| status | text | YES | null |
+| created_by | bigint | YES | null |
+| created_at | timestamp without time zone | YES | null |
+| updated_at | timestamp without time zone | YES | null |
+
+**Foreign Keys**: None
+
+### PLAN_EVENT_DATES (日程候補)
+| Column | Type | Nullable | Default |
+|--------|------|----------|----------|
+| date_id | bigint | NO | null |
+| plan_id | bigint | NO | null |
+| datetime | timestamp without time zone | YES | null |
+| created_at | timestamp without time zone | YES | null |
+
+**Foreign Keys**:
+- plan_id -> PLAN_EVENT.plan_id
+
+### PLAN_PAR_AVAILABILITY (参加可否)
+| Column | Type | Nullable | Default |
+|--------|------|----------|----------|
+| par_id | bigint | NO | null |
+| plan_id | bigint | YES | null |
+| date_id | bigint | NO | null |
+| emp_no | bigint | NO | null |
+| availability | text | NO | null |
+| created_at | timestamp without time zone | YES | null |
+| updated_at | timestamp without time zone | YES | null |
+
+**Foreign Keys**:
+- emp_no -> USER_INFO.emp_no
+- plan_id -> PLAN_EVENT.plan_id
+
+### USER_INFO (ユーザー情報)
+| Column | Type | Nullable | Default |
+|--------|------|----------|----------|
+| emp_no | bigint | NO | null |
+| myoji | text | YES | null |
+| namae | text | YES | null |
+| last_nm | text | YES | null |
+| first_nm | text | YES | null |
+| gender | text | NO | '1'::text |
+| email | text | YES | null |
+| act_kbn | boolean | NO | true |
+| login_count | bigint | YES | '0'::bigint |
+| birthday | date | YES | null |
+| icon_url | text | YES | null |
+
+**Foreign Keys**: None
+
+## リレーションシップ図
+
+```mermaid
+erDiagram
+    PLAN_EVENT ||--o{ PLAN_EVENT_DATES : "has"
+    PLAN_EVENT ||--o{ PLAN_PAR_AVAILABILITY : "has"
+    USER_INFO ||--o{ PLAN_PAR_AVAILABILITY : "responds"
+    PLAN_EVENT_DATES ||--o{ PLAN_PAR_AVAILABILITY : "has"
+```
+
+## 主要テーブルの説明
+
+1. PLAN_EVENT
+   - 日程調整イベントの基本情報を管理
+   - タイトル、説明、作成者などを保持
+
+2. PLAN_EVENT_DATES
+   - 各イベントの候補日時を管理
+   - PLAN_EVENTに紐づく
+
+3. PLAN_PAR_AVAILABILITY
+   - ユーザーの参加可否情報を管理
+   - USER_INFOとPLAN_EVENTに紐づく
+
+4. USER_INFO
+   - ユーザーの基本情報を管理
+   - 他のテーブルから参照される
+
+# Supabase Table Information
+
+## ALL_USER_M
+| Column | Type | Nullable | Default |
+|--------|------|----------|----------|
+| emp_no | bigint | NO | null |
+| email | text | NO | null |
+| act_kbn | boolean | YES | null |
+
+**Foreign Keys**: None
+
+## CONTACT_REPORTS
+| Column | Type | Nullable | Default |
+|--------|------|----------|----------|
+| id | bigint | NO | null |
+| category | text | NO | null |
+| title | text | YES | null |
+| description | text | YES | null |
+| email | text | YES | null |
+| status | text | YES | 'pending'::text |
+| created_at | timestamp without time zone | YES | null |
+| updated_at | timestamp without time zone | YES | null |
+| resolved_at | timestamp without time zone | YES | null |
+| resolved_by | bigint | YES | null |
+| response | text | YES | null |
+
+**Foreign Keys**: None
+
+## EMP_CIZ
+| Column | Type | Nullable | Default |
+|--------|------|----------|----------|
+| ciz_id | bigint | NO | null |
+| emp_no | bigint | NO | null |
+| total_ciz | bigint | NO | null |
+| updated_at | timestamp without time zone | YES | null |
+| updated_by | text | YES | null |
+| act_kbn | boolean | NO | true |
+
+**Foreign Keys**:
+- emp_no -> USER_INFO.emp_no
+
+## EMP_CIZ_HISTORY
+| Column | Type | Nullable | Default |
+|--------|------|----------|----------|
+| history_id | bigint | NO | null |
+| emp_no | bigint | NO | null |
+| change_type | text | YES | ''::text |
+| ciz | bigint | YES | null |
+| event_id | bigint | YES | null |
+| reason | text | YES | null |
+| created_at | timestamp without time zone | YES | null |
+| created_by | text | YES | null |
+| act_kbn | boolean | NO | true |
+
+**Foreign Keys**:
+- emp_no -> USER_INFO.emp_no
+
+## EVENT_LIST
+| Column | Type | Nullable | Default |
+|--------|------|----------|----------|
+| event_id | bigint | NO | null |
+| title | text | NO | null |
+| owner | bigint | YES | null |
+| start_date | timestamp without time zone | YES | null |
+| end_date | timestamp without time zone | YES | null |
+| created_at | timestamp without time zone | YES | null |
+| created_by | bigint | YES | null |
+| updated_at | timestamp without time zone | YES | null |
+| updated_by | bigint | YES | null |
+| act_kbn | boolean | NO | true |
+| description | text | YES | null |
+| genre | text | YES | null |
+| repeat_id | bigint | YES | null |
+| abbreviation | text | YES | null |
+| format | text | YES | null |
+| url | text | YES | null |
+| venue_radius | bigint | YES | null |
+| venue_id | bigint | YES | null |
+| manage_member | text | YES | null |
+
+**Foreign Keys**:
+- venue_id -> EVENT_VENUE.venue_id
+
+## EVENT_PARTICIPATION
+| Column | Type | Nullable | Default |
+|--------|------|----------|----------|
+| emp_no | bigint | NO | null |
+| official_count | bigint | NO | null |
+| unofficial_count | bigint | YES | null |
+| updated_at | timestamp without time zone | YES | null |
+
+**Foreign Keys**:
+- emp_no -> USER_INFO.emp_no
+
+## EVENT_PAR_HISTORY
+| Column | Type | Nullable | Default |
+|--------|------|----------|----------|
+| history_id | bigint | NO | null |
+| emp_no | bigint | YES | null |
+| event_id | bigint | NO | null |
+| participated_at | timestamp without time zone | YES | null |
+| format | text | YES | null |
+
+**Foreign Keys**:
+- emp_no -> USER_INFO.emp_no
+- event_id -> EVENT_LIST.event_id
+
+## EVENT_TEMP_ENTRY
+| Column | Type | Nullable | Default |
+|--------|------|----------|----------|
+| entry_id | bigint | NO | null |
+| event_id | bigint | NO | null |
+| emp_no | bigint | YES | null |
+| status | text | YES | null |
+| updated_at | timestamp without time zone | YES | now() |
+| format | text | YES | null |
+
+**Foreign Keys**:
+- event_id -> EVENT_LIST.event_id
+- emp_no -> USER_INFO.emp_no
+
+## EVENT_VENUE
+| Column | Type | Nullable | Default |
+|--------|------|----------|----------|
+| venue_id | bigint | NO | null |
+| venue_nm | text | NO | null |
+| address | text | YES | null |
+| latitude | numeric | YES | null |
+| longitude | numeric | YES | null |
+
+**Foreign Keys**: None
+
+## USER_ROLE
+| Column | Type | Nullable | Default |
+|--------|------|----------|----------|
+| role_id | bigint | NO | null |
+| role | text | YES | null |
+| updated_at | timestamp without time zone | YES | null |
+| updated_by | text | YES | null |
+| act_kbn | boolean | NO | true |
+| emp_no | bigint | YES | null |
+
+**Foreign Keys**:
+- emp_no -> USER_INFO.emp_no

@@ -13,12 +13,15 @@ import { useEffect, useState } from "react";
 import { supabase } from "../utils/supabaseClient";
 import Head from 'next/head';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { SessionContextProvider } from '@supabase/auth-helpers-react';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 
 // ログインが必要なパスのパターン
 const AUTH_REQUIRED_PATHS = [
   '/employeePages',
   '/events',
-  '/adminPages'
+  '/adminPages',
+  '/plans'
 ];
 
 // 認証前のページのパスを定義
@@ -35,6 +38,22 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 5 * 60 * 1000, // 5分間キャッシュを保持
       gcTime: 30 * 60 * 1000, // 30分間キャッシュを保持
+    },
+  },
+});
+
+const theme = createTheme({
+  typography: {
+    fontFamily: "'Montserrat', 'M PLUS 1p', sans-serif",
+  },
+  components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          backgroundColor: '#242529',
+          color: '#fcfcfc',
+        },
+      },
     },
   },
 });
@@ -87,34 +106,38 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Head>
-        <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover' />
-        <meta name='description' content='Sopha - スケジュール管理アプリケーション' />
-      </Head>
-      <div className="min-h-screen flex flex-col">
-        {isAuthenticated && !isPublicPage && <Header />}
-        {isPublicPage ? (
-          <main className="flex-1">
-            <Component {...pageProps} />
-          </main>
-        ) : (
-          <AnimatePresence mode="wait">
-            <motion.main
-              key={router.pathname}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="flex-1"
-            >
-              <Component {...pageProps} />
-            </motion.main>
-          </AnimatePresence>
-        )}
-        {isAuthenticated && !isPublicPage && <FooterMenu />}
-      </div>
-      <Analytics />
-      <SpeedInsights />
+      <SessionContextProvider supabaseClient={supabase}>
+        <ThemeProvider theme={theme}>
+          <Head>
+            <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover' />
+            <meta name='description' content='Sopha - スケジュール管理アプリケーション' />
+          </Head>
+          <div className="min-h-screen flex flex-col">
+            {isAuthenticated && !isPublicPage && <Header />}
+            {isPublicPage ? (
+              <main className="flex-1">
+                <Component {...pageProps} />
+              </main>
+            ) : (
+              <AnimatePresence mode="wait">
+                <motion.main
+                  key={router.pathname}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex-1"
+                >
+                  <Component {...pageProps} />
+                </motion.main>
+              </AnimatePresence>
+            )}
+            {isAuthenticated && !isPublicPage && <FooterMenu />}
+          </div>
+          <Analytics />
+          <SpeedInsights />
+        </ThemeProvider>
+      </SessionContextProvider>
     </QueryClientProvider>
   );
 }

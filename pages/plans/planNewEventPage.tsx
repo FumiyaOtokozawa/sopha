@@ -1,5 +1,5 @@
 import { NextPage } from 'next';
-import { Box, Typography, TextField, Button, Paper, ToggleButton, IconButton, Switch, FormControlLabel } from '@mui/material';
+import { Box, Typography, Button, Paper, IconButton } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
@@ -7,18 +7,24 @@ import { useForm, Controller } from 'react-hook-form';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CloseIcon from '@mui/icons-material/Close';
 import FooterMenu from '../../components/FooterMenu';
 import dayjs, { Dayjs } from 'dayjs';
 import 'dayjs/locale/ja';
 import 'dayjs/locale/en';
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import { useUser } from '@supabase/auth-helpers-react';
+import { useRouter } from 'next/router';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { ja } from 'date-fns/locale';
 
 // フォームの型定義
 type PlanFormData = {
   title: string;
   description: string;
+  deadline: string;
 };
 
 type DateTimeSelection = {
@@ -27,7 +33,29 @@ type DateTimeSelection = {
   time: string;
 };
 
+// リクエストの型定義
+interface CreatePlanEventRequest {
+  title: string;
+  description?: string;
+  deadline: string;
+  dates: {
+    date: string;  // ISO 8601形式 (YYYY-MM-DD)
+    time: string;  // 24時間形式 (HH:mm)
+  }[];
+  createdBy: number;  // emp_no
+}
+
+// レスポンスの型定義
+interface CreatePlanEventResponse {
+  planId: number;
+  success: boolean;
+  message?: string;
+}
+
 const PlanNewEventPage: NextPage = () => {
+  const user = useUser();
+  const router = useRouter();
+
   // 日本語ロケールを設定
   dayjs.locale('ja');
 
@@ -43,6 +71,7 @@ const PlanNewEventPage: NextPage = () => {
   const defaultValues: PlanFormData = {
     title: '',
     description: '',
+    deadline: '',
   };
 
   const { control, handleSubmit } = useForm<PlanFormData>({
@@ -107,7 +136,7 @@ const PlanNewEventPage: NextPage = () => {
     );
   }, [selectedDatesMap, handleDateSelect]);
 
-  const handleTimeChange = (dateTime: DateTimeSelection, newTime: string) => {
+  const handleTimeChange = useCallback((dateTime: DateTimeSelection, newTime: string) => {
     setSelectedDateTimes(prevTimes => {
       if (isBulkTimeEdit) {
         // 一括編集モードの場合、全ての日付の時間を更新
@@ -117,7 +146,7 @@ const PlanNewEventPage: NextPage = () => {
         return prevTimes.map(dt => dt.id === dateTime.id ? { ...dt, time: newTime } : dt);
       }
     });
-  };
+  }, [isBulkTimeEdit]);
 
   const handleRemoveDateTime = (id: string) => {
     // ホバー状態をリセットするためにフォーカスを外す
@@ -200,7 +229,7 @@ const PlanNewEventPage: NextPage = () => {
         handleTimeChange(dateTime, closestTime);
       }
     }
-  }, [isBulkTimeEdit, selectedDateTimes]);
+  }, [isBulkTimeEdit, selectedDateTimes, handleTimeChange]);
 
   useEffect(() => {
     const cleanupFunctions: (() => void)[] = [];
@@ -287,16 +316,72 @@ const PlanNewEventPage: NextPage = () => {
     }
   }, [isBulkTimeEdit, selectedDateTimes]);
 
-  const onSubmit = (data: PlanFormData) => {
-    const eventData = {
-      ...data,
-      dates: selectedDateTimes.map(dt => ({
-        datetime: dt.date.hour(parseInt(dt.time.split(':')[0]))
-                      .minute(parseInt(dt.time.split(':')[1]))
-      }))
-    };
-    console.log(eventData);
-    // TODO: APIを呼び出して保存処理を実装
+  const onSubmit = async (data: PlanFormData) => {
+    try {
+      console.log('User:', user);
+
+      if (!user?.email) {
+        alert('ログインが必要です');
+        return;
+      }
+
+      // ユーザー情報の取得
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      
+      const { data: userData, error: userError } = await supabase
+        .from('USER_INFO')
+        .select('emp_no')
+        .eq('email', user.email)
+        .single();
+
+      if (userError) {
+        console.error('User error:', userError);
+        alert('ユーザー情報の取得に失敗しました');
+        return;
+      }
+
+      if (!userData) {
+        console.error('User data not found for email:', user.email);
+        alert('ユーザー情報が見つかりません');
+        return;
+      }
+
+      console.log('Creating plan with data:', {
+        title: data.title,
+        description: data.description,
+        deadline: data.deadline,
+        dates: selectedDateTimes.map(dt => ({
+          date: dt.date.format('YYYY-MM-DD'),
+          time: dt.time
+        })),
+        createdBy: userData.emp_no
+      });
+
+      const response = await createPlanEvent({
+        title: data.title,
+        description: data.description,
+        deadline: data.deadline,
+        dates: selectedDateTimes.map(dt => ({
+          date: dt.date.format('YYYY-MM-DD'),
+          time: dt.time
+        })),
+        createdBy: userData.emp_no
+      });
+
+      console.log('Plan creation response:', response);
+
+      if (response.success) {
+        router.push('/plans/planMainPage');
+      } else {
+        alert(response.message || 'エラーが発生しました');
+      }
+    } catch (error) {
+      console.error('Error submitting plan:', error);
+      alert('予定の作成に失敗しました');
+    }
   };
 
   // 時間選択オプション
@@ -313,6 +398,8 @@ const PlanNewEventPage: NextPage = () => {
         sx={{ 
           minHeight: '100vh',
           color: '#FCFCFC',
+          pb: '84px', // フッターメニューの高さ + 余白
+          position: 'relative',
         }}
       >
         <Box 
@@ -320,26 +407,12 @@ const PlanNewEventPage: NextPage = () => {
           className="plan-new-event-form"
           onSubmit={handleSubmit(onSubmit)}
           sx={{ 
-            pb: 'calc(64px + 20px)',
-            px: 1.5,
+            p: 1.5,
             maxWidth: '600px',
-            mx: 'auto'
+            mx: 'auto',
+            mb: 2.5, // 作成ボタンの下の余白を追加
           }}
         >
-          <Typography 
-            variant="subtitle1" 
-            component="h1" 
-            className="plan-new-event-title"
-            sx={{ 
-              py: 1.5,
-              fontWeight: 'bold',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-              mb: 2,
-              fontSize: '1rem'
-            }}
-          >
-            予定調整
-          </Typography>
 
           <Paper 
             elevation={0} 
@@ -355,42 +428,21 @@ const PlanNewEventPage: NextPage = () => {
               name="title"
               control={control}
               rules={{ required: 'タイトルは必須です' }}
-              render={({ field, fieldState: { error } }) => (
-                <TextField
-                  {...field}
-                  label="タイトル"
-                  fullWidth
-                  error={!!error}
-                  helperText={error?.message}
-                  size="small"
-                  sx={{ 
-                    mb: 2,
-                    '& .MuiOutlinedInput-root': {
-                      color: '#FCFCFC',
-                      '& fieldset': {
-                        borderColor: 'rgba(255, 255, 255, 0.23)',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: '#8E93DA',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#8E93DA',
-                      },
-                    },
-                    '& .MuiInputLabel-root': {
-                      color: 'rgba(255, 255, 255, 0.7)',
-                      '&.Mui-focused': {
-                        color: '#8E93DA',
-                      },
-                      fontSize: '0.875rem',
-                    },
-                    '& .MuiFormHelperText-root': {
-                      color: '#f44336',
-                      marginTop: 0.5,
-                      fontSize: '0.75rem',
-                    },
-                  }}
-                />
+              render={({ field, fieldState }) => (
+                <div className="mb-1.5">
+                  <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
+                    タイトル<span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    {...field}
+                    type="text"
+                    className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
+                    required
+                  />
+                  {fieldState.error && (
+                    <div className="text-red-500 text-sm mt-1">{fieldState.error.message}</div>
+                  )}
+                </div>
               )}
             />
 
@@ -398,51 +450,74 @@ const PlanNewEventPage: NextPage = () => {
               name="description"
               control={control}
               render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="備考"
-                  fullWidth
-                  multiline
-                  rows={2}
-                  size="small"
-                  sx={{ 
-                    mb: 2,
-                    '& .MuiOutlinedInput-root': {
-                      color: '#FCFCFC',
-                      '& fieldset': {
-                        borderColor: 'rgba(255, 255, 255, 0.23)',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: '#8E93DA',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#8E93DA',
-                      },
-                    },
-                    '& .MuiInputLabel-root': {
-                      color: 'rgba(255, 255, 255, 0.7)',
-                      '&.Mui-focused': {
-                        color: '#8E93DA',
-                      },
-                      fontSize: '0.875rem',
-                    },
-                  }}
-                />
+                <div className="mb-0">
+                  <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
+                    備考
+                  </label>
+                  <textarea
+                    {...field}
+                    className="w-full bg-[#1D1D21] rounded p-2 h-[96px] text-[#FCFCFC] resize-none"
+                  />
+                </div>
               )}
             />
 
-            <Box sx={{ 
-              bgcolor: '#262626',
-              borderRadius: 1,
-              p: 1.5,
-            }}
-            className="plan-calendar-section"
-            >
-            <Typography 
-              variant="body2" 
+            <Controller
+              name="deadline"
+              control={control}
+              rules={{ required: '締切日時は必須です' }}
+              render={({ field, fieldState }) => (
+                <div className="mb-1.5">
+                  <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
+                    締切日時<span className="text-red-500">*</span>
+                  </label>
+                  <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>
+                    <DateTimePicker
+                      value={field.value ? new Date(field.value) : null}
+                      onChange={(date) => field.onChange(date?.toISOString())}
+                      sx={{
+                        width: '100%',
+                        '& .MuiInputBase-root': {
+                          backgroundColor: '#1D1D21',
+                          color: '#FCFCFC',
+                          height: '40px',
+                          fontSize: '14px',
+                        },
+                        '& .MuiInputBase-input': {
+                          padding: '8px 8px',
+                          height: '24px',
+                          '&::placeholder': {
+                            color: '#6B7280',
+                            opacity: 1,
+                            fontSize: '12px',
+                          },
+                        },
+                        '& .MuiSvgIcon-root': {
+                          color: '#FCFCFC',
+                          fontSize: '20px',
+                        }
+                      }}
+                    />
+                  </LocalizationProvider>
+                  {fieldState.error && (
+                    <div className="text-red-500 text-sm mt-1">{fieldState.error.message}</div>
+                  )}
+                </div>
+              )}
+            />
+
+            <Box 
+              className="plan-calendar-section"
               sx={{ 
-                color: 'rgba(255, 255, 255, 0.7)',
-                fontWeight: 'medium',
+                bgcolor: '#262626',
+                borderRadius: 1,
+                p: 1.5,
+              }}
+            >
+              <Box 
+                sx={{ 
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  fontWeight: 'medium',
                   fontSize: '1rem',
                   height: '32px',
                   display: 'flex',
@@ -450,7 +525,14 @@ const PlanNewEventPage: NextPage = () => {
                   alignItems: 'center'
                 }}
               >
-                <span>候補日（複数選択可）</span>
+                <Typography 
+                  variant="body2"
+                  sx={{
+                    fontSize: '1rem',
+                  }}
+                >
+                  候補日（複数選択可）
+                </Typography>
                 {selectedDateTimes.length > 0 && (
                   <Box
                     onClick={() => setSelectedDateTimes([])}
@@ -485,7 +567,7 @@ const PlanNewEventPage: NextPage = () => {
                     <CloseIcon sx={{ fontSize: '1rem' }} />
                   </Box>
                 )}
-            </Typography>
+              </Box>
 
               <DateCalendar 
                 value={null}
@@ -1027,4 +1109,89 @@ const PlanNewEventPage: NextPage = () => {
   );
 };
 
-export default PlanNewEventPage; 
+export default PlanNewEventPage;
+
+// バリデーション用の関数
+function validatePlanEventRequest(req: CreatePlanEventRequest): string | null {
+  if (!req.title.trim()) {
+    return 'タイトルは必須です';
+  }
+
+  if (!req.deadline) {
+    return '締切日時は必須です';
+  }
+
+  if (!dayjs(req.deadline).isValid()) {
+    return '不正な締切日時です';
+  }
+
+  if (!req.dates.length) {
+    return '候補日時を少なくとも1つ選択してください';
+  }
+
+  for (const date of req.dates) {
+    if (!dayjs(`${date.date} ${date.time}`).isValid()) {
+      return '不正な日時が含まれています';
+    }
+  }
+
+  if (!req.createdBy || req.createdBy <= 0) {
+    return '不正なユーザー情報です';
+  }
+
+  return null;
+}
+
+// API関数内でバリデーションを実行
+export async function createPlanEvent(req: CreatePlanEventRequest): Promise<CreatePlanEventResponse> {
+  // バリデーション
+  const validationError = validatePlanEventRequest(req);
+  if (validationError) {
+    return {
+      planId: 0,
+      success: false,
+      message: validationError
+    };
+  }
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  try {
+    const { data, error } = await supabase
+      .rpc('create_plan_event', {
+        p_title: req.title,
+        p_description: req.description || '',
+        p_deadline: req.deadline,
+        p_created_by: req.createdBy,
+        p_dates: req.dates.map(d => ({
+          datetime: `${d.date} ${d.time}`
+        }))
+      });
+
+    if (error) throw error;
+
+    if (!data.success) {
+      return {
+        planId: 0,
+        success: false,
+        message: data.message || 'イベントの作成に失敗しました'
+      };
+    }
+
+    return {
+      planId: data.plan_id,
+      success: true
+    };
+
+  } catch (error) {
+    console.error('Error creating plan event:', error);
+    return {
+      planId: 0,
+      success: false,
+      message: 'イベントの作成に失敗しました'
+    };
+  }
+}

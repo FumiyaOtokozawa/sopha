@@ -18,8 +18,8 @@ export default function FooterMenu() {
   const getActiveTab = (path: string) => {
     if (path.includes('/employeePages/empMainPage')) return 0;
     if (path.includes('/events/')) return 1;  // イベント関連の全てのパスに対応
-    if (path.includes('/employeePages/empCizTransPage')) return 2;
-    if (path.includes('/plans/planEventPage')) return 3;
+    if (path.includes('/plans/')) return 2;
+    if (path.includes('/employeePages/empCizTransPage')) return 3;
     return 0;
   };
 
@@ -31,8 +31,8 @@ export default function FooterMenu() {
   }, [router.pathname]);
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
-    // CIZタブ（newValue === 2）の場合は、valueを更新せずメッセージのみ表示
-    if (newValue === 2) {
+    // CIZタブ（newValue === 3）の場合は、valueを更新せずメッセージのみ表示
+    if (newValue === 3) {
       setOpenSnackbar(true);
       return;
     }
@@ -45,8 +45,8 @@ export default function FooterMenu() {
       case 1:
         router.push('/events/eventListPage');
         break;
-      case 3:
-        router.push('/plans/planNewEventPage');
+      case 2:
+        router.push('/plans/planMainPage');
         break;
     }
   };
@@ -116,15 +116,15 @@ export default function FooterMenu() {
             icon={<EventIcon />} 
           />
           <BottomNavigationAction 
+            label="PLAN" 
+            icon={<CalendarMonthIcon />} 
+          />
+          <BottomNavigationAction 
             label="CIZ" 
             icon={<RedeemIcon />}
             sx={{
               opacity: 0.5,
             }}
-          />
-          <BottomNavigationAction 
-            label="PLAN" 
-            icon={<CalendarMonthIcon />} 
           />
         </BottomNavigation>
       </Paper>

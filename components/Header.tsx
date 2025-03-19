@@ -6,15 +6,9 @@ import MenuIcon from "@mui/icons-material/Menu";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import HomeIcon from "@mui/icons-material/Home";
-import CloseIcon from "@mui/icons-material/Close";
 import { Menu, MenuItem, IconButton } from "@mui/material";
 import { useRouter } from "next/router";
 import Image from "next/image";
-
-// iOS Safariのnavigator型を拡張
-interface NavigatorWithStandalone extends Navigator {
-  standalone?: boolean;
-}
 
 type UserInfo = {
   emp_no: number;
