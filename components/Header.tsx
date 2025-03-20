@@ -1,7 +1,7 @@
 // components/Header.tsx
 
 import { useEffect, useState } from "react";
-import { supabase } from '../utils/supabaseClient';
+import { supabase } from "../utils/supabaseClient";
 import MenuIcon from "@mui/icons-material/Menu";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
@@ -26,23 +26,35 @@ export default function Header() {
 
   // プロフィール更新イベントのリスナーを追加
   useEffect(() => {
-    const handleProfileUpdate = (event: CustomEvent<{ myoji: string; namae: string; icon_url: string | null }>) => {
+    const handleProfileUpdate = (
+      event: CustomEvent<{
+        myoji: string;
+        namae: string;
+        icon_url: string | null;
+      }>
+    ) => {
       if (userInfo) {
         setUserInfo({
           ...userInfo,
           myoji: event.detail.myoji,
           namae: event.detail.namae,
-          icon_url: event.detail.icon_url
+          icon_url: event.detail.icon_url,
         });
       }
     };
 
     // イベントリスナーを追加
-    window.addEventListener('userProfileUpdate', handleProfileUpdate as EventListener);
+    window.addEventListener(
+      "userProfileUpdate",
+      handleProfileUpdate as EventListener
+    );
 
     // クリーンアップ関数
     return () => {
-      window.removeEventListener('userProfileUpdate', handleProfileUpdate as EventListener);
+      window.removeEventListener(
+        "userProfileUpdate",
+        handleProfileUpdate as EventListener
+      );
     };
   }, [userInfo]); // userInfoが変更されたときにリスナーを再設定
 
@@ -57,7 +69,7 @@ export default function Header() {
   const handleLogout = async () => {
     // ログアウト確認ダイアログを表示
     const isConfirmed = window.confirm("ログアウトしてもよろしいですか？");
-    
+
     if (isConfirmed) {
       const { error } = await supabase.auth.signOut();
       if (error) {
@@ -80,20 +92,24 @@ export default function Header() {
 
   useEffect(() => {
     const fetchUserInfo = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (!user) return;
 
       // USER_INFOとUSER_ROLEを結合して取得（外部結合）
       const { data, error } = await supabase
         .from("USER_INFO")
-        .select(`
+        .select(
+          `
           emp_no,
           myoji,
           namae,
           icon_url,
           USER_ROLE!left(role)
-        `)
+        `
+        )
         .eq("email", user.email)
         .single();
 
@@ -107,7 +123,7 @@ export default function Header() {
         myoji: data.myoji,
         namae: data.namae,
         icon_url: data.icon_url,
-        role: data.USER_ROLE?.[0]?.role || "0" // デフォルトは"0"（Employee）
+        role: data.USER_ROLE?.[0]?.role || "0", // デフォルトは"0"（Employee）
       });
     };
 
@@ -116,12 +132,15 @@ export default function Header() {
 
   return (
     <>
-      <header className="fixed top-0 left-0 right-0 z-50 flex flex-col bg-[#3D3E42] text-white" style={{ paddingTop: 'calc(env(safe-area-inset-top))' }}>
+      <header
+        className="fixed top-0 left-0 right-0 z-50 flex flex-col bg-[#3D3E42] text-white"
+        style={{ paddingTop: "calc(env(safe-area-inset-top))" }}
+      >
         <div className="flex items-center justify-between px-6 py-4">
           {/* 左側：ユーザー情報 */}
-          <div 
+          <div
             className="flex items-center cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => router.push('/employeePages/empProfilePage')}
+            onClick={() => router.push("/employeePages/empProfilePage")}
             role="button"
             aria-label="プロフィールを表示"
           >
@@ -136,19 +155,17 @@ export default function Header() {
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-white text-base font-medium">
-                  {userInfo?.myoji && userInfo?.namae ? 
-                    `${userInfo.myoji.charAt(0)}${userInfo.namae.charAt(0)}` : 
-                    ""
-                  }
+                  {userInfo?.myoji && userInfo?.namae
+                    ? `${userInfo.myoji.charAt(0)}${userInfo.namae.charAt(0)}`
+                    : ""}
                 </div>
               )}
             </div>
             <div>
               <p className="font-bold">
-                {userInfo?.myoji && userInfo?.namae ? 
-                  `${userInfo.myoji} ${userInfo.namae}` : 
-                  "Loading..."
-                }
+                {userInfo?.myoji && userInfo?.namae
+                  ? `${userInfo.myoji} ${userInfo.namae}`
+                  : "Loading..."}
               </p>
               <p className="text-sm text-[#FCFCFC]">
                 {userInfo ? `No.\u2068${userInfo.emp_no}\u2069` : ""}
@@ -162,7 +179,7 @@ export default function Header() {
               <IconButton
                 onClick={handleHomeClick}
                 className="p-2 hover:bg-[#4A4B50] rounded-full transition-colors"
-                sx={{ color: '#FCFCFC' }}
+                sx={{ color: "#FCFCFC" }}
               >
                 <HomeIcon />
               </IconButton>
@@ -171,7 +188,7 @@ export default function Header() {
                 <IconButton
                   onClick={handleMenuOpen}
                   className="p-2 hover:bg-[#4A4B50] rounded-full transition-colors"
-                  sx={{ color: '#FCFCFC' }}
+                  sx={{ color: "#FCFCFC" }}
                 >
                   <MenuIcon />
                 </IconButton>
@@ -181,21 +198,30 @@ export default function Header() {
                   onClose={handleMenuClose}
                   PaperProps={{
                     sx: {
-                      backgroundColor: '#3D3E42',
-                      color: '#FCFCFC',
+                      backgroundColor: "#3D3E42",
+                      color: "#FCFCFC",
                       mt: 1,
-                      '& .MuiMenuItem-root:hover': {
-                        backgroundColor: '#4A4B50',
+                      "& .MuiMenuItem-root:hover": {
+                        backgroundColor: "#4A4B50",
                       },
                     },
                   }}
                 >
-                  <MenuItem onClick={handleContactPage} className="flex items-center gap-2">
-                    <HelpOutlineIcon fontSize="small" sx={{ color: '#FCFCFC' }} />
+                  <MenuItem
+                    onClick={handleContactPage}
+                    className="flex items-center gap-2"
+                  >
+                    <HelpOutlineIcon
+                      fontSize="small"
+                      sx={{ color: "#FCFCFC" }}
+                    />
                     <span>お問い合わせ/不具合報告</span>
                   </MenuItem>
-                  <MenuItem onClick={handleLogout} className="flex items-center gap-2">
-                    <LogoutIcon fontSize="small" sx={{ color: '#FCFCFC' }} />
+                  <MenuItem
+                    onClick={handleLogout}
+                    className="flex items-center gap-2"
+                  >
+                    <LogoutIcon fontSize="small" sx={{ color: "#FCFCFC" }} />
                     <span>ログアウト</span>
                   </MenuItem>
                 </Menu>
@@ -205,7 +231,10 @@ export default function Header() {
         </div>
       </header>
       {/* ヘッダーの高さ分のスペーサー */}
-      <div className="h-20" style={{ marginTop: 'env(safe-area-inset-top)' }}></div>
+      <div
+        className="h-20"
+        style={{ marginTop: "env(safe-area-inset-top)" }}
+      ></div>
     </>
   );
 }
