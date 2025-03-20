@@ -19,5 +19,6 @@ rules:
        * 要件との整合性
        * 既存コードとの互換性
        * 重複した説明や実装の有無"
-　　* スマートフォン向けの実装（iOSとAndroidのPWAに対応）"
-　　* タイムゾーンは常にJSTで実装
+       * スマートフォン向けの実装（iOSとAndroidのPWAに対応）"
+       * タイムゾーンは常にJSTで実装
+       * テーブル情報は常に「Supabase Snippet GET TABLE DATA by JSON.csv」が最新なので毎回参照すること

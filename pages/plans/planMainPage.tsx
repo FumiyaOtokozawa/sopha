@@ -212,7 +212,7 @@ const PlanMainPage: NextPage = () => {
   };
 
   const handlePlanClick = (planId: number) => {
-    router.push(`/plans/${planId}`);
+    router.push(`/plans/planAdjStatusPage?plan_id=${planId}`);
   };
 
   return (
