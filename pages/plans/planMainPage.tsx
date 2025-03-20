@@ -163,20 +163,26 @@ const PlanMainPage: NextPage = () => {
           mx: "auto",
         }}
       >
-        <Typography
-          variant="subtitle1"
-          component="h1"
-          sx={{
-            py: 1.5,
-            fontWeight: "bold",
-            borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-            mb: 2,
-            fontSize: "1rem",
-          }}
-        >
-          日程調整
-        </Typography>
-
+        <Box sx={{ textAlign: "center", py: 2 }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleCreateNewPlan}
+            className="w-full py-2 rounded bg-[#5b63d3] text-white font-bold hover:bg-opacity-80 flex items-center justify-center gap-2"
+            sx={{
+              bgcolor: "#5b63d3",
+              color: "#FCFCFC",
+              fontSize: "0.875rem",
+              fontWeight: "bold",
+              width: "100%",
+              "&:hover": {
+                bgcolor: "#4850c9",
+              },
+            }}
+          >
+            新規イベントの日程調整
+          </Button>
+        </Box>
         <Paper
           elevation={0}
           sx={{
@@ -186,28 +192,7 @@ const PlanMainPage: NextPage = () => {
             borderRadius: "8px",
           }}
         >
-          <Box sx={{ textAlign: "center", py: 2 }}>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleCreateNewPlan}
-              sx={{
-                bgcolor: "#5b63d3",
-                color: "#FCFCFC",
-                py: 1,
-                px: 3,
-                fontSize: "0.875rem",
-                fontWeight: "bold",
-                "&:hover": {
-                  bgcolor: "#4850c9",
-                },
-              }}
-            >
-              新規イベントの日程調整
-            </Button>
-          </Box>
-
-          <Box sx={{ mt: 2 }}>
+          <Box>
             {isLoading ? (
               <Typography
                 variant="body2"
@@ -240,6 +225,7 @@ const PlanMainPage: NextPage = () => {
                       <Paper
                         key={event.plan_id}
                         onClick={() => handlePlanClick(event.plan_id)}
+                        className="touch-none"
                         sx={{
                           bgcolor:
                             event.status === "pending"
@@ -261,16 +247,26 @@ const PlanMainPage: NextPage = () => {
                             event.status === "pending"
                               ? "rgba(142, 147, 218, 0.1)"
                               : "rgba(255, 255, 255, 0.05)",
-                          "&:hover": {
-                            background:
-                              event.status === "pending"
-                                ? "linear-gradient(135deg, #252941 0%, #2A2E4D 100%)"
-                                : "#262626",
-                            transform: "translateY(-2px)",
-                            boxShadow:
-                              event.status === "pending"
-                                ? "0 4px 20px rgba(91, 99, 211, 0.15)"
-                                : "0 4px 12px rgba(0, 0, 0, 0.2)",
+                          "@media (hover: hover)": {
+                            "&:hover": {
+                              background:
+                                event.status === "pending"
+                                  ? "linear-gradient(135deg, #252941 0%, #2A2E4D 100%)"
+                                  : "#262626",
+                              transform: "translateY(-2px)",
+                              boxShadow:
+                                event.status === "pending"
+                                  ? "0 4px 20px rgba(91, 99, 211, 0.15)"
+                                  : "0 4px 12px rgba(0, 0, 0, 0.2)",
+                            },
+                          },
+                          "@media (hover: none)": {
+                            "&:active": {
+                              background:
+                                event.status === "pending"
+                                  ? "linear-gradient(135deg, #252941 0%, #2A2E4D 100%)"
+                                  : "#262626",
+                            },
                           },
                         }}
                       >
@@ -371,7 +367,9 @@ const PlanMainPage: NextPage = () => {
                               backgroundColor: "rgba(255, 255, 255, 0.05)",
                               padding: "4px 8px",
                               borderRadius: "6px",
-                              flex: 1,
+                              width: "160px",
+                              marginLeft: "auto",
+                              justifyContent: "flex-start",
                             }}
                           >
                             <EventIcon
@@ -382,13 +380,14 @@ const PlanMainPage: NextPage = () => {
                             />
                             <Typography
                               variant="body2"
+                              noWrap
                               sx={{
                                 fontSize: "0.75rem",
                                 color: "rgba(255, 255, 255, 0.7)",
                                 fontWeight: "500",
                               }}
                             >
-                              {dayjs(event.deadline).format("YYYY/M/D HH:mm")}
+                              {dayjs(event.deadline).format("YYYY/M/D HH:mm ")}
                               まで
                             </Typography>
                           </Box>
@@ -417,6 +416,7 @@ const PlanMainPage: NextPage = () => {
                       <Paper
                         key={event.plan_id}
                         onClick={() => handlePlanClick(event.plan_id)}
+                        className="touch-none"
                         sx={{
                           bgcolor:
                             event.status === "pending"
@@ -438,16 +438,26 @@ const PlanMainPage: NextPage = () => {
                             event.status === "pending"
                               ? "rgba(142, 147, 218, 0.1)"
                               : "rgba(255, 255, 255, 0.05)",
-                          "&:hover": {
-                            background:
-                              event.status === "pending"
-                                ? "linear-gradient(135deg, #252941 0%, #2A2E4D 100%)"
-                                : "#262626",
-                            transform: "translateY(-2px)",
-                            boxShadow:
-                              event.status === "pending"
-                                ? "0 4px 20px rgba(91, 99, 211, 0.15)"
-                                : "0 4px 12px rgba(0, 0, 0, 0.2)",
+                          "@media (hover: hover)": {
+                            "&:hover": {
+                              background:
+                                event.status === "pending"
+                                  ? "linear-gradient(135deg, #252941 0%, #2A2E4D 100%)"
+                                  : "#262626",
+                              transform: "translateY(-2px)",
+                              boxShadow:
+                                event.status === "pending"
+                                  ? "0 4px 20px rgba(91, 99, 211, 0.15)"
+                                  : "0 4px 12px rgba(0, 0, 0, 0.2)",
+                            },
+                          },
+                          "@media (hover: none)": {
+                            "&:active": {
+                              background:
+                                event.status === "pending"
+                                  ? "linear-gradient(135deg, #252941 0%, #2A2E4D 100%)"
+                                  : "#262626",
+                            },
                           },
                         }}
                       >
@@ -548,7 +558,9 @@ const PlanMainPage: NextPage = () => {
                               backgroundColor: "rgba(255, 255, 255, 0.05)",
                               padding: "4px 8px",
                               borderRadius: "6px",
-                              flex: 1,
+                              width: "160px",
+                              marginLeft: "auto",
+                              justifyContent: "flex-start",
                             }}
                           >
                             <EventIcon
@@ -559,6 +571,7 @@ const PlanMainPage: NextPage = () => {
                             />
                             <Typography
                               variant="body2"
+                              noWrap
                               sx={{
                                 fontSize: "0.75rem",
                                 color: "rgba(255, 255, 255, 0.7)",

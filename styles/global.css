@@ -1,7 +1,7 @@
 /* styles/global.css */
 
 /* Google Fontsからフォントをインポート */
-@import url('https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;500;700&family=Montserrat:wght@400;500;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;500;700&family=Montserrat:wght@400;500;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -13,12 +13,40 @@
   &::-webkit-scrollbar {
     display: none;
   }
-  
+
   /* Firefox向け */
   scrollbar-width: none;
-  
+
   /* IE向け */
   -ms-overflow-style: none;
+
+  /* テキスト選択を無効化 */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+
+  /* タッチハイライトを無効化 */
+  -webkit-tap-highlight-color: transparent;
+
+  /* 長押しメニューを無効化（iOS） */
+  -webkit-touch-callout: none;
+}
+
+/* タッチデバイスでのホバー制御 */
+@media (hover: hover) and (pointer: fine) {
+  /* ホバー可能なデバイスでのみホバーエフェクトを適用 */
+  .hover-effect:hover {
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+  }
+}
+
+@media (hover: none) {
+  /* タッチデバイスではホバー状態を即座に解除 */
+  *:hover {
+    transition: none !important;
+  }
 }
 
 :root {
@@ -37,7 +65,7 @@ body {
   background-color: #242529;
   color: #fcfcfc; /* グローバル文字色 */
   margin: 0;
-  font-family: 'Montserrat', 'M PLUS 1p', sans-serif; /* 英語フォントと日本語フォントを設定 */
+  font-family: "Montserrat", "M PLUS 1p", sans-serif; /* 英語フォントと日本語フォントを設定 */
   min-height: 100vh;
   width: 100%;
   position: relative;
@@ -57,13 +85,21 @@ body {
 
 /* アニメーション用スタイル */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes fadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 @keyframes fadeInUp {
