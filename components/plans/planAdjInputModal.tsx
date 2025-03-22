@@ -12,9 +12,9 @@ import {
   FormControlLabel,
   FormControl,
 } from "@mui/material";
-import CircleOutlinedIcon from "@mui/icons-material/CircleOutlined";
-import ChangeHistoryIcon from "@mui/icons-material/ChangeHistory";
-import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+import CircleOutlined from "@mui/icons-material/CircleOutlined";
+import ChangeHistory from "@mui/icons-material/ChangeHistory";
+import Close from "@mui/icons-material/Close";
 import EventIcon from "@mui/icons-material/Event";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
@@ -26,7 +26,12 @@ const weekdayKanji = ["日", "月", "火", "水", "木", "金", "土"];
 const formatDateWithKanji = (datetime: string) => {
   const date = dayjs(datetime);
   const weekday = weekdayKanji[date.day()];
-  return date.format(`MM/DD（${weekday}）HH:mm`);
+  return {
+    date: date.format("MM月DD日"),
+    weekday: weekday,
+    time: date.format("HH:mm"),
+    day: date.day(),
+  };
 };
 
 interface PlanDate {
@@ -64,48 +69,97 @@ const PlanAdjInputModal: React.FC<PlanAdjInputModalProps> = ({
           bgcolor: "#1D1D21",
           color: "#FCFCFC",
           borderRadius: "12px",
+          maxHeight: "85vh",
         },
       }}
     >
       <DialogTitle
         sx={{
           borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-          fontSize: "1rem",
+          fontSize: "0.9rem",
           fontWeight: "bold",
-          p: 2,
+          p: 1.5,
+          minHeight: "48px",
+          display: "flex",
+          alignItems: "center",
         }}
       >
         出欠を入力
       </DialogTitle>
-      <DialogContent sx={{ p: "16px !important" }}>
+      <DialogContent sx={{ p: "12px !important" }}>
         {dates.map((date) => (
           <Box
             key={date.date_id}
             sx={{
-              mb: 1.5,
-              p: 1.5,
-              borderRadius: "8px",
+              mb: 1,
+              p: 1,
+              borderRadius: "6px",
               bgcolor: "rgba(255, 255, 255, 0.03)",
               border: "1px solid rgba(255, 255, 255, 0.05)",
               display: "flex",
               alignItems: "center",
-              gap: 2,
+              gap: 1,
             }}
           >
             <Typography
               sx={{
                 color: "#FCFCFC",
-                fontSize: "0.875rem",
+                fontSize: "0.8rem",
                 display: "flex",
                 alignItems: "center",
-                gap: 1,
-                minWidth: "180px",
+                minWidth: "160px",
+                flex: 1,
               }}
             >
-              <EventIcon sx={{ fontSize: "1.1rem" }} />
-              {formatDateWithKanji(date.datetime)}
+              <EventIcon sx={{ fontSize: "0.9rem", mr: 0.5 }} />
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  width: "100%",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Box
+                  sx={{
+                    fontSize: "0.75rem",
+                    width: "35%",
+                    textAlign: "left",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {formatDateWithKanji(date.datetime).date}
+                </Box>
+                <Box
+                  sx={{
+                    fontSize: "0.75rem",
+                    width: "20%",
+                    textAlign: "left",
+                    whiteSpace: "nowrap",
+                    color:
+                      formatDateWithKanji(date.datetime).day === 0
+                        ? "#FF5656"
+                        : formatDateWithKanji(date.datetime).day === 6
+                        ? "#5b63d3"
+                        : "inherit",
+                  }}
+                >
+                  （{formatDateWithKanji(date.datetime).weekday}）
+                </Box>
+                <Box
+                  sx={{
+                    fontSize: "0.75rem",
+                    width: "45%",
+                    textAlign: "left",
+                    whiteSpace: "nowrap",
+                    pl: 1,
+                  }}
+                >
+                  {formatDateWithKanji(date.datetime).time}
+                </Box>
+              </Box>
             </Typography>
-            <FormControl sx={{ flex: 1 }}>
+            <FormControl sx={{ ml: "auto" }}>
               <RadioGroup
                 row
                 value={availabilities[date.date_id] || "×"}
@@ -117,10 +171,12 @@ const PlanAdjInputModal: React.FC<PlanAdjInputModalProps> = ({
                 }
                 sx={{
                   display: "flex",
-                  justifyContent: "space-around",
+                  justifyContent: "flex-end",
+                  gap: 1,
                   bgcolor: "rgba(255, 255, 255, 0.02)",
-                  borderRadius: "6px",
-                  p: 0.5,
+                  borderRadius: "4px",
+                  p: 0.25,
+                  width: "fit-content",
                 }}
               >
                 <FormControlLabel
@@ -128,81 +184,52 @@ const PlanAdjInputModal: React.FC<PlanAdjInputModalProps> = ({
                   control={
                     <Radio
                       sx={{
-                        color: "rgba(74, 222, 128, 0.5)",
+                        color: "rgba(74, 222, 128, 0.3)",
                         "&.Mui-checked": { color: "#4ADE80" },
-                        padding: 0.5,
+                        padding: 0.25,
                       }}
-                      icon={<CircleOutlinedIcon sx={{ fontSize: "1.25rem" }} />}
+                      icon={<CircleOutlined sx={{ fontSize: "1.2rem" }} />}
                       checkedIcon={
-                        <CircleOutlinedIcon sx={{ fontSize: "1.25rem" }} />
+                        <CircleOutlined sx={{ fontSize: "1.2rem" }} />
                       }
                     />
                   }
-                  label="参加可能"
-                  sx={{
-                    m: 0,
-                    "& .MuiFormControlLabel-label": {
-                      fontSize: "0.75rem",
-                      color:
-                        availabilities[date.date_id] === "○"
-                          ? "#4ADE80"
-                          : "rgba(255, 255, 255, 0.5)",
-                    },
-                  }}
+                  label=""
+                  sx={{ m: 0 }}
                 />
                 <FormControlLabel
                   value="△"
                   control={
                     <Radio
                       sx={{
-                        color: "rgba(255, 184, 0, 0.5)",
+                        color: "rgba(255, 184, 0, 0.3)",
                         "&.Mui-checked": { color: "#FFB800" },
-                        padding: 0.5,
+                        padding: 0.25,
                       }}
-                      icon={<ChangeHistoryIcon sx={{ fontSize: "1.25rem" }} />}
+                      icon={<ChangeHistory sx={{ fontSize: "1.2rem" }} />}
                       checkedIcon={
-                        <ChangeHistoryIcon sx={{ fontSize: "1.25rem" }} />
+                        <ChangeHistory sx={{ fontSize: "1.2rem" }} />
                       }
                     />
                   }
-                  label="調整可能"
-                  sx={{
-                    m: 0,
-                    "& .MuiFormControlLabel-label": {
-                      fontSize: "0.75rem",
-                      color:
-                        availabilities[date.date_id] === "△"
-                          ? "#FFB800"
-                          : "rgba(255, 255, 255, 0.5)",
-                    },
-                  }}
+                  label=""
+                  sx={{ m: 0 }}
                 />
                 <FormControlLabel
                   value="×"
                   control={
                     <Radio
                       sx={{
-                        color: "rgba(255, 86, 86, 0.5)",
+                        color: "rgba(255, 86, 86, 0.3)",
                         "&.Mui-checked": { color: "#FF5656" },
-                        padding: 0.5,
+                        padding: 0.25,
                       }}
-                      icon={<CloseOutlinedIcon sx={{ fontSize: "1.25rem" }} />}
-                      checkedIcon={
-                        <CloseOutlinedIcon sx={{ fontSize: "1.25rem" }} />
-                      }
+                      icon={<Close sx={{ fontSize: "1.3rem" }} />}
+                      checkedIcon={<Close sx={{ fontSize: "1.3rem" }} />}
                     />
                   }
-                  label="参加不可"
-                  sx={{
-                    m: 0,
-                    "& .MuiFormControlLabel-label": {
-                      fontSize: "0.75rem",
-                      color:
-                        availabilities[date.date_id] === "×"
-                          ? "#FF5656"
-                          : "rgba(255, 255, 255, 0.5)",
-                    },
-                  }}
+                  label=""
+                  sx={{ m: 0 }}
                 />
               </RadioGroup>
             </FormControl>
@@ -211,16 +238,18 @@ const PlanAdjInputModal: React.FC<PlanAdjInputModalProps> = ({
       </DialogContent>
       <DialogActions
         sx={{
-          p: 2,
+          p: 1.5,
           borderTop: "1px solid rgba(255, 255, 255, 0.1)",
           gap: 1,
+          justifyContent: "space-between",
         }}
       >
         <Button
           onClick={onClose}
           sx={{
             color: "rgba(255, 255, 255, 0.7)",
-            minWidth: "120px",
+            minWidth: "100px",
+            fontSize: "0.8rem",
             "&:hover": {
               bgcolor: "rgba(255, 255, 255, 0.05)",
             },
@@ -235,7 +264,8 @@ const PlanAdjInputModal: React.FC<PlanAdjInputModalProps> = ({
           sx={{
             bgcolor: "#5b63d3",
             color: "#FCFCFC",
-            minWidth: "120px",
+            minWidth: "100px",
+            fontSize: "0.8rem",
             "&:hover": {
               bgcolor: "#4850c9",
             },

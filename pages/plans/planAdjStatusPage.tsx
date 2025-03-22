@@ -12,9 +12,9 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
 import PersonIcon from "@mui/icons-material/Person";
-import CircleOutlinedIcon from "@mui/icons-material/CircleOutlined";
-import ChangeHistoryIcon from "@mui/icons-material/ChangeHistory";
-import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+import CircleOutlined from "@mui/icons-material/CircleOutlined";
+import ChangeHistory from "@mui/icons-material/ChangeHistory";
+import Close from "@mui/icons-material/Close";
 import EventIcon from "@mui/icons-material/Event";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
@@ -31,7 +31,7 @@ const weekdayKanji = ["日", "月", "火", "水", "木", "金", "土"];
 const formatDateWithKanji = (datetime: string) => {
   const date = dayjs(datetime);
   const weekday = weekdayKanji[date.day()];
-  return date.format(`MM/DD（${weekday}）HH:mm`);
+  return date.format(`M月D日（${weekday}）HH:mm`);
 };
 
 // 型定義
@@ -75,11 +75,11 @@ interface DateRespondents {
 const AvailabilityIcon = ({ type }: { type: "○" | "△" | "×" }) => {
   switch (type) {
     case "○":
-      return <CircleOutlinedIcon sx={{ fontSize: "1rem", color: "#4ADE80" }} />;
+      return <CircleOutlined sx={{ fontSize: "0.9rem", color: "#4ADE80" }} />;
     case "△":
-      return <ChangeHistoryIcon sx={{ fontSize: "1rem", color: "#FFB800" }} />;
+      return <ChangeHistory sx={{ fontSize: "1rem", color: "#FFB800" }} />;
     case "×":
-      return <CloseOutlinedIcon sx={{ fontSize: "1rem", color: "#FF5656" }} />;
+      return <Close sx={{ fontSize: "1.2rem", color: "#FF5656" }} />;
     default:
       return null;
   }
@@ -423,7 +423,7 @@ const PlanAdjStatusPage: NextPage = () => {
                   gap: 0.5,
                 }}
               >
-                <PersonIcon sx={{ fontSize: "1rem" }} />
+                <PersonIcon sx={{ fontSize: "0.9rem" }} />
                 {planEvent.creator.myoji} {planEvent.creator.namae}
               </Typography>
               <Typography
@@ -435,7 +435,7 @@ const PlanAdjStatusPage: NextPage = () => {
                   gap: 0.5,
                 }}
               >
-                <EventIcon sx={{ fontSize: "1rem" }} />
+                <EventIcon sx={{ fontSize: "0.9rem" }} />
                 {formatDateWithKanji(planEvent.deadline)}まで
               </Typography>
             </Box>
@@ -540,6 +540,8 @@ const PlanAdjStatusPage: NextPage = () => {
                   const availableRate =
                     (availableCount / totalRespondents) * 100;
                   const maybeRate = (maybeCount / totalRespondents) * 100;
+                  const unavailableRate =
+                    (unavailableCount / totalRespondents) * 100;
 
                   return (
                     <Box
@@ -557,108 +559,206 @@ const PlanAdjStatusPage: NextPage = () => {
                       }}
                     >
                       <Box
+                        className="response-status-row"
                         sx={{
                           display: "flex",
                           alignItems: "center",
-                          gap: 2,
                         }}
                       >
+                        {/* 日時エリア */}
                         <Box
+                          className="date-time-area"
                           sx={{
                             flex: 1,
                             display: "flex",
                             alignItems: "center",
                             gap: 1,
-                            width: "45%",
+                            width: "50%",
                           }}
                         >
                           <Typography
+                            className="date-time-text"
+                            component="div"
                             sx={{
                               fontSize: "0.875rem",
                               color: "#FCFCFC",
                               display: "flex",
                               alignItems: "center",
                               gap: 0.5,
+                              width: "100%",
                             }}
                           >
-                            <EventIcon sx={{ fontSize: "1rem" }} />
-                            {formatDateWithKanji(date.datetime)}
+                            <EventIcon
+                              className="date-icon"
+                              sx={{ fontSize: "1rem" }}
+                            />
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                width: "100%",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  fontSize: "0.75rem",
+                                  width: "35%",
+                                  textAlign: "left",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {dayjs(date.datetime).format("MM月DD日")}
+                              </Box>
+                              <Box
+                                sx={{
+                                  fontSize: "0.75rem",
+                                  width: "20%",
+                                  textAlign: "left",
+                                  whiteSpace: "nowrap",
+                                  pl: 0.5,
+                                  color:
+                                    dayjs(date.datetime).day() === 0
+                                      ? "#FF5656"
+                                      : dayjs(date.datetime).day() === 6
+                                      ? "#5b63d3"
+                                      : "inherit",
+                                }}
+                              >
+                                （{weekdayKanji[dayjs(date.datetime).day()]}）
+                              </Box>
+                              <Box
+                                sx={{
+                                  fontSize: "0.75rem",
+                                  width: "45%",
+                                  textAlign: "left",
+                                  whiteSpace: "nowrap",
+                                  pl: 1.5,
+                                }}
+                              >
+                                {dayjs(date.datetime).format("HH:mm")}
+                              </Box>
+                            </Box>
                           </Typography>
                         </Box>
+
+                        {/* 回答状況エリア */}
                         <Box
+                          className="response-info-area"
                           sx={{
                             display: "flex",
                             alignItems: "center",
-                            gap: 2,
-                            width: "25%",
+                            width: "50%",
                             justifyContent: "flex-end",
                           }}
                         >
+                          {/* 回答数カウントエリア */}
                           <Box
+                            className="response-counts"
                             sx={{
                               display: "flex",
                               alignItems: "center",
-                              gap: 0.5,
-                              width: "30%",
-                              justifyContent: "flex-end",
+                              width: "60%",
                             }}
                           >
                             <Typography
+                              className="available-count"
+                              component="div"
                               sx={{
                                 fontSize: "0.75rem",
                                 color: "#4ADE80",
-                                display: "flex",
+                                display: "grid",
+                                gridTemplateColumns: "1fr 1fr",
                                 alignItems: "center",
-                                gap: 0.5,
+                                width: "30%",
                               }}
                             >
-                              <CircleOutlinedIcon sx={{ fontSize: "1rem" }} />
-                              {availableCount}
+                              <CircleOutlined
+                                className="available-icon"
+                                sx={{
+                                  fontSize: "0.9rem",
+                                  justifySelf: "center",
+                                }}
+                              />
+                              <Box sx={{ justifySelf: "center" }}>
+                                {availableCount}
+                              </Box>
                             </Typography>
                             <Typography
+                              className="maybe-count"
+                              component="div"
                               sx={{
                                 fontSize: "0.75rem",
                                 color: "#FFB800",
-                                display: "flex",
+                                display: "grid",
+                                gridTemplateColumns: "1fr 1fr",
                                 alignItems: "center",
-                                gap: 0.5,
+                                width: "30%",
                               }}
                             >
-                              <ChangeHistoryIcon sx={{ fontSize: "1rem" }} />
-                              {maybeCount}
+                              <ChangeHistory
+                                className="maybe-icon"
+                                sx={{ fontSize: "1rem", justifySelf: "center" }}
+                              />
+                              <Box sx={{ justifySelf: "center" }}>
+                                {maybeCount}
+                              </Box>
                             </Typography>
                             <Typography
+                              className="unavailable-count"
+                              component="div"
                               sx={{
                                 fontSize: "0.75rem",
                                 color: "#FF5656",
-                                display: "flex",
+                                display: "grid",
+                                gridTemplateColumns: "1fr 1fr",
                                 alignItems: "center",
-                                gap: 0.5,
+                                width: "30%",
                               }}
                             >
-                              <CloseOutlinedIcon sx={{ fontSize: "1rem" }} />
-                              {unavailableCount}
+                              <Close
+                                className="unavailable-icon"
+                                sx={{
+                                  fontSize: "1.2rem",
+                                  justifySelf: "center",
+                                }}
+                              />
+                              <Box sx={{ justifySelf: "center" }}>
+                                {unavailableCount}
+                              </Box>
                             </Typography>
                           </Box>
+
+                          {/* 参加可能率 */}
                           <Typography
+                            className="availability-rate"
+                            component="div"
                             sx={{
                               fontSize: "0.875rem",
                               fontWeight: "bold",
-                              color: "#4ADE80",
+                              color:
+                                availableRate >= 75
+                                  ? "#4ADE80"
+                                  : availableRate >= 31
+                                  ? "#FFB800"
+                                  : "#FF5656",
                               minWidth: "3rem",
                               textAlign: "right",
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "flex-end",
                               gap: 0.5,
-                              width: "70%",
+                              width: "20%",
                             }}
                           >
                             {Math.round(availableRate)}%
                           </Typography>
                         </Box>
                       </Box>
+
+                      {/* プログレスバー */}
                       <Box
+                        className="progress-bar-container"
                         sx={{
                           position: "relative",
                           height: "2px",
@@ -668,6 +768,7 @@ const PlanAdjStatusPage: NextPage = () => {
                         }}
                       >
                         <Box
+                          className="progress-bar-available"
                           sx={{
                             position: "absolute",
                             left: 0,
@@ -679,6 +780,7 @@ const PlanAdjStatusPage: NextPage = () => {
                           }}
                         />
                         <Box
+                          className="progress-bar-maybe"
                           sx={{
                             position: "absolute",
                             left: `${availableRate}%`,
@@ -686,6 +788,18 @@ const PlanAdjStatusPage: NextPage = () => {
                             height: "100%",
                             width: `${maybeRate}%`,
                             bgcolor: "#FFB800",
+                            borderRadius: "4px",
+                          }}
+                        />
+                        <Box
+                          className="progress-bar-unavailable"
+                          sx={{
+                            position: "absolute",
+                            left: `${availableRate + maybeRate}%`,
+                            top: 0,
+                            height: "100%",
+                            width: `${unavailableRate}%`,
+                            bgcolor: "#FF5656",
                             borderRadius: "4px",
                           }}
                         />
@@ -809,6 +923,17 @@ const PlanAdjStatusPage: NextPage = () => {
                       ),
                     };
 
+                    const total = participants.length || 1; // 0除算を防ぐ
+                    const availableRate = Math.round(
+                      (respondents.available.length / total) * 100
+                    );
+                    const maybeRate = Math.round(
+                      (respondents.maybe.length / total) * 100
+                    );
+                    const unavailableRate = Math.round(
+                      (respondents.unavailable.length / total) * 100
+                    );
+
                     return (
                       <Box
                         key={date.date_id}
@@ -817,51 +942,76 @@ const PlanAdjStatusPage: NextPage = () => {
                           color: "#FCFCFC",
                           display: "flex",
                           flexDirection: "column",
-                          justifyContent: "center",
                           px: 0.5,
-                          py: 1,
+                          py: 0.5,
                           fontSize: "0.7rem",
                           borderLeft: "1px solid rgba(255, 255, 255, 0.1)",
+                          gap: 0.5,
                         }}
                       >
-                        <Box sx={{ color: "#4ADE80" }}>
-                          <Box
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 0.5,
+                          }}
+                        >
+                          <Typography
                             sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: 0.5,
+                              fontSize: "0.75rem",
+                              fontWeight: "bold",
+                              color:
+                                availableRate >= 75
+                                  ? "#4ADE80"
+                                  : availableRate >= 31
+                                  ? "#FFB800"
+                                  : "#FF5656",
                             }}
                           >
-                            <CircleOutlinedIcon sx={{ fontSize: "1rem" }} />
-                            {respondents.available.length}
-                          </Box>
+                            {availableRate}%
+                          </Typography>
                         </Box>
-                        <Box sx={{ color: "#FFB800" }}>
+                        <Box
+                          sx={{
+                            width: "100%",
+                            height: "3px",
+                            bgcolor: "rgba(255, 255, 255, 0.1)",
+                            borderRadius: "2px",
+                            position: "relative",
+                            overflow: "hidden",
+                          }}
+                        >
                           <Box
                             sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: 0.5,
+                              position: "absolute",
+                              left: 0,
+                              top: 0,
+                              height: "100%",
+                              width: `${availableRate}%`,
+                              bgcolor: "#4ADE80",
                             }}
-                          >
-                            <ChangeHistoryIcon sx={{ fontSize: "1rem" }} />
-                            {respondents.maybe.length}
-                          </Box>
-                        </Box>
-                        <Box sx={{ color: "#FF5656" }}>
+                          />
                           <Box
                             sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              gap: 0.5,
+                              position: "absolute",
+                              left: `${availableRate}%`,
+                              top: 0,
+                              height: "100%",
+                              width: `${maybeRate}%`,
+                              bgcolor: "#FFB800",
                             }}
-                          >
-                            <CloseOutlinedIcon sx={{ fontSize: "1rem" }} />
-                            {respondents.unavailable.length}
-                          </Box>
+                          />
+                          <Box
+                            sx={{
+                              position: "absolute",
+                              left: `${availableRate + maybeRate}%`,
+                              top: 0,
+                              height: "100%",
+                              width: `${unavailableRate}%`,
+                              bgcolor: "#FF5656",
+                            }}
+                          />
                         </Box>
                       </Box>
                     );
@@ -888,7 +1038,6 @@ const PlanAdjStatusPage: NextPage = () => {
                         zIndex: 1,
                       }}
                     >
-                      <PersonIcon sx={{ fontSize: "1rem" }} />
                       {participant.user_info.myoji}{" "}
                       {participant.user_info.namae}
                     </Box>
