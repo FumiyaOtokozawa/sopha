@@ -26,6 +26,41 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
     [key: string]: { [key: string]: HTMLElement | null };
   }>({});
 
+  const handleDateSelect = useCallback(
+    (date: Dayjs | null) => {
+      if (!date) return;
+
+      // 過去日のチェック
+      if (date.isBefore(new Date(), "day")) {
+        return;
+      }
+
+      const formattedDate = date.startOf("day");
+      const dateKey = formattedDate.format("YYYY-MM-DD");
+      const dateExists = selectedDateTimes.some(
+        (dt) => dt.date.format("YYYY-MM-DD") === dateKey
+      );
+
+      if (dateExists) {
+        onDateTimeSelect(
+          selectedDateTimes.filter(
+            (dt) => dt.date.format("YYYY-MM-DD") !== dateKey
+          )
+        );
+      } else {
+        onDateTimeSelect([
+          ...selectedDateTimes,
+          {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+            date: formattedDate,
+            time: selectedDateTimes[0]?.time || "12:00",
+          },
+        ]);
+      }
+    },
+    [selectedDateTimes, onDateTimeSelect]
+  );
+
   // カスタムDayコンポーネント
   const CustomDay = useCallback(
     (props: { day: Dayjs | null }) => {
@@ -60,42 +95,7 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
         </Box>
       );
     },
-    [selectedDateTimes]
-  );
-
-  const handleDateSelect = useCallback(
-    (date: Dayjs | null) => {
-      if (!date) return;
-
-      // 過去日のチェック
-      if (date.isBefore(new Date(), "day")) {
-        return;
-      }
-
-      const formattedDate = date.startOf("day");
-      const dateKey = formattedDate.format("YYYY-MM-DD");
-      const dateExists = selectedDateTimes.some(
-        (dt) => dt.date.format("YYYY-MM-DD") === dateKey
-      );
-
-      if (dateExists) {
-        onDateTimeSelect(
-          selectedDateTimes.filter(
-            (dt) => dt.date.format("YYYY-MM-DD") !== dateKey
-          )
-        );
-      } else {
-        onDateTimeSelect([
-          ...selectedDateTimes,
-          {
-            id: `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
-            date: formattedDate,
-            time: selectedDateTimes[0]?.time || "12:00",
-          },
-        ]);
-      }
-    },
-    [selectedDateTimes, onDateTimeSelect]
+    [selectedDateTimes, handleDateSelect]
   );
 
   const handleTimeChange = useCallback(

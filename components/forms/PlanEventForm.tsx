@@ -2,10 +2,11 @@ import { Box, Typography } from "@mui/material";
 import { Controller, Control } from "react-hook-form";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
-import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { ja } from "date-fns/locale";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { PlanFormData } from "../../types/plan";
-import { ReactNode } from "react";
+import { ReactNode, forwardRef } from "react";
+import dayjs from "dayjs";
+import "dayjs/locale/ja";
 
 interface BaseFieldProps {
   className?: string;
@@ -17,118 +18,130 @@ interface PlanEventFormProps {
 }
 
 export const FormField = {
-  Container: ({
-    children,
-    className = "",
-    ...props
-  }: BaseFieldProps & { children: ReactNode }) => (
-    <Box
-      className={`plan-event-form__field ${className}`}
-      sx={{ mb: 1.5 }}
-      {...props}
-    >
-      {children}
-    </Box>
-  ),
+  Container: forwardRef<
+    HTMLDivElement,
+    BaseFieldProps & { children: ReactNode }
+  >(function FormFieldContainer({ children, className = "", ...props }, ref) {
+    return (
+      <Box
+        ref={ref}
+        className={`plan-event-form__field ${className}`}
+        sx={{ mb: 1.5 }}
+        {...props}
+      >
+        {children}
+      </Box>
+    );
+  }),
 
-  Label: ({
-    children,
-    required,
-    className = "",
-    ...props
-  }: BaseFieldProps & { children: ReactNode }) => (
-    <Typography
-      component="label"
-      className={`plan-event-form__label ${className}`}
-      sx={{
-        display: "block",
-        fontSize: "0.75rem",
-        fontWeight: "medium",
-        mb: 1,
-        color: "#ACACAC",
-      }}
-      {...props}
-    >
-      {children}
-      {required && (
-        <Box
-          component="span"
-          className="plan-event-form__required"
-          sx={{ color: "#f43f5e", ml: 0.5 }}
+  Label: forwardRef<HTMLLabelElement, BaseFieldProps & { children: ReactNode }>(
+    function FormFieldLabel(
+      { children, required, className = "", ...props },
+      ref
+    ) {
+      return (
+        <Typography
+          ref={ref}
+          component="label"
+          className={`plan-event-form__label ${className}`}
+          sx={{
+            display: "block",
+            fontSize: "0.75rem",
+            fontWeight: "medium",
+            mb: 1,
+            color: "#ACACAC",
+          }}
+          {...props}
         >
-          *
-        </Box>
-      )}
-    </Typography>
+          {children}
+          {required && (
+            <Box
+              component="span"
+              className="plan-event-form__required"
+              sx={{ color: "#f43f5e", ml: 0.5 }}
+            >
+              *
+            </Box>
+          )}
+        </Typography>
+      );
+    }
   ),
 
-  Input: ({
-    className = "",
-    ...props
-  }: BaseFieldProps & React.InputHTMLAttributes<HTMLInputElement>) => (
-    <Box
-      component="input"
-      className={`plan-event-form__input ${className}`}
-      sx={{
-        width: "100%",
-        bgcolor: "#1D1D21",
-        borderRadius: 1,
-        p: 2,
-        color: "#FCFCFC",
-        height: "40px",
-        border: "none",
-        outline: "none",
-        fontSize: "0.875rem",
-      }}
-      {...props}
-    />
-  ),
+  Input: forwardRef<
+    HTMLInputElement,
+    BaseFieldProps & React.InputHTMLAttributes<HTMLInputElement>
+  >(function FormFieldInput({ className = "", ...props }, ref) {
+    return (
+      <Box
+        ref={ref}
+        component="input"
+        className={`plan-event-form__input ${className}`}
+        sx={{
+          width: "100%",
+          bgcolor: "#1D1D21",
+          borderRadius: 1,
+          p: 2,
+          color: "#FCFCFC",
+          height: "40px",
+          border: "none",
+          outline: "none",
+          fontSize: "0.875rem",
+        }}
+        {...props}
+      />
+    );
+  }),
 
-  Textarea: ({
-    className = "",
-    ...props
-  }: BaseFieldProps & React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
-    <Box
-      component="textarea"
-      className={`plan-event-form__textarea ${className}`}
-      sx={{
-        width: "100%",
-        bgcolor: "#1D1D21",
-        borderRadius: 1,
-        p: 2,
-        minHeight: "96px",
-        color: "#FCFCFC",
-        resize: "none",
-        border: "none",
-        outline: "none",
-        fontSize: "0.875rem",
-        overflow: "hidden",
-      }}
-      onInput={(e) => {
-        const target = e.target as HTMLTextAreaElement;
-        target.style.height = "96px";
-        target.style.height = `${target.scrollHeight}px`;
-      }}
-      {...props}
-    />
-  ),
+  Textarea: forwardRef<
+    HTMLTextAreaElement,
+    BaseFieldProps & React.TextareaHTMLAttributes<HTMLTextAreaElement>
+  >(function FormFieldTextarea({ className = "", ...props }, ref) {
+    return (
+      <Box
+        ref={ref}
+        component="textarea"
+        className={`plan-event-form__textarea ${className}`}
+        sx={{
+          width: "100%",
+          bgcolor: "#1D1D21",
+          borderRadius: 1,
+          p: 2,
+          minHeight: "96px",
+          color: "#FCFCFC",
+          resize: "none",
+          border: "none",
+          outline: "none",
+          fontSize: "0.875rem",
+          overflow: "hidden",
+        }}
+        onInput={(e) => {
+          const target = e.target as HTMLTextAreaElement;
+          target.style.height = "96px";
+          target.style.height = `${target.scrollHeight}px`;
+        }}
+        {...props}
+      />
+    );
+  }),
 
-  Error: ({
-    children,
-    className = "",
-    ...props
-  }: BaseFieldProps & { children: ReactNode }) => (
-    <Typography
-      className={`plan-event-form__error ${className}`}
-      sx={{
-        color: "#f43f5e",
-        fontSize: "0.875rem",
-        mt: 1,
-      }}
-      {...props}
-    >
-      {children}
-    </Typography>
+  Error: forwardRef<HTMLDivElement, BaseFieldProps & { children: ReactNode }>(
+    function FormFieldError({ children, className = "", ...props }, ref) {
+      return (
+        <Typography
+          ref={ref}
+          className={`plan-event-form__error ${className}`}
+          sx={{
+            color: "#f43f5e",
+            fontSize: "0.875rem",
+            mt: 1,
+          }}
+          {...props}
+        >
+          {children}
+        </Typography>
+      );
+    }
   ),
 };
 
@@ -182,24 +195,17 @@ export const PlanEventForm: React.FC<PlanEventFormProps> = ({ control }) => {
         render={({ field, fieldState }) => (
           <FormField.Container>
             <FormField.Label required>締切日時</FormField.Label>
-            <LocalizationProvider
-              dateAdapter={AdapterDateFns}
-              adapterLocale={ja}
-            >
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="ja">
               <DateTimePicker
-                value={field.value ? new Date(field.value) : null}
+                value={field.value ? dayjs(field.value) : null}
                 onChange={(date) => {
                   if (date) {
-                    // JSTの日時をそのまま保存するように調整
-                    const jstDate = new Date(
-                      date.getTime() - date.getTimezoneOffset() * 60000
-                    );
-                    field.onChange(jstDate.toISOString());
+                    field.onChange(date.toDate());
                   } else {
                     field.onChange(null);
                   }
                 }}
-                minDateTime={new Date()} // 現在時刻より前を選択不可に
+                minDateTime={dayjs()} // 現在時刻より前を選択不可に
                 className="plan-event-form__datetime-picker"
                 sx={{
                   width: "100%",

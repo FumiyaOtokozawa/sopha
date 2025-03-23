@@ -17,7 +17,7 @@ export const planAdjStatusStyles = {
     width: "100%",
     mx: "auto",
     p: 2,
-    pb: "calc(64px)",
+    pb: "calc(84px)",
     display: "flex",
     flexDirection: "column",
     WebkitOverflowScrolling: "touch",
@@ -84,7 +84,6 @@ export const planAdjStatusStyles = {
     borderRadius: "12px",
     bgcolor: "#2D2D2D",
     border: "1px solid rgba(255, 255, 255, 0.1)",
-    mb: 1,
     flex: 1,
     display: "flex",
     flexDirection: "column",
@@ -159,17 +158,11 @@ export const planAdjStatusStyles = {
     whiteSpace: "nowrap",
   } as SxProps<Theme>,
 
-  dateItemWeekday: (day: number): SxProps<Theme> => ({
+  dateItemWeekday: (): SxProps<Theme> => ({
     fontSize: "0.75rem",
     width: "28%",
     textAlign: "left",
     whiteSpace: "nowrap",
-    color:
-      day === 0
-        ? "rgba(230, 70, 70, 1)"
-        : day === 6
-        ? "rgba(91, 99, 211, 1)"
-        : "inherit",
   }),
 
   dateItemTime: {
