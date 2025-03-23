@@ -102,6 +102,7 @@ const PlanAdjInputModal: React.FC<PlanAdjInputModalProps> = ({
             }}
           >
             <Typography
+              component="div"
               sx={{
                 color: "#FCFCFC",
                 fontSize: "0.8rem",

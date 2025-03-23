@@ -24,6 +24,34 @@ export default function Header() {
   const open = Boolean(anchorEl);
   const router = useRouter();
 
+  // safe-area-inset-topの検出と設定
+  useEffect(() => {
+    const updateSafeArea = () => {
+      const computedStyle = getComputedStyle(document.documentElement);
+      const safeAreaInsetTop = computedStyle.getPropertyValue("--sait").trim();
+
+      if (safeAreaInsetTop && safeAreaInsetTop !== "0px") {
+        document.documentElement.style.setProperty(
+          "--header-spacing",
+          safeAreaInsetTop
+        );
+      } else {
+        document.documentElement.style.setProperty("--header-spacing", "0px");
+      }
+    };
+
+    // 初期設定
+    document.documentElement.style.setProperty(
+      "--sait",
+      "env(safe-area-inset-top)"
+    );
+    updateSafeArea();
+
+    // リサイズ時に再計算
+    window.addEventListener("resize", updateSafeArea);
+    return () => window.removeEventListener("resize", updateSafeArea);
+  }, []);
+
   // プロフィール更新イベントのリスナーを追加
   useEffect(() => {
     const handleProfileUpdate = (
@@ -134,7 +162,9 @@ export default function Header() {
     <>
       <header
         className="fixed top-0 left-0 right-0 z-50 flex flex-col bg-[#3D3E42] text-white"
-        style={{ paddingTop: "calc(env(safe-area-inset-top))" }}
+        style={{
+          paddingTop: "var(--header-spacing, 0px)",
+        }}
       >
         <div className="flex items-center justify-between px-6 py-4">
           {/* 左側：ユーザー情報 */}
@@ -232,8 +262,10 @@ export default function Header() {
       </header>
       {/* ヘッダーの高さ分のスペーサー */}
       <div
-        className="h-20"
-        style={{ marginTop: "env(safe-area-inset-top)" }}
+        style={{
+          height: "calc(76px + var(--header-spacing, 0px))",
+          marginTop: 0,
+        }}
       ></div>
     </>
   );

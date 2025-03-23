@@ -1,23 +1,13 @@
 import { NextPage } from "next";
 import React from "react";
-import {
-  Box,
-  Typography,
-  Paper,
-  IconButton,
-  Button,
-  Tabs,
-  Tab,
-} from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import EditIcon from "@mui/icons-material/Edit";
+import { Box, Typography, Paper, Button, Tabs, Tab } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 import CircleOutlined from "@mui/icons-material/CircleOutlined";
 import ChangeHistory from "@mui/icons-material/ChangeHistory";
 import Close from "@mui/icons-material/Close";
 import EventIcon from "@mui/icons-material/Event";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useUser } from "@supabase/auth-helpers-react";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
@@ -101,7 +91,7 @@ const PlanAdjStatusPage: NextPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTab, setSelectedTab] = useState(0);
 
-  const fetchPlanEventAndAvailabilities = async () => {
+  const fetchPlanEventAndAvailabilities = useCallback(async () => {
     if (!plan_id || !user?.email) return;
 
     try {
@@ -189,36 +179,54 @@ const PlanAdjStatusPage: NextPage = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [plan_id, user?.email]);
 
   useEffect(() => {
     fetchPlanEventAndAvailabilities();
-  }, [plan_id, user?.email]);
+  }, [fetchPlanEventAndAvailabilities]);
 
-  const handleBack = () => {
-    router.push("/plans/planMainPage");
-  };
+  const handleOpenDialog = async () => {
+    // 初期化
+    setAvailabilities({});
 
-  const handleEdit = () => {
-    router.push(`/plans/planAdjInputPage?plan_id=${plan_id}`);
-  };
+    // ユーザーの回答を取得
+    if (user?.email && planEvent) {
+      try {
+        // ユーザーのemp_noを取得
+        const { data: userData, error: userError } = await supabase
+          .from("USER_INFO")
+          .select("emp_no")
+          .eq("email", user.email)
+          .single();
 
-  const handleOpenDialog = () => {
-    // 既存の回答があれば初期値として設定
-    if (user?.email && participants.length > 0) {
-      const userResponse = participants.find((p) =>
-        p.availabilities.some((a) =>
-          planEvent?.dates.some((d) => d.date_id === a.date_id)
-        )
-      );
-      if (userResponse) {
-        const initialAvailabilities: { [key: number]: "○" | "△" | "×" } = {};
-        userResponse.availabilities.forEach((a) => {
-          initialAvailabilities[a.date_id] = a.availability;
-        });
-        setAvailabilities(initialAvailabilities);
+        if (userError) throw userError;
+        if (!userData) return;
+
+        // ユーザーの回答を取得
+        const { data: responseData, error: responseError } = await supabase
+          .from("PLAN_PAR_AVAILABILITY")
+          .select("date_id, availability")
+          .eq("plan_id", planEvent.plan_id)
+          .eq("emp_no", userData.emp_no);
+
+        if (responseError) throw responseError;
+
+        // 回答データを設定
+        if (responseData) {
+          const initialAvailabilities: { [key: number]: "○" | "△" | "×" } = {};
+          responseData.forEach((response) => {
+            initialAvailabilities[response.date_id] = response.availability as
+              | "○"
+              | "△"
+              | "×";
+          });
+          setAvailabilities(initialAvailabilities);
+        }
+      } catch (error) {
+        console.error("Error fetching user responses:", error);
       }
     }
+
     setIsDialogOpen(true);
   };
 
@@ -320,71 +328,32 @@ const PlanAdjStatusPage: NextPage = () => {
 
   return (
     <Box
+      className="plan-status"
       sx={{
-        minHeight: "100vh",
+        minHeight: "100dvh",
+        height: "100dvh",
         color: "#FCFCFC",
+        position: "relative",
+        pt: 0,
+        pb: "env(safe-area-inset-bottom)",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       <Box
-        sx={{
-          position: "sticky",
-          top: 0,
-          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-          zIndex: 10,
-          bgcolor: "#1D1D21",
-        }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 0.5,
-            p: 1,
-            maxWidth: "600px",
-            mx: "auto",
-          }}
-        >
-          <IconButton
-            onClick={handleBack}
-            sx={{ color: "rgba(255, 255, 255, 0.7)", p: 0.5 }}
-          >
-            <ArrowBackIcon sx={{ fontSize: "1rem" }} />
-          </IconButton>
-          <Typography
-            variant="h6"
-            sx={{
-              fontSize: "1rem",
-              fontWeight: "bold",
-              color: "#FCFCFC",
-              flex: 1,
-            }}
-          >
-            日程調整の状況
-          </Typography>
-          <IconButton
-            onClick={handleEdit}
-            sx={{
-              color: "rgba(255, 255, 255, 0.7)",
-              bgcolor: "rgba(255, 255, 255, 0.05)",
-              p: 0.5,
-              "&:hover": {
-                bgcolor: "rgba(255, 255, 255, 0.1)",
-              },
-            }}
-          >
-            <EditIcon sx={{ fontSize: "1rem" }} />
-          </IconButton>
-        </Box>
-      </Box>
-
-      <Box
+        className="plan-status__content"
         sx={{
           maxWidth: "600px",
+          width: "100%",
           mx: "auto",
-          p: 1,
+          p: 2,
+          flex: 1,
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
         }}
       >
         <Paper
+          className="plan-status__info"
           sx={{
             p: 1.5,
             borderRadius: "8px",
@@ -393,8 +362,9 @@ const PlanAdjStatusPage: NextPage = () => {
             mb: 1,
           }}
         >
-          <Box sx={{ mb: 1.5 }}>
+          <Box className="plan-status__info-header" sx={{ mb: 1.5 }}>
             <Typography
+              className="plan-status__info-title"
               variant="h6"
               sx={{
                 fontSize: "1rem",
@@ -407,6 +377,7 @@ const PlanAdjStatusPage: NextPage = () => {
               {planEvent.plan_title}
             </Typography>
             <Box
+              className="plan-status__info-meta"
               sx={{
                 display: "flex",
                 alignItems: "center",
@@ -415,6 +386,7 @@ const PlanAdjStatusPage: NextPage = () => {
               }}
             >
               <Typography
+                className="plan-status__info-creator"
                 sx={{
                   fontSize: "0.7rem",
                   color: "rgba(255, 255, 255, 0.5)",
@@ -427,6 +399,7 @@ const PlanAdjStatusPage: NextPage = () => {
                 {planEvent.creator.myoji} {planEvent.creator.namae}
               </Typography>
               <Typography
+                className="plan-status__info-deadline"
                 sx={{
                   fontSize: "0.7rem",
                   color: "rgba(255, 255, 255, 0.5)",
@@ -443,6 +416,7 @@ const PlanAdjStatusPage: NextPage = () => {
 
           {planEvent.description && (
             <Box
+              className="plan-status__info-description"
               sx={{
                 bgcolor: "rgba(255, 255, 255, 0.03)",
                 p: 1,
@@ -465,6 +439,7 @@ const PlanAdjStatusPage: NextPage = () => {
         </Paper>
 
         <Paper
+          className="plan-status__dates"
           sx={{
             p: 1.5,
             borderRadius: "12px",
@@ -474,6 +449,7 @@ const PlanAdjStatusPage: NextPage = () => {
           }}
         >
           <Box
+            className="plan-status__tabs"
             sx={{
               borderBottom: 1,
               borderColor: "rgba(255, 255, 255, 0.1)",
@@ -484,6 +460,7 @@ const PlanAdjStatusPage: NextPage = () => {
               value={selectedTab}
               onChange={handleTabChange}
               variant="fullWidth"
+              className="plan-status__tabs-container"
               sx={{
                 minHeight: "32px",
                 width: "95%",
@@ -503,8 +480,8 @@ const PlanAdjStatusPage: NextPage = () => {
                 },
               }}
             >
-              <Tab label="回答状況" />
-              <Tab label="回答者一覧" />
+              <Tab className="plan-status__tab" label="回答状況" />
+              <Tab className="plan-status__tab" label="回答者一覧" />
             </Tabs>
           </Box>
 
@@ -546,6 +523,7 @@ const PlanAdjStatusPage: NextPage = () => {
                   return (
                     <Box
                       key={date.date_id}
+                      className="plan-date-item"
                       sx={{
                         p: 1.5,
                         borderRadius: "8px",
@@ -559,15 +537,14 @@ const PlanAdjStatusPage: NextPage = () => {
                       }}
                     >
                       <Box
-                        className="response-status-row"
+                        className="plan-date-item__content"
                         sx={{
                           display: "flex",
                           alignItems: "center",
                         }}
                       >
-                        {/* 日時エリア */}
                         <Box
-                          className="date-time-area"
+                          className="plan-date-item__datetime"
                           sx={{
                             flex: 1,
                             display: "flex",
@@ -577,7 +554,7 @@ const PlanAdjStatusPage: NextPage = () => {
                           }}
                         >
                           <Typography
-                            className="date-time-text"
+                            className="plan-date-item__datetime-text"
                             component="div"
                             sx={{
                               fontSize: "0.875rem",
@@ -589,10 +566,11 @@ const PlanAdjStatusPage: NextPage = () => {
                             }}
                           >
                             <EventIcon
-                              className="date-icon"
+                              className="plan-date-item__datetime-icon"
                               sx={{ fontSize: "1rem" }}
                             />
                             <Box
+                              className="plan-date-item__datetime-container"
                               sx={{
                                 display: "flex",
                                 alignItems: "center",
@@ -601,6 +579,7 @@ const PlanAdjStatusPage: NextPage = () => {
                               }}
                             >
                               <Box
+                                className="plan-date-item__date"
                                 sx={{
                                   fontSize: "0.75rem",
                                   width: "35%",
@@ -611,6 +590,7 @@ const PlanAdjStatusPage: NextPage = () => {
                                 {dayjs(date.datetime).format("MM月DD日")}
                               </Box>
                               <Box
+                                className="plan-date-item__weekday"
                                 sx={{
                                   fontSize: "0.75rem",
                                   width: "20%",
@@ -628,6 +608,7 @@ const PlanAdjStatusPage: NextPage = () => {
                                 （{weekdayKanji[dayjs(date.datetime).day()]}）
                               </Box>
                               <Box
+                                className="plan-date-item__time"
                                 sx={{
                                   fontSize: "0.75rem",
                                   width: "45%",
@@ -642,9 +623,8 @@ const PlanAdjStatusPage: NextPage = () => {
                           </Typography>
                         </Box>
 
-                        {/* 回答状況エリア */}
                         <Box
-                          className="response-info-area"
+                          className="plan-date-item__status"
                           sx={{
                             display: "flex",
                             alignItems: "center",
@@ -652,9 +632,8 @@ const PlanAdjStatusPage: NextPage = () => {
                             justifyContent: "flex-end",
                           }}
                         >
-                          {/* 回答数カウントエリア */}
                           <Box
-                            className="response-counts"
+                            className="plan-date-item__status-counts"
                             sx={{
                               display: "flex",
                               alignItems: "center",
@@ -662,7 +641,7 @@ const PlanAdjStatusPage: NextPage = () => {
                             }}
                           >
                             <Typography
-                              className="available-count"
+                              className="plan-date-item__status-count plan-date-item__status-count--available"
                               component="div"
                               sx={{
                                 fontSize: "0.75rem",
@@ -674,18 +653,21 @@ const PlanAdjStatusPage: NextPage = () => {
                               }}
                             >
                               <CircleOutlined
-                                className="available-icon"
+                                className="plan-date-item__status-icon"
                                 sx={{
                                   fontSize: "0.9rem",
                                   justifySelf: "center",
                                 }}
                               />
-                              <Box sx={{ justifySelf: "center" }}>
+                              <Box
+                                className="plan-date-item__status-number"
+                                sx={{ justifySelf: "center" }}
+                              >
                                 {availableCount}
                               </Box>
                             </Typography>
                             <Typography
-                              className="maybe-count"
+                              className="plan-date-item__status-count plan-date-item__status-count--maybe"
                               component="div"
                               sx={{
                                 fontSize: "0.75rem",
@@ -697,15 +679,18 @@ const PlanAdjStatusPage: NextPage = () => {
                               }}
                             >
                               <ChangeHistory
-                                className="maybe-icon"
+                                className="plan-date-item__status-icon"
                                 sx={{ fontSize: "1rem", justifySelf: "center" }}
                               />
-                              <Box sx={{ justifySelf: "center" }}>
+                              <Box
+                                className="plan-date-item__status-number"
+                                sx={{ justifySelf: "center" }}
+                              >
                                 {maybeCount}
                               </Box>
                             </Typography>
                             <Typography
-                              className="unavailable-count"
+                              className="plan-date-item__status-count plan-date-item__status-count--unavailable"
                               component="div"
                               sx={{
                                 fontSize: "0.75rem",
@@ -717,21 +702,23 @@ const PlanAdjStatusPage: NextPage = () => {
                               }}
                             >
                               <Close
-                                className="unavailable-icon"
+                                className="plan-date-item__status-icon"
                                 sx={{
                                   fontSize: "1.2rem",
                                   justifySelf: "center",
                                 }}
                               />
-                              <Box sx={{ justifySelf: "center" }}>
+                              <Box
+                                className="plan-date-item__status-number"
+                                sx={{ justifySelf: "center" }}
+                              >
                                 {unavailableCount}
                               </Box>
                             </Typography>
                           </Box>
 
-                          {/* 参加可能率 */}
                           <Typography
-                            className="availability-rate"
+                            className="plan-date-item__availability-rate"
                             component="div"
                             sx={{
                               fontSize: "0.875rem",
@@ -756,9 +743,8 @@ const PlanAdjStatusPage: NextPage = () => {
                         </Box>
                       </Box>
 
-                      {/* プログレスバー */}
                       <Box
-                        className="progress-bar-container"
+                        className="plan-date-item__progress"
                         sx={{
                           position: "relative",
                           height: "2px",
@@ -768,7 +754,7 @@ const PlanAdjStatusPage: NextPage = () => {
                         }}
                       >
                         <Box
-                          className="progress-bar-available"
+                          className="plan-date-item__progress-bar plan-date-item__progress-bar--available"
                           sx={{
                             position: "absolute",
                             left: 0,
@@ -780,7 +766,7 @@ const PlanAdjStatusPage: NextPage = () => {
                           }}
                         />
                         <Box
-                          className="progress-bar-maybe"
+                          className="plan-date-item__progress-bar plan-date-item__progress-bar--maybe"
                           sx={{
                             position: "absolute",
                             left: `${availableRate}%`,
@@ -792,7 +778,7 @@ const PlanAdjStatusPage: NextPage = () => {
                           }}
                         />
                         <Box
-                          className="progress-bar-unavailable"
+                          className="plan-date-item__progress-bar plan-date-item__progress-bar--unavailable"
                           sx={{
                             position: "absolute",
                             left: `${availableRate + maybeRate}%`,
@@ -1087,6 +1073,7 @@ const PlanAdjStatusPage: NextPage = () => {
         </Paper>
 
         <Button
+          className="plan-status__submit-button"
           variant="contained"
           fullWidth
           onClick={handleOpenDialog}
