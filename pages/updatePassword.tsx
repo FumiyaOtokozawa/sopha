@@ -10,18 +10,44 @@ const UpdatePassword = () => {
   const router = useRouter();
 
   useEffect(() => {
-    // URLからハッシュパラメータを取得
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get("access_token");
-    const refreshToken = hashParams.get("refresh_token");
+    const handleHashChange = async () => {
+      try {
+        // URLからハッシュパラメータを取得
+        const hashParams = new URLSearchParams(
+          window.location.hash.substring(1)
+        );
+        const type = hashParams.get("type");
 
-    // トークンが存在する場合、セッションを設定
-    if (accessToken && refreshToken) {
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-    }
+        // パスワードリセットのフローであることを確認
+        if (type !== "recovery") {
+          setMessage(
+            "無効なリクエストです。パスワードリセットのリンクから再度アクセスしてください。"
+          );
+          return;
+        }
+
+        // セッションの取得を試みる
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (error || !session) {
+          console.error("Session error:", error);
+          setMessage(
+            "セッションの取得に失敗しました。パスワードリセットのリンクから再度アクセスしてください。"
+          );
+          return;
+        }
+      } catch (error) {
+        console.error("Error in handleHashChange:", error);
+        setMessage(
+          "エラーが発生しました。パスワードリセットのリンクから再度アクセスしてください。"
+        );
+      }
+    };
+
+    handleHashChange();
   }, []);
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
@@ -36,22 +62,20 @@ const UpdatePassword = () => {
     }
 
     try {
-      const { data: session } = await supabase.auth.getSession();
-
-      if (!session.session) {
-        setMessage(
-          "セッションが無効です。パスワードリセットのリンクから再度アクセスしてください。"
-        );
-        return;
-      }
-
       const { error } = await supabase.auth.updateUser({
         password: password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Password update error:", error);
+        throw error;
+      }
 
       setMessage("パスワードを更新しました。ログイン画面に移動します。");
+
+      // セッションをクリアして、ログイン画面にリダイレクト
+      await supabase.auth.signOut();
+
       setTimeout(() => {
         router.push("/loginPage");
       }, 2000);

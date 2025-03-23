@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../utils/supabaseClient";
+import { AuthError } from "@supabase/supabase-js";
 
 const ResetPassword = () => {
   const [email, setEmail] = useState("");
@@ -18,29 +19,14 @@ const ResetPassword = () => {
         redirectTo: `${window.location.origin}/updatePassword`,
       });
 
-      if (error) {
-        // セキュリティ制限による待機時間のエラーをチェック
-        const waitTimeMatch = error.message.match(/(\d+) seconds/);
-        if (waitTimeMatch) {
-          const waitTime = waitTimeMatch[1];
-          setMessage(
-            `セキュリティのため、パスワードリセットメールの再送信は${waitTime}秒後に可能となります。`
-          );
-          return;
-        }
-        throw error;
-      }
+      if (error) throw error;
 
       setMessage(
         "パスワードリセット用のメールを送信しました。メールをご確認ください。"
       );
-    } catch (error: unknown) {
-      console.error("パスワードリセットエラー:", error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "パスワードリセットメールの送信に失敗しました。";
-      setMessage(errorMessage);
+    } catch (error) {
+      console.error("Error:", error);
+      setMessage(handleError(error as AuthError | Error));
     } finally {
       setIsLoading(false);
     }
@@ -111,6 +97,16 @@ const ResetPassword = () => {
       </div>
     </div>
   );
+};
+
+const handleError = (error: AuthError | Error) => {
+  if (error.message.includes("rate limit")) {
+    return "メール送信の制限回数を超えました。しばらく待ってから再試行してください。";
+  }
+  if (error.message.includes("Invalid login credentials")) {
+    return "SMTPの認証に失敗しました。設定を確認してください。";
+  }
+  return "エラーが発生しました。";
 };
 
 export default ResetPassword;
