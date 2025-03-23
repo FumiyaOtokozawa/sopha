@@ -1,8 +1,8 @@
 // pages/_app.tsx
 import "../styles/global.css";
 import type { AppProps } from "next/app";
-import 'react-big-calendar/lib/css/react-big-calendar.css';
-import '../styles/calendar.css';
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import "../styles/calendar.css";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { AnimatePresence, motion } from "framer-motion";
@@ -11,26 +11,27 @@ import Header from "../components/Header";
 import FooterMenu from "../components/FooterMenu";
 import { useEffect, useState } from "react";
 import { supabase } from "../utils/supabaseClient";
-import Head from 'next/head';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { SessionContextProvider } from '@supabase/auth-helpers-react';
-import { createTheme, ThemeProvider } from '@mui/material/styles';
+import Head from "next/head";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SessionContextProvider } from "@supabase/auth-helpers-react";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
 
 // ログインが必要なパスのパターン
 const AUTH_REQUIRED_PATHS = [
-  '/employeePages',
-  '/events',
-  '/adminPages',
-  '/plans'
+  "/employeePages",
+  "/events",
+  "/adminPages",
+  "/plans",
 ];
 
 // 認証前のページのパスを定義
 const publicPages = [
-  '/loginPage',
-  '/registerPages/registConfirmedPage',
-  '/registerPages/registPage',
-  '/registerPages/registInputPage'
-  
+  "/loginPage",
+  "/registerPages/registConfirmedPage",
+  "/registerPages/registPage",
+  "/registerPages/registInputPage",
+  "/updatePassword",
+  "/resetPassword",
 ];
 
 const queryClient = new QueryClient({
@@ -50,8 +51,8 @@ const theme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          backgroundColor: '#242529',
-          color: '#fcfcfc',
+          backgroundColor: "#242529",
+          color: "#fcfcfc",
         },
       },
     },
@@ -69,10 +70,12 @@ export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         setIsAuthenticated(!!session);
       } catch (error) {
-        console.error('認証チェックエラー:', error);
+        console.error("認証チェックエラー:", error);
         setIsAuthenticated(false);
       } finally {
         setIsLoading(false);
@@ -81,7 +84,9 @@ export default function App({ Component, pageProps }: AppProps) {
 
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
     });
 
@@ -91,12 +96,14 @@ export default function App({ Component, pageProps }: AppProps) {
   }, []);
 
   // ログインが必要なパスかどうかをチェック
-  const isAuthRequired = AUTH_REQUIRED_PATHS.some(path => router.pathname.startsWith(path));
+  const isAuthRequired = AUTH_REQUIRED_PATHS.some((path) =>
+    router.pathname.startsWith(path)
+  );
 
   // ログインが必要なパスにアクセスしているが、未ログインの場合はログインページにリダイレクト
   useEffect(() => {
     if (!isLoading && isAuthRequired && !isAuthenticated) {
-      router.push('/');
+      router.push("/");
     }
   }, [isLoading, isAuthRequired, isAuthenticated, router]);
 
@@ -109,8 +116,14 @@ export default function App({ Component, pageProps }: AppProps) {
       <SessionContextProvider supabaseClient={supabase}>
         <ThemeProvider theme={theme}>
           <Head>
-            <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover' />
-            <meta name='description' content='Sopha - スケジュール管理アプリケーション' />
+            <meta
+              name="viewport"
+              content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+            />
+            <meta
+              name="description"
+              content="Sopha - スケジュール管理アプリケーション"
+            />
           </Head>
           <div className="min-h-screen flex flex-col">
             {isAuthenticated && !isPublicPage && <Header />}
