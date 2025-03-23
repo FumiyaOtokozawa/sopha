@@ -18,6 +18,7 @@ import {
   CreatePlanEventRequest,
   CreatePlanEventResponse,
 } from "../../types/plan";
+import { motion } from "framer-motion";
 
 const PlanNewEventPage: NextPage = () => {
   const user = useUser();
@@ -143,52 +144,70 @@ const PlanNewEventPage: NextPage = () => {
           }}
         >
           {submitError && (
-            <FormField.Error className="plan-new-event__error">
-              {submitError}
-            </FormField.Error>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <FormField.Error className="plan-new-event__error">
+                {submitError}
+              </FormField.Error>
+            </motion.div>
           )}
 
-          <Box
-            sx={{
-              p: 1.5,
-              mb: 2,
-              bgcolor: "#2D2D2D",
-              borderRadius: "8px",
-            }}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
           >
-            <PlanEventForm control={control} />
+            <Box
+              sx={{
+                p: 1.5,
+                mb: 2,
+                bgcolor: "#2D2D2D",
+                borderRadius: "8px",
+              }}
+            >
+              <PlanEventForm control={control} />
 
-            <DateTimeSelector
-              selectedDateTimes={selectedDateTimes}
-              onDateTimeSelect={setSelectedDateTimes}
-              timeOptions={timeOptions}
-            />
-          </Box>
+              <DateTimeSelector
+                selectedDateTimes={selectedDateTimes}
+                onDateTimeSelect={setSelectedDateTimes}
+                timeOptions={timeOptions}
+              />
+            </Box>
+          </motion.div>
 
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            size="large"
-            className="plan-new-event__submit"
-            disabled={selectedDateTimes.length === 0}
-            sx={{
-              bgcolor: "#5b63d3",
-              color: "#FCFCFC",
-              py: 1,
-              fontSize: "0.875rem",
-              fontWeight: "bold",
-              "&:hover": {
-                bgcolor: "#4850c9",
-              },
-              "&.Mui-disabled": {
-                bgcolor: "rgba(91, 99, 211, 0.3)",
-                color: "rgba(255, 255, 255, 0.3)",
-              },
-            }}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
           >
-            作成する
-          </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              size="large"
+              className="plan-new-event__submit"
+              disabled={selectedDateTimes.length === 0}
+              sx={{
+                bgcolor: "#5b63d3",
+                color: "#FCFCFC",
+                py: 1,
+                fontSize: "0.875rem",
+                fontWeight: "bold",
+                "&:hover": {
+                  bgcolor: "#4850c9",
+                },
+                "&.Mui-disabled": {
+                  bgcolor: "rgba(91, 99, 211, 0.3)",
+                  color: "rgba(255, 255, 255, 0.3)",
+                },
+              }}
+            >
+              作成する
+            </Button>
+          </motion.div>
         </Box>
         <FooterMenu />
       </Box>

@@ -110,7 +110,6 @@ const PlanAdjStatusPage: NextPage = () => {
   const [selectedTab, setSelectedTab] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [currentUserEmpNo, setCurrentUserEmpNo] = useState<number | null>(null);
-  const [displayCount, setDisplayCount] = useState(5);
 
   // イベントが締め切られているかどうかを判定する
   const isEventClosed = useMemo(() => {
@@ -487,104 +486,110 @@ const PlanAdjStatusPage: NextPage = () => {
   return (
     <Box className="plan-status" sx={planAdjStatusStyles.root}>
       <Box className="plan-status__content" sx={planAdjStatusStyles.content}>
-        <Paper
-          className="plan-status__info"
-          elevation={0}
-          sx={planAdjStatusStyles.infoCard}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
         >
-          <Box
-            className="plan-status__info-header"
-            sx={{
-              ...planAdjStatusStyles.infoHeader,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-            }}
+          <Paper
+            className="plan-status__info"
+            elevation={0}
+            sx={planAdjStatusStyles.infoCard}
           >
-            <Box sx={{ flex: 1 }}>
-              <Typography
-                className="plan-status__info-title"
-                variant="h6"
-                sx={planAdjStatusStyles.infoTitle}
-              >
-                {planEvent.plan_title}
-              </Typography>
-              <Box
-                className="plan-status__info-meta"
-                sx={planAdjStatusStyles.infoMeta}
-              >
+            <Box
+              className="plan-status__info-header"
+              sx={{
+                ...planAdjStatusStyles.infoHeader,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <Box sx={{ flex: 1 }}>
                 <Typography
-                  className="plan-status__info-creator"
-                  sx={planAdjStatusStyles.infoMetaItem}
+                  className="plan-status__info-title"
+                  variant="h6"
+                  sx={planAdjStatusStyles.infoTitle}
                 >
-                  <PersonIcon sx={{ fontSize: "0.9rem" }} />
-                  {planEvent.creator.myoji} {planEvent.creator.namae}
+                  {planEvent.plan_title}
                 </Typography>
-                <Typography
-                  className="plan-status__info-deadline"
-                  sx={planAdjStatusStyles.infoMetaItem}
+                <Box
+                  className="plan-status__info-meta"
+                  sx={planAdjStatusStyles.infoMeta}
                 >
-                  <EventIcon sx={{ fontSize: "0.9rem" }} />
-                  {formatDateWithKanji(planEvent.deadline)}まで
-                </Typography>
-                {isEventClosed && (
                   <Typography
+                    className="plan-status__info-creator"
+                    sx={planAdjStatusStyles.infoMetaItem}
+                  >
+                    <PersonIcon sx={{ fontSize: "0.9rem" }} />
+                    {planEvent.creator.myoji} {planEvent.creator.namae}
+                  </Typography>
+                  <Typography
+                    className="plan-status__info-deadline"
+                    sx={planAdjStatusStyles.infoMetaItem}
+                  >
+                    <EventIcon sx={{ fontSize: "0.9rem" }} />
+                    {formatDateWithKanji(planEvent.deadline)}まで
+                  </Typography>
+                  {isEventClosed && (
+                    <Typography
+                      sx={{
+                        ...planAdjStatusStyles.infoMetaItem,
+                        color: "rgb(185, 55, 55)",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      締め切り済み
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+              {currentUserEmpNo === planEvent.created_by && !isEventClosed && (
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <IconButton
+                    onClick={handleDelete}
                     sx={{
-                      ...planAdjStatusStyles.infoMetaItem,
-                      color: "rgb(185, 55, 55)",
-                      fontWeight: "bold",
+                      color: "rgba(255, 255, 255, 0.7)",
+                      "&:hover": {
+                        color: "#FCFCFC",
+                      },
                     }}
                   >
-                    締め切り済み
-                  </Typography>
-                )}
-              </Box>
+                    <DeleteIcon sx={{ fontSize: "1.25rem" }} />
+                  </IconButton>
+                  <IconButton
+                    onClick={() => setIsEditModalOpen(true)}
+                    sx={{
+                      color: "rgba(255, 255, 255, 0.7)",
+                      "&:hover": {
+                        color: "#FCFCFC",
+                      },
+                    }}
+                  >
+                    <EditIcon sx={{ fontSize: "1.25rem" }} />
+                  </IconButton>
+                </Box>
+              )}
             </Box>
-            {currentUserEmpNo === planEvent.created_by && !isEventClosed && (
-              <Box sx={{ display: "flex", gap: 1 }}>
-                <IconButton
-                  onClick={handleDelete}
-                  sx={{
-                    color: "rgba(255, 255, 255, 0.7)",
-                    "&:hover": {
-                      color: "#FCFCFC",
-                    },
-                  }}
-                >
-                  <DeleteIcon sx={{ fontSize: "1.25rem" }} />
-                </IconButton>
-                <IconButton
-                  onClick={() => setIsEditModalOpen(true)}
-                  sx={{
-                    color: "rgba(255, 255, 255, 0.7)",
-                    "&:hover": {
-                      color: "#FCFCFC",
-                    },
-                  }}
-                >
-                  <EditIcon sx={{ fontSize: "1.25rem" }} />
-                </IconButton>
+
+            {planEvent.description && (
+              <Box
+                className="plan-status__info-description"
+                sx={planAdjStatusStyles.infoDescription}
+              >
+                <Typography sx={planAdjStatusStyles.infoDescriptionText}>
+                  {planEvent.description}
+                </Typography>
               </Box>
             )}
-          </Box>
-
-          {planEvent.description && (
-            <Box
-              className="plan-status__info-description"
-              sx={planAdjStatusStyles.infoDescription}
-            >
-              <Typography sx={planAdjStatusStyles.infoDescriptionText}>
-                {planEvent.description}
-              </Typography>
-            </Box>
-          )}
-        </Paper>
+          </Paper>
+        </motion.div>
 
         {!isEventClosed && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
             className="mb-2"
           >
             <button
@@ -596,267 +601,162 @@ const PlanAdjStatusPage: NextPage = () => {
           </motion.div>
         )}
 
-        <Paper
-          className="plan-status__dates"
-          sx={planAdjStatusStyles.datesCard}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
         >
-          <Box className="plan-status__tabs" sx={planAdjStatusStyles.tabs}>
-            <Tabs
-              value={selectedTab}
-              onChange={handleTabChange}
-              variant="fullWidth"
-              className="plan-status__tabs-container"
-              sx={planAdjStatusStyles.tabsContainer}
-            >
-              <Tab className="plan-status__tab" label="回答状況" />
-              <Tab className="plan-status__tab" label="回答者一覧" />
-            </Tabs>
-          </Box>
-
-          {selectedTab === 0 ? (
-            <Box
-              sx={{ width: "100%", flex: 1, minHeight: 0, overflowY: "auto" }}
-            >
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                {planEvent.dates.map((date) => {
-                  const respondents: DateRespondents = {
-                    available: participants.filter(
-                      (p) =>
-                        p.availabilities.find((a) => a.date_id === date.date_id)
-                          ?.availability === "○"
-                    ),
-                    maybe: participants.filter(
-                      (p) =>
-                        p.availabilities.find((a) => a.date_id === date.date_id)
-                          ?.availability === "△"
-                    ),
-                    unavailable: participants.filter(
-                      (p) =>
-                        p.availabilities.find((a) => a.date_id === date.date_id)
-                          ?.availability === "×" ||
-                        !p.availabilities.find(
-                          (a) => a.date_id === date.date_id
-                        )
-                    ),
-                  };
-
-                  const totalRespondents = participants.length;
-                  const availableCount = respondents.available.length;
-                  const maybeCount = respondents.maybe.length;
-                  const unavailableCount = respondents.unavailable.length;
-                  const availableRate =
-                    (availableCount / totalRespondents) * 100;
-                  const maybeRate = (maybeCount / totalRespondents) * 100;
-                  const unavailableRate =
-                    (unavailableCount / totalRespondents) * 100;
-
-                  const maxAvailableRate = Math.max(
-                    ...planEvent.dates.map((d) => {
-                      const availableCount = participants.filter(
-                        (p) =>
-                          p.availabilities.find((a) => a.date_id === d.date_id)
-                            ?.availability === "○"
-                      ).length;
-                      return (availableCount / participants.length) * 100;
-                    })
-                  );
-
-                  return (
-                    <Box key={date.date_id} sx={planAdjStatusStyles.dateItem}>
-                      <Box sx={planAdjStatusStyles.dateItemContent}>
-                        <Box sx={planAdjStatusStyles.dateItemDateTime}>
-                          <Typography
-                            component="div"
-                            sx={planAdjStatusStyles.dateItemDateTimeText}
-                          >
-                            <EventIcon sx={{ fontSize: "1rem" }} />
-                            <Box
-                              sx={planAdjStatusStyles.dateItemDateTimeContainer}
-                            >
-                              <Box sx={planAdjStatusStyles.dateItemDate}>
-                                {dayjs(date.datetime).format("MM月DD日")}
-                              </Box>
-                              <Box
-                                sx={{
-                                  ...planAdjStatusStyles.dateItemWeekday(),
-                                }}
-                              >
-                                （{weekdayKanji[dayjs(date.datetime).day()]}）
-                              </Box>
-                              <Box sx={planAdjStatusStyles.dateItemTime}>
-                                {dayjs(date.datetime).format("HH:mm")}
-                              </Box>
-                            </Box>
-                          </Typography>
-                        </Box>
-
-                        <Box sx={planAdjStatusStyles.dateItemStatus}>
-                          <Typography
-                            component="div"
-                            sx={{
-                              ...planAdjStatusStyles.dateItemAvailabilityRate(
-                                Math.round(availableRate) ===
-                                  Math.round(maxAvailableRate)
-                              ),
-                            }}
-                          >
-                            {Math.round(availableRate)}%
-                          </Typography>
-                        </Box>
-                      </Box>
-
-                      <Box sx={planAdjStatusStyles.progressBar}>
-                        <Box
-                          sx={planAdjStatusStyles.progressBarSegment(
-                            "rgba(74, 222, 128, 1)",
-                            0,
-                            availableRate
-                          )}
-                        />
-                        <Box
-                          sx={planAdjStatusStyles.progressBarSegment(
-                            "rgb(189, 132, 0)",
-                            availableRate,
-                            maybeRate
-                          )}
-                        />
-                        <Box
-                          sx={planAdjStatusStyles.progressBarSegment(
-                            "rgb(185, 55, 55)",
-                            availableRate + maybeRate,
-                            unavailableRate
-                          )}
-                        />
-                      </Box>
-                    </Box>
-                  );
-                })}
-              </Box>
+          <Paper
+            className="plan-status__dates"
+            sx={planAdjStatusStyles.datesCard}
+          >
+            <Box className="plan-status__tabs" sx={planAdjStatusStyles.tabs}>
+              <Tabs
+                value={selectedTab}
+                onChange={handleTabChange}
+                variant="fullWidth"
+                className="plan-status__tabs-container"
+                sx={planAdjStatusStyles.tabsContainer}
+              >
+                <Tab className="plan-status__tab" label="回答状況" />
+                <Tab
+                  className="plan-status__tab"
+                  label={`回答者一覧（${participants.length}）`}
+                />
+              </Tabs>
             </Box>
-          ) : (
-            <Box
-              sx={{ width: "100%", flex: 1, minHeight: 0, overflow: "auto" }}
-            >
-              <Box sx={planAdjStatusStyles.participantGrid}>
-                <Box sx={planAdjStatusStyles.participantHeader}>日付</Box>
-                <Box
-                  sx={{
-                    ...planAdjStatusStyles.participantDatesHeader,
-                    gridTemplateColumns: `repeat(${planEvent.dates.length}, 60px)`,
-                  }}
-                >
-                  {planEvent.dates.map((date) => (
-                    <Box
-                      key={date.date_id}
-                      sx={planAdjStatusStyles.participantDateCell}
-                    >
-                      {dayjs(date.datetime).format("MM/DD")}
-                      <br />（{weekdayKanji[dayjs(date.datetime).day()]}）
-                      <br />
-                      {dayjs(date.datetime).format("HH:mm")}
-                    </Box>
-                  ))}
-                </Box>
 
-                {/* 参加率の行 */}
-                <Box
-                  sx={{
-                    ...planAdjStatusStyles.participantName,
-                    bgcolor: "rgba(45, 45, 45, 0.95)",
-                    position: "sticky",
-                    left: 0,
-                    zIndex: 2,
-                  }}
-                >
-                  参加率
-                </Box>
-                <Box
-                  sx={{
-                    ...planAdjStatusStyles.participantDatesHeader,
-                    gridTemplateColumns: `repeat(${planEvent.dates.length}, 60px)`,
-                    bgcolor: "rgba(255, 255, 255, 0.05)",
-                    zIndex: 1,
-                  }}
-                >
+            {selectedTab === 0 ? (
+              <Box
+                sx={{ width: "100%", flex: 1, minHeight: 0, overflowY: "auto" }}
+              >
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                   {planEvent.dates.map((date) => {
-                    const availableCount = participants.filter(
-                      (p) =>
-                        p.availabilities.find((a) => a.date_id === date.date_id)
-                          ?.availability === "○"
-                    ).length;
-                    const totalParticipants = participants.length;
+                    const respondents: DateRespondents = {
+                      available: participants.filter(
+                        (p) =>
+                          p.availabilities.find(
+                            (a) => a.date_id === date.date_id
+                          )?.availability === "○"
+                      ),
+                      maybe: participants.filter(
+                        (p) =>
+                          p.availabilities.find(
+                            (a) => a.date_id === date.date_id
+                          )?.availability === "△"
+                      ),
+                      unavailable: participants.filter(
+                        (p) =>
+                          p.availabilities.find(
+                            (a) => a.date_id === date.date_id
+                          )?.availability === "×" ||
+                          !p.availabilities.find(
+                            (a) => a.date_id === date.date_id
+                          )
+                      ),
+                    };
+
+                    const totalRespondents = participants.length;
+                    const availableCount = respondents.available.length;
+                    const maybeCount = respondents.maybe.length;
+                    const unavailableCount = respondents.unavailable.length;
+                    const availableRate =
+                      (availableCount / totalRespondents) * 100;
+                    const maybeRate = (maybeCount / totalRespondents) * 100;
+                    const unavailableRate =
+                      (unavailableCount / totalRespondents) * 100;
+
+                    const maxAvailableRate = Math.max(
+                      ...planEvent.dates.map((d) => {
+                        const availableCount = participants.filter(
+                          (p) =>
+                            p.availabilities.find(
+                              (a) => a.date_id === d.date_id
+                            )?.availability === "○"
+                        ).length;
+                        return (availableCount / participants.length) * 100;
+                      })
+                    );
 
                     return (
-                      <Box
-                        key={date.date_id}
-                        sx={{
-                          textAlign: "center",
-                          color: "#FCFCFC",
-                          px: 0.5,
-                          pt: 0.75,
-                          pb: 1,
-                          borderLeft: "1px solid rgba(255, 255, 255, 0.1)",
-                          fontSize: "0.75rem",
-                          display: "flex",
-                          flexDirection: "column",
-                        }}
-                      >
-                        <Box>
-                          {availableCount} / {totalParticipants}
+                      <Box key={date.date_id} sx={planAdjStatusStyles.dateItem}>
+                        <Box sx={planAdjStatusStyles.dateItemContent}>
+                          <Box sx={planAdjStatusStyles.dateItemDateTime}>
+                            <Typography
+                              component="div"
+                              sx={planAdjStatusStyles.dateItemDateTimeText}
+                            >
+                              <EventIcon sx={{ fontSize: "1rem" }} />
+                              <Box
+                                sx={
+                                  planAdjStatusStyles.dateItemDateTimeContainer
+                                }
+                              >
+                                <Box sx={planAdjStatusStyles.dateItemDate}>
+                                  {dayjs(date.datetime).format("MM月DD日")}
+                                </Box>
+                                <Box
+                                  sx={{
+                                    ...planAdjStatusStyles.dateItemWeekday(),
+                                  }}
+                                >
+                                  （
+                                  <span
+                                    style={{
+                                      color:
+                                        dayjs(date.datetime).day() === 0
+                                          ? "rgb(233, 112, 112)"
+                                          : dayjs(date.datetime).day() === 6
+                                          ? "rgb(136, 142, 214)"
+                                          : "inherit",
+                                    }}
+                                  >
+                                    {weekdayKanji[dayjs(date.datetime).day()]}
+                                  </span>
+                                  ）
+                                </Box>
+                                <Box sx={planAdjStatusStyles.dateItemTime}>
+                                  {dayjs(date.datetime).format("HH:mm")}
+                                </Box>
+                              </Box>
+                            </Typography>
+                          </Box>
+
+                          <Box sx={planAdjStatusStyles.dateItemStatus}>
+                            <Typography
+                              component="div"
+                              sx={{
+                                ...planAdjStatusStyles.dateItemAvailabilityRate(
+                                  Math.round(availableRate) ===
+                                    Math.round(maxAvailableRate)
+                                ),
+                              }}
+                            >
+                              {Math.round(availableRate)}%
+                            </Typography>
+                          </Box>
                         </Box>
-                        <Box
-                          sx={{
-                            ...planAdjStatusStyles.progressBar,
-                            height: "3px",
-                            minHeight: "3px",
-                            maxHeight: "3px",
-                            mt: 0,
-                          }}
-                        >
+
+                        <Box sx={planAdjStatusStyles.progressBar}>
                           <Box
                             sx={planAdjStatusStyles.progressBarSegment(
                               "rgba(74, 222, 128, 1)",
                               0,
-                              (availableCount / totalParticipants) * 100
+                              availableRate
                             )}
                           />
                           <Box
                             sx={planAdjStatusStyles.progressBarSegment(
                               "rgb(189, 132, 0)",
-                              (availableCount / totalParticipants) * 100,
-                              (participants.filter(
-                                (p) =>
-                                  p.availabilities.find(
-                                    (a) => a.date_id === date.date_id
-                                  )?.availability === "△"
-                              ).length /
-                                totalParticipants) *
-                                100
+                              availableRate,
+                              maybeRate
                             )}
                           />
                           <Box
                             sx={planAdjStatusStyles.progressBarSegment(
                               "rgb(185, 55, 55)",
-                              ((availableCount +
-                                participants.filter(
-                                  (p) =>
-                                    p.availabilities.find(
-                                      (a) => a.date_id === date.date_id
-                                    )?.availability === "△"
-                                ).length) /
-                                totalParticipants) *
-                                100,
-                              (participants.filter(
-                                (p) =>
-                                  p.availabilities.find(
-                                    (a) => a.date_id === date.date_id
-                                  )?.availability === "×" ||
-                                  !p.availabilities.find(
-                                    (a) => a.date_id === date.date_id
-                                  )
-                              ).length /
-                                totalParticipants) *
-                                100
+                              availableRate + maybeRate,
+                              unavailableRate
                             )}
                           />
                         </Box>
@@ -864,65 +764,217 @@ const PlanAdjStatusPage: NextPage = () => {
                     );
                   })}
                 </Box>
+              </Box>
+            ) : (
+              <Box
+                sx={{ width: "100%", flex: 1, minHeight: 0, overflow: "auto" }}
+              >
+                <Box sx={planAdjStatusStyles.participantGrid}>
+                  <Box sx={planAdjStatusStyles.participantHeader}>日付</Box>
+                  <Box
+                    sx={{
+                      ...planAdjStatusStyles.participantDatesHeader,
+                      gridTemplateColumns: `repeat(${planEvent.dates.length}, 60px)`,
+                    }}
+                  >
+                    {planEvent.dates.map((date) => (
+                      <Box
+                        key={date.date_id}
+                        sx={planAdjStatusStyles.participantDateCell}
+                      >
+                        {dayjs(date.datetime).format("MM/DD")}
+                        <br />（
+                        <span
+                          style={{
+                            color:
+                              dayjs(date.datetime).day() === 0
+                                ? "rgb(233, 112, 112)"
+                                : dayjs(date.datetime).day() === 6
+                                ? "rgb(136, 142, 214)"
+                                : "inherit",
+                          }}
+                        >
+                          {weekdayKanji[dayjs(date.datetime).day()]}
+                        </span>
+                        ）
+                        <br />
+                        {dayjs(date.datetime).format("HH:mm")}
+                      </Box>
+                    ))}
+                  </Box>
 
-                {participants.map((participant) => (
-                  <React.Fragment key={participant.emp_no}>
-                    <Box
-                      sx={{
-                        ...planAdjStatusStyles.participantName,
-                        position: "sticky",
-                        left: 0,
-                        zIndex: 2,
-                        bgcolor: "rgba(45, 45, 45, 0.95)",
-                      }}
-                    >
-                      {participant.user_info.myoji}{" "}
-                      {participant.user_info.namae}
-                    </Box>
-                    <Box
-                      sx={{
-                        ...planAdjStatusStyles.participantDatesHeader,
-                        gridTemplateColumns: `repeat(${planEvent.dates.length}, 60px)`,
-                        zIndex: 1,
-                      }}
-                    >
-                      {planEvent.dates.map((date) => {
-                        const availability =
-                          participant.availabilities.find(
+                  {/* 参加率の行 */}
+                  <Box
+                    sx={{
+                      ...planAdjStatusStyles.participantName,
+                      bgcolor: "rgba(45, 45, 45, 0.95)",
+                      position: "sticky",
+                      left: 0,
+                      zIndex: 2,
+                    }}
+                  >
+                    参加率
+                  </Box>
+                  <Box
+                    sx={{
+                      ...planAdjStatusStyles.participantDatesHeader,
+                      gridTemplateColumns: `repeat(${planEvent.dates.length}, 60px)`,
+                      bgcolor: "rgba(255, 255, 255, 0.05)",
+                      zIndex: 1,
+                    }}
+                  >
+                    {planEvent.dates.map((date) => {
+                      const availableCount = participants.filter(
+                        (p) =>
+                          p.availabilities.find(
                             (a) => a.date_id === date.date_id
-                          )?.availability || "×";
+                          )?.availability === "○"
+                      ).length;
+                      const totalParticipants = participants.length;
 
-                        return (
+                      return (
+                        <Box
+                          key={date.date_id}
+                          sx={{
+                            textAlign: "center",
+                            color: "#FCFCFC",
+                            px: 0.5,
+                            pt: 0.75,
+                            pb: 1,
+                            borderLeft: "1px solid rgba(255, 255, 255, 0.1)",
+                            fontSize: "0.75rem",
+                            display: "flex",
+                            flexDirection: "column",
+                          }}
+                        >
+                          <Box>
+                            {availableCount} / {totalParticipants}
+                          </Box>
                           <Box
-                            key={date.date_id}
                             sx={{
-                              ...planAdjStatusStyles.participantAvailability(
-                                availability
-                              ),
+                              ...planAdjStatusStyles.progressBar,
+                              height: "3px",
+                              minHeight: "3px",
+                              maxHeight: "3px",
+                              mt: 0,
                             }}
                           >
-                            <AvailabilityIcon type={availability} />
+                            <Box
+                              sx={planAdjStatusStyles.progressBarSegment(
+                                "rgba(74, 222, 128, 1)",
+                                0,
+                                (availableCount / totalParticipants) * 100
+                              )}
+                            />
+                            <Box
+                              sx={planAdjStatusStyles.progressBarSegment(
+                                "rgb(189, 132, 0)",
+                                (availableCount / totalParticipants) * 100,
+                                (participants.filter(
+                                  (p) =>
+                                    p.availabilities.find(
+                                      (a) => a.date_id === date.date_id
+                                    )?.availability === "△"
+                                ).length /
+                                  totalParticipants) *
+                                  100
+                              )}
+                            />
+                            <Box
+                              sx={planAdjStatusStyles.progressBarSegment(
+                                "rgb(185, 55, 55)",
+                                ((availableCount +
+                                  participants.filter(
+                                    (p) =>
+                                      p.availabilities.find(
+                                        (a) => a.date_id === date.date_id
+                                      )?.availability === "△"
+                                  ).length) /
+                                  totalParticipants) *
+                                  100,
+                                (participants.filter(
+                                  (p) =>
+                                    p.availabilities.find(
+                                      (a) => a.date_id === date.date_id
+                                    )?.availability === "×" ||
+                                    !p.availabilities.find(
+                                      (a) => a.date_id === date.date_id
+                                    )
+                                ).length /
+                                  totalParticipants) *
+                                  100
+                              )}
+                            />
                           </Box>
-                        );
-                      })}
-                    </Box>
-                  </React.Fragment>
-                ))}
+                        </Box>
+                      );
+                    })}
+                  </Box>
+
+                  {participants.map((participant) => (
+                    <React.Fragment key={participant.emp_no}>
+                      <Box
+                        sx={{
+                          ...planAdjStatusStyles.participantName,
+                          position: "sticky",
+                          left: 0,
+                          zIndex: 2,
+                          bgcolor: "rgba(45, 45, 45, 0.95)",
+                        }}
+                      >
+                        {participant.user_info.myoji}{" "}
+                        {participant.user_info.namae}
+                      </Box>
+                      <Box
+                        sx={{
+                          ...planAdjStatusStyles.participantDatesHeader,
+                          gridTemplateColumns: `repeat(${planEvent.dates.length}, 60px)`,
+                          zIndex: 1,
+                        }}
+                      >
+                        {planEvent.dates.map((date) => {
+                          const availability =
+                            participant.availabilities.find(
+                              (a) => a.date_id === date.date_id
+                            )?.availability || "×";
+
+                          return (
+                            <Box
+                              key={date.date_id}
+                              sx={{
+                                ...planAdjStatusStyles.participantAvailability(
+                                  availability
+                                ),
+                              }}
+                            >
+                              <AvailabilityIcon type={availability} />
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    </React.Fragment>
+                  ))}
+                </Box>
               </Box>
-            </Box>
-          )}
-        </Paper>
+            )}
+          </Paper>
+        </motion.div>
 
         {/* イベント締め切りボタン */}
         {currentUserEmpNo === planEvent.created_by && !isEventClosed && (
-          <Box sx={{ mt: 1 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.3 }}
+            className="mt-2"
+          >
             <button
               onClick={handleCloseEvent}
               className="w-full py-2 rounded-lg bg-[rgb(185,55,55)] text-white font-bold hover:bg-opacity-80 flex items-center justify-center gap-2 transition-all duration-200"
             >
               イベントを締め切る
             </button>
-          </Box>
+          </motion.div>
         )}
 
         <PlanAdjInputModal
@@ -941,23 +993,6 @@ const PlanAdjStatusPage: NextPage = () => {
           planEvent={planEvent}
           onSubmit={handleEditSubmit}
         />
-
-        {/* もっと見るボタン */}
-        {planEvent.dates.length > displayCount && (
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-            }}
-          >
-            <button
-              onClick={() => setDisplayCount((prev) => prev + 5)}
-              className="py-1.5 px-4 rounded-lg bg-[#1D1D21] text-[#FCFCFC] text-sm font-medium hover:bg-[#262626] hover:text-[#FCFCFC] border border-[rgba(255,255,255,0.1)] transition-all duration-200"
-            >
-              もっと見る
-            </button>
-          </Box>
-        )}
       </Box>
     </Box>
   );
