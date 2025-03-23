@@ -1,5 +1,5 @@
 import { NextPage } from "next";
-import { Box, Typography, Button, Paper, IconButton } from "@mui/material";
+import { Box, Typography, Paper, IconButton } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import EventIcon from "@mui/icons-material/Event";
 import PersonIcon from "@mui/icons-material/Person";
@@ -11,6 +11,7 @@ import { createClient } from "@supabase/supabase-js";
 import { useUser } from "@supabase/auth-helpers-react";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
+import { motion } from "framer-motion";
 
 // 日程調整の型定義
 interface PlanEvent {
@@ -230,28 +231,23 @@ const PlanMainPage: NextPage = () => {
           px: 1.5,
           maxWidth: "600px",
           mx: "auto",
+          py: 2,
         }}
       >
-        <Box sx={{ textAlign: "center", py: 2 }}>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mb-4"
+        >
+          <button
             onClick={handleCreateNewPlan}
-            className="w-full py-2 rounded bg-[#5b63d3] text-white font-bold hover:bg-opacity-80 flex items-center justify-center gap-2"
-            sx={{
-              bgcolor: "#5b63d3",
-              color: "#FCFCFC",
-              fontSize: "0.875rem",
-              fontWeight: "bold",
-              width: "100%",
-              "&:hover": {
-                bgcolor: "#4850c9",
-              },
-            }}
+            className="w-full py-2 rounded-lg bg-[#5b63d3] text-white font-bold hover:bg-opacity-80 flex items-center justify-center gap-2"
           >
+            <AddIcon />
             新規イベントの日程調整
-          </Button>
-        </Box>
+          </button>
+        </motion.div>
         <Paper
           elevation={0}
           sx={{

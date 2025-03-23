@@ -1,6 +1,6 @@
 import { NextPage } from "next";
 import React from "react";
-import { Box, Typography, Paper, Button, Tabs, Tab } from "@mui/material";
+import { Box, Typography, Paper, Tabs, Tab } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 import CircleOutlined from "@mui/icons-material/CircleOutlined";
 import ChangeHistory from "@mui/icons-material/ChangeHistory";
@@ -13,6 +13,7 @@ import dayjs from "dayjs";
 import "dayjs/locale/ja";
 import { supabase } from "../../utils/supabaseClient";
 import PlanAdjInputModal from "../../components/plans/planAdjInputModal";
+import { motion } from "framer-motion";
 
 // 曜日の漢字マッピング
 const weekdayKanji = ["日", "月", "火", "水", "木", "金", "土"];
@@ -65,11 +66,21 @@ interface DateRespondents {
 const AvailabilityIcon = ({ type }: { type: "○" | "△" | "×" }) => {
   switch (type) {
     case "○":
-      return <CircleOutlined sx={{ fontSize: "0.9rem", color: "#4ADE80" }} />;
+      return (
+        <CircleOutlined
+          sx={{ fontSize: "0.9rem", color: "rgba(74, 222, 128, 1)" }}
+        />
+      );
     case "△":
-      return <ChangeHistory sx={{ fontSize: "1rem", color: "#FFB800" }} />;
+      return (
+        <ChangeHistory
+          sx={{ fontSize: "1rem", color: "rgba(230, 162, 0, 1)" }}
+        />
+      );
     case "×":
-      return <Close sx={{ fontSize: "1.2rem", color: "#FF5656" }} />;
+      return (
+        <Close sx={{ fontSize: "1.2rem", color: "rgba(230, 70, 70, 1)" }} />
+      );
     default:
       return null;
   }
@@ -354,10 +365,11 @@ const PlanAdjStatusPage: NextPage = () => {
       >
         <Paper
           className="plan-status__info"
+          elevation={0}
           sx={{
             p: 1.5,
             borderRadius: "8px",
-            background: "linear-gradient(135deg, #2D2D2D 0%, #1D1D21 100%)",
+            bgcolor: "#2D2D2D",
             border: "1px solid rgba(255, 255, 255, 0.1)",
             mb: 1,
           }}
@@ -438,12 +450,26 @@ const PlanAdjStatusPage: NextPage = () => {
           )}
         </Paper>
 
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mb-2"
+        >
+          <button
+            onClick={handleOpenDialog}
+            className="w-full py-2 rounded-lg bg-[#5b63d3] text-white font-bold hover:bg-opacity-80 flex items-center justify-center gap-2"
+          >
+            回答を入力する
+          </button>
+        </motion.div>
+
         <Paper
           className="plan-status__dates"
           sx={{
             p: 1.5,
             borderRadius: "12px",
-            background: "linear-gradient(135deg, #2D2D2D 0%, #1D1D21 100%)",
+            bgcolor: "#2D2D2D",
             border: "1px solid rgba(255, 255, 255, 0.1)",
             mb: 1,
           }}
@@ -487,7 +513,7 @@ const PlanAdjStatusPage: NextPage = () => {
 
           {selectedTab === 0 ? (
             <Box sx={{ width: "100%" }}>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                 {planEvent.dates.map((date) => {
                   const respondents: DateRespondents = {
                     available: participants.filter(
@@ -541,11 +567,6 @@ const PlanAdjStatusPage: NextPage = () => {
                         borderRadius: "8px",
                         bgcolor: "rgba(255, 255, 255, 0.03)",
                         border: "1px solid rgba(255, 255, 255, 0.05)",
-                        cursor: "pointer",
-                        transition: "all 0.2s ease",
-                        "&:hover": {
-                          bgcolor: "rgba(255, 255, 255, 0.05)",
-                        },
                       }}
                     >
                       <Box
@@ -610,9 +631,9 @@ const PlanAdjStatusPage: NextPage = () => {
                                   whiteSpace: "nowrap",
                                   color:
                                     dayjs(date.datetime).day() === 0
-                                      ? "#FF5656"
+                                      ? "rgba(230, 70, 70, 1)"
                                       : dayjs(date.datetime).day() === 6
-                                      ? "#5b63d3"
+                                      ? "rgba(91, 99, 211, 1)"
                                       : "inherit",
                                 }}
                               >
@@ -651,8 +672,8 @@ const PlanAdjStatusPage: NextPage = () => {
                               color:
                                 Math.round(availableRate) ===
                                 Math.round(maxAvailableRate)
-                                  ? "#4ADE80"
-                                  : "#FCFCFC",
+                                  ? "rgba(74, 222, 128, 1)"
+                                  : "rgba(252, 252, 252, 1)",
                               minWidth: "3rem",
                               textAlign: "right",
                               display: "flex",
@@ -685,7 +706,7 @@ const PlanAdjStatusPage: NextPage = () => {
                             top: 0,
                             height: "100%",
                             width: `${availableRate}%`,
-                            bgcolor: "#4ADE80",
+                            bgcolor: "rgba(74, 222, 128, 1)",
                             borderRadius: "4px",
                           }}
                         />
@@ -697,7 +718,7 @@ const PlanAdjStatusPage: NextPage = () => {
                             top: 0,
                             height: "100%",
                             width: `${maybeRate}%`,
-                            bgcolor: "#FFB800",
+                            bgcolor: "rgb(189, 132, 0)",
                             borderRadius: "4px",
                           }}
                         />
@@ -709,7 +730,7 @@ const PlanAdjStatusPage: NextPage = () => {
                             top: 0,
                             height: "100%",
                             width: `${unavailableRate}%`,
-                            bgcolor: "#FF5656",
+                            bgcolor: "rgb(185, 55, 55)",
                             borderRadius: "4px",
                           }}
                         />
@@ -887,8 +908,8 @@ const PlanAdjStatusPage: NextPage = () => {
                               color:
                                 Math.round(availableRate) ===
                                 Math.round(maxAvailableRate)
-                                  ? "#4ADE80"
-                                  : "#FCFCFC",
+                                  ? "rgba(74, 222, 128, 1)"
+                                  : "rgba(252, 252, 252, 1)",
                             }}
                           >
                             {respondents.available.length} / {total}
@@ -911,7 +932,7 @@ const PlanAdjStatusPage: NextPage = () => {
                               top: 0,
                               height: "100%",
                               width: `${availableRate}%`,
-                              bgcolor: "#4ADE80",
+                              bgcolor: "rgba(74, 222, 128, 1)",
                             }}
                           />
                           <Box
@@ -921,7 +942,7 @@ const PlanAdjStatusPage: NextPage = () => {
                               top: 0,
                               height: "100%",
                               width: `${maybeRate}%`,
-                              bgcolor: "#FFB800",
+                              bgcolor: "rgba(189, 132, 0, 1)",
                             }}
                           />
                           <Box
@@ -931,7 +952,7 @@ const PlanAdjStatusPage: NextPage = () => {
                               top: 0,
                               height: "100%",
                               width: `${unavailableRate}%`,
-                              bgcolor: "#FF5656",
+                              bgcolor: "rgba(185, 55, 55, 1)",
                             }}
                           />
                         </Box>
@@ -984,10 +1005,10 @@ const PlanAdjStatusPage: NextPage = () => {
                               textAlign: "center",
                               color:
                                 availability === "○"
-                                  ? "#4ADE80"
+                                  ? "rgba(74, 222, 128, 1)"
                                   : availability === "△"
-                                  ? "#FFB800"
-                                  : "#FF5656",
+                                  ? "rgba(189, 132, 0, 1)"
+                                  : "rgba(185, 55, 55, 1)",
                               px: 0.5,
                               py: 1,
                               borderLeft: "1px solid rgba(255, 255, 255, 0.1)",
@@ -1007,26 +1028,6 @@ const PlanAdjStatusPage: NextPage = () => {
             </Box>
           )}
         </Paper>
-
-        <Button
-          className="plan-status__submit-button"
-          variant="contained"
-          fullWidth
-          onClick={handleOpenDialog}
-          sx={{
-            bgcolor: "#5b63d3",
-            color: "#FCFCFC",
-            py: 2,
-            fontSize: "1rem",
-            fontWeight: "bold",
-            borderRadius: "8px",
-            "&:hover": {
-              bgcolor: "#4850c9",
-            },
-          }}
-        >
-          回答を入力する
-        </Button>
 
         <PlanAdjInputModal
           open={isDialogOpen}

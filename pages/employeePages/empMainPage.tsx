@@ -1,15 +1,15 @@
 // pages/employeePages/empMainPage.tsx
 
 import { useEffect, useState } from "react";
-import { supabase } from '../../utils/supabaseClient';
-import { Dialog, Tabs, Tab, Box} from '@mui/material';
-import { useRouter } from 'next/router';
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
-import EventIcon from '@mui/icons-material/Event';
-import { format } from 'date-fns';
-import { ja } from 'date-fns/locale';
-import EventDetailModal from '../../components/EventDetailModal';
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { supabase } from "../../utils/supabaseClient";
+import { Dialog, Tabs, Tab, Box } from "@mui/material";
+import { useRouter } from "next/router";
+import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import EventIcon from "@mui/icons-material/Event";
+import { format } from "date-fns";
+import { ja } from "date-fns/locale";
+import EventDetailModal from "../../components/EventDetailModal";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 
 type HistoryItem = {
   history_id: number;
@@ -35,7 +35,7 @@ type EventParticipationHistory = {
   participated_at: string;
   EVENT_LIST: {
     title: string;
-    genre: '0' | '1';
+    genre: "0" | "1";
     event_id: number;
   };
 };
@@ -55,7 +55,7 @@ type ScheduledEvent = {
     venue_id: number;
     venue: {
       venue_nm: string;
-    }
+    };
   };
 };
 
@@ -66,7 +66,7 @@ type TodayEvent = {
   end_date: string;
   venue_nm: string;
   ownerName?: string;
-  genre: '0' | '1';
+  genre: "0" | "1";
 };
 
 type QueryResult<T> = {
@@ -77,11 +77,11 @@ type QueryResult<T> = {
 const ITEMS_PER_PAGE = 10;
 
 const QUERY_KEYS = {
-  HISTORY: 'empCizHistory',
-  PARTICIPATION: 'eventParHistory',
-  SCHEDULED_EVENTS: 'scheduledEvents',
-  TODAY_EVENTS: 'todayEvents',
-  MONTHLY_CHANGE: 'monthlyChange',
+  HISTORY: "empCizHistory",
+  PARTICIPATION: "eventParHistory",
+  SCHEDULED_EVENTS: "scheduledEvents",
+  TODAY_EVENTS: "todayEvents",
+  MONTHLY_CHANGE: "monthlyChange",
 } as const;
 
 const EmpMainPage = () => {
@@ -89,8 +89,12 @@ const EmpMainPage = () => {
   const [employeeNumber, setEmployeeNumber] = useState<number | null>(null);
   const [points, setPoints] = useState<number | null>(null);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
-  const [participation, setParticipation] = useState<EventParticipation | null>(null);
-  const [activeTab, setActiveTab] = useState<'scheduled' | 'points' | 'events'>('scheduled');
+  const [participation, setParticipation] = useState<EventParticipation | null>(
+    null
+  );
+  const [activeTab, setActiveTab] = useState<"scheduled" | "points" | "events">(
+    "scheduled"
+  );
   const [showTodayEventsModal, setShowTodayEventsModal] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [isEventDetailModalOpen, setIsEventDetailModalOpen] = useState(false);
@@ -101,15 +105,15 @@ const EmpMainPage = () => {
     data: historyData,
     fetchNextPage: fetchNextHistory,
     hasNextPage: hasMoreHistory,
-    isFetchingNextPage: isLoadingMoreHistory
+    isFetchingNextPage: isLoadingMoreHistory,
   } = useInfiniteQuery({
     queryKey: [QUERY_KEYS.HISTORY, employeeNumber],
     queryFn: async ({ pageParam = 0 }): Promise<QueryResult<HistoryItem>> => {
       if (!employeeNumber) return { data: [], nextPage: null };
-      
+
       const from = pageParam * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
-      
+
       const { data, error } = await supabase
         .from("EMP_CIZ_HISTORY")
         .select("*")
@@ -118,7 +122,7 @@ const EmpMainPage = () => {
         .range(from, to);
 
       if (error) throw error;
-      
+
       return {
         data: data || [],
         nextPage: data?.length === ITEMS_PER_PAGE ? pageParam + 1 : null,
@@ -126,12 +130,12 @@ const EmpMainPage = () => {
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: !!employeeNumber && activeTab === 'points',
+    enabled: !!employeeNumber && activeTab === "points",
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     refetchOnReconnect: true,
     gcTime: 0,
-    staleTime: 0
+    staleTime: 0,
   });
 
   // イベント参加履歴の取得
@@ -139,27 +143,31 @@ const EmpMainPage = () => {
     data: participationData,
     fetchNextPage: fetchNextParticipation,
     hasNextPage: hasMoreParticipation,
-    isFetchingNextPage: isLoadingMoreParticipation
+    isFetchingNextPage: isLoadingMoreParticipation,
   } = useInfiniteQuery({
     queryKey: [QUERY_KEYS.PARTICIPATION, employeeNumber],
-    queryFn: async ({ pageParam = 0 }): Promise<QueryResult<EventParticipationHistory>> => {
+    queryFn: async ({
+      pageParam = 0,
+    }): Promise<QueryResult<EventParticipationHistory>> => {
       if (!employeeNumber) return { data: [], nextPage: null };
-      
+
       const from = pageParam * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
-      
+
       const { data, error } = await supabase
         .from("EVENT_PAR_HISTORY")
-        .select(`
+        .select(
+          `
           *,
           EVENT_LIST(title, genre, event_id)
-        `)
+        `
+        )
         .eq("emp_no", employeeNumber)
         .order("participated_at", { ascending: false })
         .range(from, to);
 
       if (error) throw error;
-      
+
       return {
         data: data || [],
         nextPage: data?.length === ITEMS_PER_PAGE ? pageParam + 1 : null,
@@ -167,12 +175,12 @@ const EmpMainPage = () => {
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.nextPage,
-    enabled: !!employeeNumber && activeTab === 'events',
+    enabled: !!employeeNumber && activeTab === "events",
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     refetchOnReconnect: true,
     gcTime: 0,
-    staleTime: 0
+    staleTime: 0,
   });
 
   // スケジュールされたイベントの取得
@@ -180,14 +188,15 @@ const EmpMainPage = () => {
     queryKey: [QUERY_KEYS.SCHEDULED_EVENTS, employeeNumber],
     queryFn: async (): Promise<ScheduledEvent[]> => {
       if (!employeeNumber) return [];
-      
+
       const now = new Date();
       const threeMonthsLater = new Date(now);
       threeMonthsLater.setMonth(now.getMonth() + 3);
-      
+
       const { data, error } = await supabase
         .from("EVENT_TEMP_ENTRY")
-        .select(`
+        .select(
+          `
           *,
           EVENT_LIST!inner (
             title,
@@ -200,22 +209,23 @@ const EmpMainPage = () => {
               venue_nm
             )
           )
-        `)
+        `
+        )
         .eq("emp_no", employeeNumber)
-        .eq("status", '1')
-        .lte("EVENT_LIST.start_date", threeMonthsLater.toISOString())  // 3ヶ月後まで
-        .gte("EVENT_LIST.end_date", now.toISOString())  // 現在進行中または未来のイベント
+        .eq("status", "1")
+        .lte("EVENT_LIST.start_date", threeMonthsLater.toISOString()) // 3ヶ月後まで
+        .gte("EVENT_LIST.end_date", now.toISOString()) // 現在進行中または未来のイベント
         .order("EVENT_LIST(start_date)", { ascending: true });
 
       if (error) throw error;
       return data || [];
     },
-    enabled: !!employeeNumber && activeTab === 'scheduled',
+    enabled: !!employeeNumber && activeTab === "scheduled",
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     refetchOnReconnect: true,
     gcTime: 0,
-    staleTime: 0
+    staleTime: 0,
   });
 
   // 本日のイベントの取得
@@ -224,20 +234,22 @@ const EmpMainPage = () => {
     queryFn: async (): Promise<TodayEvent[]> => {
       const today = new Date();
       today.setHours(9, 0, 0, 0);
-      
+
       const todayEnd = new Date(today);
       todayEnd.setHours(32, 59, 59, 999);
 
       const { data: events, error } = await supabase
-        .from('EVENT_LIST')
-        .select(`
+        .from("EVENT_LIST")
+        .select(
+          `
           *,
           venue:EVENT_VENUE!venue_id(venue_nm)
-        `)
-        .gte('start_date', today.toISOString())
-        .lte('start_date', todayEnd.toISOString())
-        .eq('act_kbn', true)
-        .order('start_date', { ascending: true });
+        `
+        )
+        .gte("start_date", today.toISOString())
+        .lte("start_date", todayEnd.toISOString())
+        .eq("act_kbn", true)
+        .order("start_date", { ascending: true });
 
       if (error) throw error;
 
@@ -245,9 +257,9 @@ const EmpMainPage = () => {
       const eventsWithOwner = await Promise.all(
         (events || []).map(async (event) => {
           const { data: ownerData } = await supabase
-            .from('USER_INFO')
-            .select('myoji, namae')
-            .eq('emp_no', event.owner)
+            .from("USER_INFO")
+            .select("myoji, namae")
+            .eq("emp_no", event.owner)
             .single();
 
           return {
@@ -256,8 +268,10 @@ const EmpMainPage = () => {
             start_date: event.start_date,
             end_date: event.end_date,
             venue_nm: event.venue?.venue_nm,
-            ownerName: ownerData ? `${ownerData.myoji} ${ownerData.namae}` : undefined,
-            genre: event.genre
+            ownerName: ownerData
+              ? `${ownerData.myoji} ${ownerData.namae}`
+              : undefined,
+            genre: event.genre,
           };
         })
       );
@@ -292,12 +306,13 @@ const EmpMainPage = () => {
   });
 
   // 履歴データの整形
-  const historyList = historyData?.pages.flatMap(page => page.data) ?? [];
-  const participationHistory = participationData?.pages.flatMap(page => page.data) ?? [];
+  const historyList = historyData?.pages.flatMap((page) => page.data) ?? [];
+  const participationHistory =
+    participationData?.pages.flatMap((page) => page.data) ?? [];
 
   // さらに読み込むボタンのハンドラー
   const handleLoadMore = async () => {
-    if (activeTab === 'points') {
+    if (activeTab === "points") {
       await fetchNextHistory();
     } else {
       await fetchNextParticipation();
@@ -311,13 +326,26 @@ const EmpMainPage = () => {
   const unofficialCountMotionValue = useMotionValue(0);
 
   // アニメーション値の変換
-  const animatedPoints = useTransform(pointsMotionValue, (latest) => Math.round(latest).toLocaleString());
-  const animatedMonthlyChange = useTransform(monthlyChangeMotionValue, (latest) => {
-    const value = Math.round(latest);
-    return `${value >= 0 ? '+' : ''}${value.toLocaleString()} since last month`;
-  });
-  const animatedOfficialCount = useTransform(officialCountMotionValue, (latest) => Math.round(latest));
-  const animatedUnofficialCount = useTransform(unofficialCountMotionValue, (latest) => Math.round(latest));
+  const animatedPoints = useTransform(pointsMotionValue, (latest) =>
+    Math.round(latest).toLocaleString()
+  );
+  const animatedMonthlyChange = useTransform(
+    monthlyChangeMotionValue,
+    (latest) => {
+      const value = Math.round(latest);
+      return `${
+        value >= 0 ? "+" : ""
+      }${value.toLocaleString()} since last month`;
+    }
+  );
+  const animatedOfficialCount = useTransform(
+    officialCountMotionValue,
+    (latest) => Math.round(latest)
+  );
+  const animatedUnofficialCount = useTransform(
+    unofficialCountMotionValue,
+    (latest) => Math.round(latest)
+  );
 
   // アニメーションの実行
   useEffect(() => {
@@ -329,22 +357,34 @@ const EmpMainPage = () => {
 
   useEffect(() => {
     monthlyChangeMotionValue.set(0);
-    animate(monthlyChangeMotionValue, monthlyChange, { duration: 1, ease: "easeOut" });
+    animate(monthlyChangeMotionValue, monthlyChange, {
+      duration: 1,
+      ease: "easeOut",
+    });
   }, [monthlyChange, monthlyChangeMotionValue]);
 
   useEffect(() => {
     if (participation) {
       officialCountMotionValue.set(0);
       unofficialCountMotionValue.set(0);
-      animate(officialCountMotionValue, participation.official_count, { duration: 1, ease: "easeOut" });
-      animate(unofficialCountMotionValue, participation.unofficial_count, { duration: 1, ease: "easeOut" });
+      animate(officialCountMotionValue, participation.official_count, {
+        duration: 1,
+        ease: "easeOut",
+      });
+      animate(unofficialCountMotionValue, participation.unofficial_count, {
+        duration: 1,
+        ease: "easeOut",
+      });
     }
   }, [participation, officialCountMotionValue, unofficialCountMotionValue]);
 
   useEffect(() => {
     const fetchEmployeeInfo = async () => {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
       if (userError || !user) {
         console.error("ユーザー情報の取得に失敗しました:", userError);
         return;
@@ -412,7 +452,10 @@ const EmpMainPage = () => {
         }, 0);
 
         monthlyChangeMotionValue.set(0);
-        animate(monthlyChangeMotionValue, totalChange, { duration: 1, ease: "easeOut" });
+        animate(monthlyChangeMotionValue, totalChange, {
+          duration: 1,
+          ease: "easeOut",
+        });
       } catch (error) {
         console.error("月間増減の取得エラー:", error);
       }
@@ -433,12 +476,14 @@ const EmpMainPage = () => {
           .single();
 
         if (error) throw error;
-        setParticipation(data || {
-          emp_no: employeeNumber,
-          official_count: 0,
-          unofficial_count: 0,
-          updated_at: new Date().toISOString()
-        });
+        setParticipation(
+          data || {
+            emp_no: employeeNumber,
+            official_count: 0,
+            unofficial_count: 0,
+            updated_at: new Date().toISOString(),
+          }
+        );
       } catch (error) {
         console.error("参加数取得エラー:", error);
       }
@@ -464,7 +509,10 @@ const EmpMainPage = () => {
     setSelectedEventId(null);
   };
 
-  const handleTabChange = (_: React.SyntheticEvent, newValue: 'scheduled' | 'points' | 'events') => {
+  const handleTabChange = (
+    _: React.SyntheticEvent,
+    newValue: "scheduled" | "points" | "events"
+  ) => {
     setActiveTab(newValue);
   };
 
@@ -473,25 +521,27 @@ const EmpMainPage = () => {
     const start = new Date(startDate);
     const diffMs = start.getTime() - now.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
+
     if (diffMs <= 0) {
       return "開催中";
     }
-    
+
     if (diffMs > 24 * 60 * 60 * 1000) {
       return `${diffDays}日前`;
     }
-    
-    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+    const hours = Math.floor(
+      (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+    );
     const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
-    
+
     const parts = [];
     if (hours > 0) parts.push(`${hours}時間`);
     if (minutes > 0) parts.push(`${minutes}分`);
     parts.push(`${seconds}秒前`);
-    
-    return parts.join('');
+
+    return parts.join("");
   };
 
   // 1秒ごとにカウントダウンを更新
@@ -504,11 +554,13 @@ const EmpMainPage = () => {
   }, []);
 
   return (
-    <Box sx={{ 
-      position: 'relative',
-      width: '100%',
-      overflow: 'hidden',
-    }}>
+    <Box
+      sx={{
+        position: "relative",
+        width: "100%",
+        overflow: "hidden",
+      }}
+    >
       <div>
         <div className="p-4">
           <div className="w-full max-w-xl mx-auto space-y-3">
@@ -520,17 +572,30 @@ const EmpMainPage = () => {
             >
               <div className="text-right">
                 <div className="text-[#FCFCFC] text-4xl font-bold mb-2">
-                  <motion.span>{animatedPoints}</motion.span> <span className="text-2xl">CIZ</span>
+                  <motion.span>{animatedPoints}</motion.span>{" "}
+                  <span className="text-2xl">CIZ</span>
                 </div>
-                <div className={`text-sm ${monthlyChange >= 0 ? 'text-green-400' : 'text-red-400'} mb-3`}>
+                <div
+                  className={`text-sm ${
+                    monthlyChange >= 0 ? "text-green-400" : "text-red-400"
+                  } mb-3`}
+                >
                   <motion.span>{animatedMonthlyChange}</motion.span>
                 </div>
                 <div className="flex justify-end items-center gap-4 text-sm text-gray-300 border-t border-gray-600 pt-3">
                   <div>
-                    公式イベント：<motion.span className="font-medium">{animatedOfficialCount}</motion.span>回
+                    公式イベント：
+                    <motion.span className="font-medium">
+                      {animatedOfficialCount}
+                    </motion.span>
+                    回
                   </div>
                   <div>
-                    有志イベント：<motion.span className="font-medium">{animatedUnofficialCount}</motion.span>回
+                    有志イベント：
+                    <motion.span className="font-medium">
+                      {animatedUnofficialCount}
+                    </motion.span>
+                    回
                   </div>
                 </div>
               </div>
@@ -544,14 +609,14 @@ const EmpMainPage = () => {
             >
               <button
                 onClick={handleOpenTodayEventsModal}
-                className="w-full py-2.5 px-2.5 bg-[#5b63d3] text-white font-bold rounded-md transition-colors flex items-center justify-center gap-2"
+                className="w-full py-2.5 px-2.5 bg-[#5b63d3] text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
               >
                 <EventIcon />
                 本日のイベント
                 <motion.span
-                  animate={{ 
+                  animate={{
                     scaleY: showTodayEventsModal ? -1 : 1,
-                    y: showTodayEventsModal ? -2 : 0
+                    y: showTodayEventsModal ? -2 : 0,
                   }}
                   transition={{ duration: 0.3 }}
                   className="ml-auto"
@@ -563,9 +628,9 @@ const EmpMainPage = () => {
               {/* イベントリスト */}
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
-                animate={{ 
+                animate={{
                   height: showTodayEventsModal ? "auto" : 0,
-                  opacity: showTodayEventsModal ? 1 : 0
+                  opacity: showTodayEventsModal ? 1 : 0,
                 }}
                 transition={{ duration: 0.3 }}
                 className="w-full overflow-hidden"
@@ -577,7 +642,9 @@ const EmpMainPage = () => {
                   </div>
                 ) : todayEvents.length === 0 ? (
                   <div className="text-center py-4">
-                    <p className="text-gray-400 text-xs">本日開催予定のイベントはありません</p>
+                    <p className="text-gray-400 text-xs">
+                      本日開催予定のイベントはありません
+                    </p>
                   </div>
                 ) : (
                   <div className="mt-3 space-y-2">
@@ -585,7 +652,9 @@ const EmpMainPage = () => {
                       <div
                         key={event.event_id}
                         className="bg-[#37373F] p-2.5 rounded-md transition-colors cursor-pointer"
-                        onClick={() => handleOpenEventDetail(event.event_id.toString())}
+                        onClick={() =>
+                          handleOpenEventDetail(event.event_id.toString())
+                        }
                       >
                         <div className="flex items-center gap-2">
                           <div className="flex-1 min-w-0">
@@ -603,8 +672,13 @@ const EmpMainPage = () => {
                             `}</style>
                           </div>
                           <span className="text-xs text-gray-400 flex-shrink-0 w-[80px] text-right">
-                            {format(new Date(event.start_date), 'HH:mm', { locale: ja })} - 
-                            {format(new Date(event.end_date), ' HH:mm', { locale: ja })}
+                            {format(new Date(event.start_date), "HH:mm", {
+                              locale: ja,
+                            })}{" "}
+                            -
+                            {format(new Date(event.end_date), " HH:mm", {
+                              locale: ja,
+                            })}
                           </span>
                         </div>
                       </div>
@@ -619,29 +693,29 @@ const EmpMainPage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.1 }}
               className="bg-[#2f3033] rounded-lg shadow-md p-4 py-2 flex flex-col"
-              style={{ height: 'calc(100vh - 30rem)' }}
+              style={{ height: "calc(100vh - 30rem)" }}
             >
               <div className="flex justify-center items-center mb-2">
-                <Tabs 
+                <Tabs
                   value={activeTab}
                   onChange={handleTabChange}
                   variant="fullWidth"
                   sx={{
-                    minHeight: '32px',
-                    width: '95%',
-                    '& .MuiTab-root': {
-                      minHeight: '32px',
-                      padding: '6px 16px',
-                      color: '#FCFCFC',
-                      fontSize: '0.875rem',
-                      textTransform: 'none',
-                      fontWeight: 'medium',
+                    minHeight: "32px",
+                    width: "95%",
+                    "& .MuiTab-root": {
+                      minHeight: "32px",
+                      padding: "6px 16px",
+                      color: "#FCFCFC",
+                      fontSize: "0.875rem",
+                      textTransform: "none",
+                      fontWeight: "medium",
                     },
-                    '& .Mui-selected': {
-                      color: '#8E93DA !important',
+                    "& .Mui-selected": {
+                      color: "#8E93DA !important",
                     },
-                    '& .MuiTabs-indicator': {
-                      backgroundColor: '#8E93DA',
+                    "& .MuiTabs-indicator": {
+                      backgroundColor: "#8E93DA",
                     },
                   }}
                 >
@@ -657,10 +731,12 @@ const EmpMainPage = () => {
                 transition={{ duration: 0.3, delay: 0.2 }}
                 className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent overscroll-contain"
               >
-                {activeTab === 'scheduled' ? (
+                {activeTab === "scheduled" ? (
                   <div className="space-y-2">
                     {scheduledEvents.length === 0 ? (
-                      <p className="text-gray-400">参加予定のイベントはありません</p>
+                      <p className="text-gray-400">
+                        参加予定のイベントはありません
+                      </p>
                     ) : (
                       scheduledEvents.map((event, index) => (
                         <motion.div
@@ -669,7 +745,11 @@ const EmpMainPage = () => {
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.3, delay: index * 0.05 }}
                           className="bg-[#404040] px-3 py-2 rounded-md cursor-pointer transition-colors hover:bg-[#454545]"
-                          onClick={() => handleOpenEventDetail(event.EVENT_LIST.event_id.toString())}
+                          onClick={() =>
+                            handleOpenEventDetail(
+                              event.EVENT_LIST.event_id.toString()
+                            )
+                          }
                         >
                           <div className="flex justify-between items-center">
                             <div className="flex-1 mr-4">
@@ -677,18 +757,33 @@ const EmpMainPage = () => {
                                 {event.EVENT_LIST.title}
                               </p>
                               <p className="text-[10px] xs:text-xs sm:text-sm text-gray-400 mt-1.5">
-                                {format(new Date(event.EVENT_LIST.start_date), 'yyyy年MM月dd日 HH:mm', { locale: ja })} - 
-                                {format(new Date(event.EVENT_LIST.end_date), ' HH:mm', { locale: ja })}
+                                {format(
+                                  new Date(event.EVENT_LIST.start_date),
+                                  "yyyy年MM月dd日 HH:mm",
+                                  { locale: ja }
+                                )}{" "}
+                                -
+                                {format(
+                                  new Date(event.EVENT_LIST.end_date),
+                                  " HH:mm",
+                                  { locale: ja }
+                                )}
                               </p>
                             </div>
                             <div className="flex flex-col items-end">
-                              <div className={`text-xs xs:text-sm font-medium ${
-                                calculateTimeRemaining(event.EVENT_LIST.start_date) === "開催中" 
-                                  ? 'text-green-400' 
-                                  : 'text-yellow-400'
-                              } flex items-center justify-end`}>
+                              <div
+                                className={`text-xs xs:text-sm font-medium ${
+                                  calculateTimeRemaining(
+                                    event.EVENT_LIST.start_date
+                                  ) === "開催中"
+                                    ? "text-green-400"
+                                    : "text-yellow-400"
+                                } flex items-center justify-end`}
+                              >
                                 <span className="font-mono tracking-wider tabular-nums whitespace-nowrap">
-                                  {calculateTimeRemaining(event.EVENT_LIST.start_date)}
+                                  {calculateTimeRemaining(
+                                    event.EVENT_LIST.start_date
+                                  )}
                                 </span>
                               </div>
                             </div>
@@ -697,7 +792,7 @@ const EmpMainPage = () => {
                       ))
                     )}
                   </div>
-                ) : activeTab === 'points' ? (
+                ) : activeTab === "points" ? (
                   <div className="space-y-2">
                     {historyList.length === 0 ? (
                       <p className="text-gray-400">履歴はありません</p>
@@ -706,16 +801,23 @@ const EmpMainPage = () => {
                         {historyList.map((item, index) => {
                           const isAdd = item.change_type === "add";
                           const sign = isAdd ? "+ " : "- ";
-                          const colorClass = isAdd ? "text-green-400" : "text-red-400";
+                          const colorClass = isAdd
+                            ? "text-green-400"
+                            : "text-red-400";
 
                           return (
                             <motion.div
                               key={`history-${item.history_id}`}
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.3, delay: index * 0.05 }}
+                              transition={{
+                                duration: 0.3,
+                                delay: index * 0.05,
+                              }}
                               className="bg-[#404040] px-3 py-2 rounded-md cursor-pointer transition-colors hover:bg-[#454545]"
-                              onClick={() => handleOpenEventDetail(item.event_id.toString())}
+                              onClick={() =>
+                                handleOpenEventDetail(item.event_id.toString())
+                              }
                             >
                               <div className="flex justify-between items-center">
                                 <div className="flex-1 mr-4">
@@ -723,18 +825,27 @@ const EmpMainPage = () => {
                                     {item.reason}
                                   </p>
                                   <p className="text-[10px] xs:text-xs sm:text-sm text-gray-400 mt-1.5">
-                                    {format(new Date(item.created_at), 'yyyy年MM月dd日 HH:mm', { locale: ja })}
+                                    {format(
+                                      new Date(item.created_at),
+                                      "yyyy年MM月dd日 HH:mm",
+                                      { locale: ja }
+                                    )}
                                   </p>
                                 </div>
-                                <div className={`${colorClass} text-base xs:text-lg sm:text-xl font-bold flex-shrink-0 ml-2 flex items-center`}>
+                                <div
+                                  className={`${colorClass} text-base xs:text-lg sm:text-xl font-bold flex-shrink-0 ml-2 flex items-center`}
+                                >
                                   {sign}
-                                  {item.ciz.toLocaleString()} <span className="text-xs xs:text-sm sm:text-base font-medium ml-1">ciz</span>
+                                  {item.ciz.toLocaleString()}{" "}
+                                  <span className="text-xs xs:text-sm sm:text-base font-medium ml-1">
+                                    ciz
+                                  </span>
                                 </div>
                               </div>
                             </motion.div>
                           );
                         })}
-                        
+
                         {hasMoreHistory && (
                           <motion.div
                             initial={{ opacity: 0 }}
@@ -774,7 +885,11 @@ const EmpMainPage = () => {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.3, delay: index * 0.05 }}
                             className="bg-[#404040] px-3 py-2 rounded-md cursor-pointer transition-colors hover:bg-[#454545]"
-                            onClick={() => handleOpenEventDetail(item.EVENT_LIST.event_id.toString())}
+                            onClick={() =>
+                              handleOpenEventDetail(
+                                item.EVENT_LIST.event_id.toString()
+                              )
+                            }
                           >
                             <div className="flex justify-between items-center">
                               <div className="flex-1 mr-4">
@@ -782,20 +897,28 @@ const EmpMainPage = () => {
                                   {item.EVENT_LIST.title}
                                 </p>
                                 <p className="text-[10px] xs:text-xs sm:text-sm text-gray-400 mt-1.5">
-                                  {format(new Date(item.participated_at), 'yyyy年MM月dd日 HH:mm', { locale: ja })}
+                                  {format(
+                                    new Date(item.participated_at),
+                                    "yyyy年MM月dd日 HH:mm",
+                                    { locale: ja }
+                                  )}
                                 </p>
                               </div>
-                              <div className={`text-xs xs:text-sm font-medium px-2.5 py-1 rounded-full ${
-                                item.EVENT_LIST.genre === '1' 
-                                  ? 'bg-blue-400/20 text-blue-400' 
-                                  : 'bg-green-400/20 text-green-400'
-                              }`}>
-                                {item.EVENT_LIST.genre === '1' ? '公式' : '有志'}
+                              <div
+                                className={`text-xs xs:text-sm font-medium px-2.5 py-1 rounded-full ${
+                                  item.EVENT_LIST.genre === "1"
+                                    ? "bg-blue-400/20 text-blue-400"
+                                    : "bg-green-400/20 text-green-400"
+                                }`}
+                              >
+                                {item.EVENT_LIST.genre === "1"
+                                  ? "公式"
+                                  : "有志"}
                               </div>
                             </div>
                           </motion.div>
                         ))}
-                        
+
                         {hasMoreParticipation && (
                           <motion.div
                             initial={{ opacity: 0 }}
@@ -840,14 +963,17 @@ const EmpMainPage = () => {
             transition={{ duration: 0.2 }}
             className="bg-[#2D2D2D] p-6"
           >
-            <h2 className="text-xl font-bold mb-2 text-[#FCFCFC]">プロフィール設定</h2>
+            <h2 className="text-xl font-bold mb-2 text-[#FCFCFC]">
+              プロフィール設定
+            </h2>
             <p className="text-sm text-[#FCFCFC] mb-3">
-              初回ログインありがとうございます。<br />
+              初回ログインありがとうございます。
+              <br />
               プロフィール情報を設定してください。
             </p>
             <div>
               <button
-                onClick={() => router.push('/employeePages/empProfSettingPage')}
+                onClick={() => router.push("/employeePages/empProfSettingPage")}
                 className="w-full bg-[#5b63d3] text-white px-4 py-2 rounded-md font-bold"
               >
                 設定する
@@ -860,7 +986,7 @@ const EmpMainPage = () => {
         <EventDetailModal
           isOpen={isEventDetailModalOpen}
           onClose={handleCloseEventDetail}
-          eventId={selectedEventId || ''}
+          eventId={selectedEventId || ""}
         />
       </div>
     </Box>
