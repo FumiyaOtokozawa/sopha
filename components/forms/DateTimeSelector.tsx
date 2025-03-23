@@ -7,6 +7,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { Dayjs } from "dayjs";
 import { useCallback, useRef, useState, useEffect } from "react";
 import { DateTimeSelection } from "../../types/plan";
+import dayjs from "dayjs";
 
 interface DateTimeSelectorProps {
   selectedDateTimes: DateTimeSelection[];
@@ -25,6 +26,13 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
   const timeButtonRefs = useRef<{
     [key: string]: { [key: string]: HTMLElement | null };
   }>({});
+  const [visualSelectedDates, setVisualSelectedDates] = useState<string[]>([]);
+
+  useEffect(() => {
+    setVisualSelectedDates(
+      selectedDateTimes.map((dt) => dt.date.format("YYYY-MM-DD"))
+    );
+  }, [selectedDateTimes]);
 
   const handleDateSelect = useCallback(
     (date: Dayjs | null) => {
@@ -35,67 +43,85 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
         return;
       }
 
-      const formattedDate = date.startOf("day");
-      const dateKey = formattedDate.format("YYYY-MM-DD");
-      const dateExists = selectedDateTimes.some(
-        (dt) => dt.date.format("YYYY-MM-DD") === dateKey
+      const dateKey = date.format("YYYY-MM-DD");
+      const dateExists = visualSelectedDates.includes(dateKey);
+
+      // 即座に視覚的な更新
+      setVisualSelectedDates((prev) =>
+        dateExists ? prev.filter((d) => d !== dateKey) : [...prev, dateKey]
       );
 
-      if (dateExists) {
-        onDateTimeSelect(
-          selectedDateTimes.filter(
-            (dt) => dt.date.format("YYYY-MM-DD") !== dateKey
-          )
-        );
-      } else {
-        onDateTimeSelect([
-          ...selectedDateTimes,
-          {
-            id: `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
-            date: formattedDate,
-            time: selectedDateTimes[0]?.time || "12:00",
-          },
-        ]);
-      }
+      // データ更新を非同期で実行
+      setTimeout(() => {
+        const formattedDate = date.startOf("day");
+        if (dateExists) {
+          onDateTimeSelect(
+            selectedDateTimes.filter(
+              (dt) => dt.date.format("YYYY-MM-DD") !== dateKey
+            )
+          );
+        } else {
+          onDateTimeSelect([
+            ...selectedDateTimes,
+            {
+              id: `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`,
+              date: formattedDate,
+              time: selectedDateTimes[0]?.time || "15:00",
+            },
+          ]);
+        }
+      }, 0);
     },
-    [selectedDateTimes, onDateTimeSelect]
+    [selectedDateTimes, onDateTimeSelect, visualSelectedDates]
   );
 
   // カスタムDayコンポーネント
   const CustomDay = useCallback(
     (props: { day: Dayjs | null }) => {
       if (!props.day) return null;
-      const isSelected = selectedDateTimes.some(
-        (dt) => dt.date.format("YYYY-MM-DD") === props.day?.format("YYYY-MM-DD")
-      );
+      const dateKey = props.day.format("YYYY-MM-DD");
+      const isSelected = visualSelectedDates.includes(dateKey);
+      const isPast = props.day.isBefore(dayjs(), "day");
 
       return (
         <Box
-          onClick={() => handleDateSelect(props.day)}
+          onClick={() => !isPast && handleDateSelect(props.day)}
           className={`date-time-selector__day ${
             isSelected ? "date-time-selector__day--selected" : ""
-          }`}
+          } ${isPast ? "date-time-selector__day--disabled" : ""}`}
           sx={{
             width: 36,
             height: 36,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            cursor: "pointer",
+            cursor: isPast ? "not-allowed" : "pointer",
             borderRadius: "50%",
             bgcolor: isSelected ? "#5b63d3" : "transparent",
-            color: "#FCFCFC",
+            color: isPast ? "rgba(255, 255, 255, 0.3)" : "#FCFCFC",
             fontSize: "0.875rem",
             fontWeight: isSelected ? "bold" : "normal",
             margin: "0 auto",
-            transition: "background-color 0.15s ease-out",
+            transition: "all 0.15s ease-out",
+            opacity: isPast ? 0.5 : 1,
+            "&:hover": {
+              bgcolor: isPast
+                ? "transparent"
+                : isSelected
+                ? "#5b63d3"
+                : "rgba(91, 99, 211, 0.1)",
+            },
+            "&:active": {
+              transform: "scale(0.95)",
+              transition: "transform 0.1s ease-out",
+            },
           }}
         >
           {props.day.date()}
         </Box>
       );
     },
-    [selectedDateTimes, handleDateSelect]
+    [visualSelectedDates, handleDateSelect]
   );
 
   const handleTimeChange = useCallback(
