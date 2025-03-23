@@ -7,25 +7,66 @@ const UpdatePassword = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isValidSession, setIsValidSession] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    // URLからハッシュパラメータを取得
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get("access_token");
-    const refreshToken = hashParams.get("refresh_token");
+    const handleSession = async () => {
+      try {
+        // URLからハッシュパラメータを取得
+        const hashParams = new URLSearchParams(
+          window.location.hash.substring(1)
+        );
+        const accessToken = hashParams.get("access_token");
+        const type = hashParams.get("type");
 
-    // トークンが存在する場合、セッションを設定
-    if (accessToken && refreshToken) {
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-    }
+        // パスワードリセットのフローであることを確認
+        if (type !== "recovery" || !accessToken) {
+          setMessage(
+            "無効なリクエストです。パスワードリセットのリンクから再度アクセスしてください。"
+          );
+          return;
+        }
+
+        // セッションの設定を試みる
+        const { data, error } = await supabase.auth.getSession();
+
+        if (error || !data.session) {
+          // セッションが無い場合は、アクセストークンを使用して新しいセッションを設定
+          const { data: refreshData, error: refreshError } =
+            await supabase.auth.refreshSession({
+              refresh_token: accessToken,
+            });
+
+          if (refreshError) {
+            throw refreshError;
+          }
+
+          setIsValidSession(true);
+        } else {
+          setIsValidSession(true);
+        }
+      } catch (error) {
+        console.error("Error in handleSession:", error);
+        setMessage(
+          "セッションの検証に失敗しました。パスワードリセットのリンクから再度アクセスしてください。"
+        );
+      }
+    };
+
+    handleSession();
   }, []);
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!isValidSession) {
+      setMessage(
+        "セッションが無効です。パスワードリセットのリンクから再度アクセスしてください。"
+      );
+      return;
+    }
+
     setIsLoading(true);
     setMessage("");
 
@@ -36,23 +77,20 @@ const UpdatePassword = () => {
     }
 
     try {
-      const { data: session } = await supabase.auth.getSession();
-
-      if (!session.session) {
-        setMessage(
-          "セッションが無効です。パスワードリセットのリンクから再度アクセスしてください。"
-        );
-        return;
-      }
-
       const { error } = await supabase.auth.updateUser({
         password: password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Password update error:", error);
+        throw error;
+      }
 
       setMessage("パスワードを更新しました。ログイン画面に移動します。");
-      setTimeout(() => {
+
+      // 少し待ってからセッションをクリアしてログイン画面にリダイレクト
+      setTimeout(async () => {
+        await supabase.auth.signOut();
         router.push("/loginPage");
       }, 2000);
     } catch (error) {
