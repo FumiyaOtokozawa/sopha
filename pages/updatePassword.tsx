@@ -38,8 +38,10 @@ const UpdatePassword = () => {
           setMessage(
             "セッションの取得に失敗しました。パスワードリセットのリンクから再度アクセスしてください。"
           );
+          setIsValidSession(false);
           return;
         }
+        setIsValidSession(true);
       } catch (error) {
         console.error("Error in handleHashChange:", error);
         setMessage(
