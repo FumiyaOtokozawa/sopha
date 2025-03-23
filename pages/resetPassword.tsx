@@ -18,7 +18,7 @@ const ResetPassword = () => {
       // まずUSER_INFOテーブルでメールアドレスの存在確認
       const { data: userInfo, error: userError } = await supabase
         .from("USER_INFO")
-        .select("user_id")
+        .select("emp_no")
         .eq("email", email)
         .single();
 
