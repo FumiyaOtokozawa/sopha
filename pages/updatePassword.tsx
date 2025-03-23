@@ -11,50 +11,44 @@ const UpdatePassword = () => {
   const router = useRouter();
 
   useEffect(() => {
-    const handleSession = async () => {
+    const handleHashChange = async () => {
       try {
         // URLからハッシュパラメータを取得
         const hashParams = new URLSearchParams(
           window.location.hash.substring(1)
         );
-        const accessToken = hashParams.get("access_token");
         const type = hashParams.get("type");
 
         // パスワードリセットのフローであることを確認
-        if (type !== "recovery" || !accessToken) {
+        if (type !== "recovery") {
           setMessage(
             "無効なリクエストです。パスワードリセットのリンクから再度アクセスしてください。"
           );
           return;
         }
 
-        // セッションの設定を試みる
-        const { data, error } = await supabase.auth.getSession();
+        // セッションの取得を試みる
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
 
-        if (error || !data.session) {
-          // セッションが無い場合は、アクセストークンを使用して新しいセッションを設定
-          const { data: refreshData, error: refreshError } =
-            await supabase.auth.refreshSession({
-              refresh_token: accessToken,
-            });
-
-          if (refreshError) {
-            throw refreshError;
-          }
-
-          setIsValidSession(true);
-        } else {
-          setIsValidSession(true);
+        if (error || !session) {
+          console.error("Session error:", error);
+          setMessage(
+            "セッションの取得に失敗しました。パスワードリセットのリンクから再度アクセスしてください。"
+          );
+          return;
         }
       } catch (error) {
-        console.error("Error in handleSession:", error);
+        console.error("Error in handleHashChange:", error);
         setMessage(
-          "セッションの検証に失敗しました。パスワードリセットのリンクから再度アクセスしてください。"
+          "エラーが発生しました。パスワードリセットのリンクから再度アクセスしてください。"
         );
       }
     };
 
-    handleSession();
+    handleHashChange();
   }, []);
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
@@ -88,9 +82,10 @@ const UpdatePassword = () => {
 
       setMessage("パスワードを更新しました。ログイン画面に移動します。");
 
-      // 少し待ってからセッションをクリアしてログイン画面にリダイレクト
-      setTimeout(async () => {
-        await supabase.auth.signOut();
+      // セッションをクリアして、ログイン画面にリダイレクト
+      await supabase.auth.signOut();
+
+      setTimeout(() => {
         router.push("/loginPage");
       }, 2000);
     } catch (error) {
