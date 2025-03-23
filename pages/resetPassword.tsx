@@ -29,7 +29,7 @@ const ResetPassword = () => {
 
       // パスワードリセットメールの送信
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/updatePassword#access_token={ACCESS_TOKEN}&refresh_token={REFRESH_TOKEN}&type=recovery`,
+        redirectTo: `${window.location.origin}/updatePassword`,
       });
 
       if (error) throw error;

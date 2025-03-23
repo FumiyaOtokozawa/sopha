@@ -13,31 +13,27 @@ const UpdatePassword = () => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // ハッシュパラメータの確認
-        const hashParams = new URLSearchParams(
-          window.location.hash.substring(1)
-        );
-        const accessToken = hashParams.get("access_token");
-        const refreshToken = hashParams.get("refresh_token");
-        const type = hashParams.get("type");
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
 
-        // パスワードリセットフローの確認
-        if (type !== "recovery" || !accessToken || !refreshToken) {
-          console.error("Invalid reset flow");
+        if (error) {
+          console.error("Session error:", error);
           router.push("/resetPassword");
           return;
         }
 
-        // セッションの設定を試みる
-        const { data, error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
+        if (!session) {
+          // セッションがない場合は、URLのハッシュフラグメントをチェック
+          const fragment = new URLSearchParams(window.location.hash.slice(1));
+          const type = fragment.get("type");
 
-        if (error || !data.session) {
-          console.error("Session error:", error);
-          router.push("/resetPassword");
-          return;
+          if (type !== "recovery") {
+            console.error("Invalid reset flow");
+            router.push("/resetPassword");
+            return;
+          }
         }
 
         // ユーザー情報の取得
@@ -62,7 +58,6 @@ const UpdatePassword = () => {
         if (userInfoError || !userInfo) {
           console.error("User info error:", userInfoError);
           router.push("/resetPassword");
-          return;
         }
       } catch (error) {
         console.error("Error checking session:", error);
@@ -142,6 +137,8 @@ const UpdatePassword = () => {
           <div>
             <input
               type="password"
+              name="new-password"
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="新しいパスワード（8文字以上）"
@@ -154,6 +151,8 @@ const UpdatePassword = () => {
           <div>
             <input
               type="password"
+              name="confirm-password"
+              autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="新しいパスワード（確認）"
