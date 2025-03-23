@@ -6,6 +6,8 @@ import { useUser } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/router";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import FooterMenu from "../../components/FooterMenu";
@@ -19,6 +21,11 @@ import {
   CreatePlanEventResponse,
 } from "../../types/plan";
 import { motion } from "framer-motion";
+
+// dayjsの設定を拡張
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.tz.setDefault("Asia/Tokyo");
 
 const PlanNewEventPage: NextPage = () => {
   const user = useUser();
@@ -96,7 +103,9 @@ const PlanNewEventPage: NextPage = () => {
       const request: CreatePlanEventRequest = {
         title: data.title,
         description: data.description,
-        deadline: data.deadline,
+        deadline: dayjs(data.deadline)
+          .tz("Asia/Tokyo")
+          .format("YYYY-MM-DD HH:mm:ss"),
         dates: selectedDateTimes.map((dt) => ({
           date: dt.date.format("YYYY-MM-DD"),
           time: dt.time,
@@ -266,10 +275,14 @@ export async function createPlanEvent(
     const { data, error } = await supabase.rpc("create_plan_event", {
       p_title: req.title,
       p_description: req.description || "",
-      p_deadline: req.deadline,
+      p_deadline: dayjs
+        .tz(req.deadline, "Asia/Tokyo")
+        .format("YYYY-MM-DD HH:mm:ss"),
       p_created_by: req.createdBy,
       p_dates: req.dates.map((d) => ({
-        datetime: `${d.date} ${d.time}`,
+        datetime: dayjs
+          .tz(`${d.date} ${d.time}`, "Asia/Tokyo")
+          .format("YYYY-MM-DD HH:mm:ss"),
       })),
     });
 
