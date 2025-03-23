@@ -520,6 +520,18 @@ const PlanAdjStatusPage: NextPage = () => {
                   const unavailableRate =
                     (unavailableCount / totalRespondents) * 100;
 
+                  // 全日程の中での最大availableRateを計算
+                  const maxAvailableRate = Math.max(
+                    ...planEvent.dates.map((d) => {
+                      const availableCount = participants.filter(
+                        (p) =>
+                          p.availabilities.find((a) => a.date_id === d.date_id)
+                            ?.availability === "○"
+                      ).length;
+                      return (availableCount / participants.length) * 100;
+                    })
+                  );
+
                   return (
                     <Box
                       key={date.date_id}
@@ -582,7 +594,7 @@ const PlanAdjStatusPage: NextPage = () => {
                                 className="plan-date-item__date"
                                 sx={{
                                   fontSize: "0.75rem",
-                                  width: "35%",
+                                  width: "40%",
                                   textAlign: "left",
                                   whiteSpace: "nowrap",
                                 }}
@@ -593,10 +605,9 @@ const PlanAdjStatusPage: NextPage = () => {
                                 className="plan-date-item__weekday"
                                 sx={{
                                   fontSize: "0.75rem",
-                                  width: "20%",
+                                  width: "28%",
                                   textAlign: "left",
                                   whiteSpace: "nowrap",
-                                  pl: 0.5,
                                   color:
                                     dayjs(date.datetime).day() === 0
                                       ? "#FF5656"
@@ -611,10 +622,9 @@ const PlanAdjStatusPage: NextPage = () => {
                                 className="plan-date-item__time"
                                 sx={{
                                   fontSize: "0.75rem",
-                                  width: "45%",
+                                  width: "32%",
                                   textAlign: "left",
                                   whiteSpace: "nowrap",
-                                  pl: 1.5,
                                 }}
                               >
                                 {dayjs(date.datetime).format("HH:mm")}
@@ -632,91 +642,6 @@ const PlanAdjStatusPage: NextPage = () => {
                             justifyContent: "flex-end",
                           }}
                         >
-                          <Box
-                            className="plan-date-item__status-counts"
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              width: "60%",
-                            }}
-                          >
-                            <Typography
-                              className="plan-date-item__status-count plan-date-item__status-count--available"
-                              component="div"
-                              sx={{
-                                fontSize: "0.75rem",
-                                color: "#4ADE80",
-                                display: "grid",
-                                gridTemplateColumns: "1fr 1fr",
-                                alignItems: "center",
-                                width: "30%",
-                              }}
-                            >
-                              <CircleOutlined
-                                className="plan-date-item__status-icon"
-                                sx={{
-                                  fontSize: "0.9rem",
-                                  justifySelf: "center",
-                                }}
-                              />
-                              <Box
-                                className="plan-date-item__status-number"
-                                sx={{ justifySelf: "center" }}
-                              >
-                                {availableCount}
-                              </Box>
-                            </Typography>
-                            <Typography
-                              className="plan-date-item__status-count plan-date-item__status-count--maybe"
-                              component="div"
-                              sx={{
-                                fontSize: "0.75rem",
-                                color: "#FFB800",
-                                display: "grid",
-                                gridTemplateColumns: "1fr 1fr",
-                                alignItems: "center",
-                                width: "30%",
-                              }}
-                            >
-                              <ChangeHistory
-                                className="plan-date-item__status-icon"
-                                sx={{ fontSize: "1rem", justifySelf: "center" }}
-                              />
-                              <Box
-                                className="plan-date-item__status-number"
-                                sx={{ justifySelf: "center" }}
-                              >
-                                {maybeCount}
-                              </Box>
-                            </Typography>
-                            <Typography
-                              className="plan-date-item__status-count plan-date-item__status-count--unavailable"
-                              component="div"
-                              sx={{
-                                fontSize: "0.75rem",
-                                color: "#FF5656",
-                                display: "grid",
-                                gridTemplateColumns: "1fr 1fr",
-                                alignItems: "center",
-                                width: "30%",
-                              }}
-                            >
-                              <Close
-                                className="plan-date-item__status-icon"
-                                sx={{
-                                  fontSize: "1.2rem",
-                                  justifySelf: "center",
-                                }}
-                              />
-                              <Box
-                                className="plan-date-item__status-number"
-                                sx={{ justifySelf: "center" }}
-                              >
-                                {unavailableCount}
-                              </Box>
-                            </Typography>
-                          </Box>
-
                           <Typography
                             className="plan-date-item__availability-rate"
                             component="div"
@@ -724,11 +649,10 @@ const PlanAdjStatusPage: NextPage = () => {
                               fontSize: "0.875rem",
                               fontWeight: "bold",
                               color:
-                                availableRate >= 75
+                                Math.round(availableRate) ===
+                                Math.round(maxAvailableRate)
                                   ? "#4ADE80"
-                                  : availableRate >= 31
-                                  ? "#FFB800"
-                                  : "#FF5656",
+                                  : "#FCFCFC",
                               minWidth: "3rem",
                               textAlign: "right",
                               display: "flex",
@@ -920,6 +844,19 @@ const PlanAdjStatusPage: NextPage = () => {
                       (respondents.unavailable.length / total) * 100
                     );
 
+                    // 全日程の中での最大availableRateを計算
+                    const maxAvailableRate = Math.max(
+                      ...planEvent.dates.map((d) => {
+                        const availableCount = participants.filter(
+                          (p) =>
+                            p.availabilities.find(
+                              (a) => a.date_id === d.date_id
+                            )?.availability === "○"
+                        ).length;
+                        return (availableCount / participants.length) * 100;
+                      })
+                    );
+
                     return (
                       <Box
                         key={date.date_id}
@@ -948,14 +885,13 @@ const PlanAdjStatusPage: NextPage = () => {
                               fontSize: "0.75rem",
                               fontWeight: "bold",
                               color:
-                                availableRate >= 75
+                                Math.round(availableRate) ===
+                                Math.round(maxAvailableRate)
                                   ? "#4ADE80"
-                                  : availableRate >= 31
-                                  ? "#FFB800"
-                                  : "#FF5656",
+                                  : "#FCFCFC",
                             }}
                           >
-                            {availableRate}%
+                            {respondents.available.length} / {total}
                           </Typography>
                         </Box>
                         <Box
