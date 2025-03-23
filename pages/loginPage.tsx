@@ -11,7 +11,7 @@ const LoginPage = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsLoading(true);
 
     try {
@@ -21,41 +21,71 @@ const LoginPage = () => {
         password,
       });
 
-      if (authError) throw authError;
+      if (authError) {
+        switch (authError.message) {
+          case "Invalid login credentials":
+            setError("メールアドレスまたはパスワードが正しくありません");
+            return;
+          case "Email not confirmed":
+            setError(
+              "メールアドレスの確認が完了していません。確認メールのリンクをクリックしてください。"
+            );
+            return;
+          default:
+            setError(
+              "ログインに失敗しました。しばらく時間をおいて再度お試しください。"
+            );
+            return;
+        }
+      }
 
       // ログイン回数を更新
       const { data: userData, error: userError } = await supabase
-        .from('USER_INFO')
-        .select('emp_no, login_count')
-        .eq('email', email)
+        .from("USER_INFO")
+        .select("emp_no, login_count")
+        .eq("email", email)
         .single();
 
-      if (userError) throw userError;
+      if (userError) {
+        setError(
+          "ユーザー情報の取得に失敗しました。管理者にお問い合わせください。"
+        );
+        return;
+      }
 
       // login_countを+1
       const { error: updateError } = await supabase
-        .from('USER_INFO')
+        .from("USER_INFO")
         .update({ login_count: (userData.login_count || 0) + 1 })
-        .eq('emp_no', userData.emp_no);
+        .eq("emp_no", userData.emp_no);
 
       if (updateError) throw updateError;
 
       // ロール判定して遷移先を決定
       const { data: roleData, error: roleError } = await supabase
-        .from('USER_ROLE')
-        .select('role')
-        .eq('emp_no', userData.emp_no)
+        .from("USER_ROLE")
+        .select("role")
+        .eq("emp_no", userData.emp_no)
         .single();
 
-      if (roleError) throw roleError;
+      if (roleError) {
+        setError(
+          "ユーザー権限の取得に失敗しました。管理者にお問い合わせください。"
+        );
+        return;
+      }
 
       // 遷移先の決定
-      const path = roleData.role === '1' ? '/adminPages/admMainPage' : '/employeePages/empMainPage';
+      const path =
+        roleData.role === "1"
+          ? "/adminPages/admMainPage"
+          : "/employeePages/empMainPage";
       router.push(path);
-
     } catch (error) {
-      console.error('ログインエラー:', error);
-      setError('メールアドレスまたはパスワードが正しくありません');
+      console.error("ログインエラー:", error);
+      setError(
+        "予期せぬエラーが発生しました。しばらく時間をおいて再度お試しください。"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -74,10 +104,15 @@ const LoginPage = () => {
     // 画面中央揃えとスクロール無効化
     <div className="fixed inset-0 flex items-center justify-center overflow-hidden touch-none">
       {/* カード風コンテナ*/}
-      <div className="bg-[#FCFCFC19] rounded-lg shadow-md p-8 w-[300px]">
+      <div className="bg-[#FCFCFC19] rounded-lg shadow-md p-6 w-[300px]">
         <h1 className="text-xl font-bold mb-6 text-center text-[#FCFCFC]">
           Welcome to SOPHA
         </h1>
+
+        {/* エラーメッセージ */}
+        {error && (
+          <p className="mb-4 text-red-500 text-sm text-center">{error}</p>
+        )}
 
         {/* ログインフォーム */}
         <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
@@ -123,23 +158,23 @@ const LoginPage = () => {
 
         {/* 新規登録リンクを追加 */}
         <div className="mt-4 text-center">
-          <p className="text-white text-sm">アカウントをお持ちでない方は</p>
           <button
             onClick={() => router.push("/registerPages/tempRegistPage")}
-            className="text-blue-400 hover:text-blue-300"
+            className="text-blue-400 hover:text-blue-300 text-sm"
           >
-            新規登録
+            アカウントをお持ちでない方はこちら
           </button>
         </div>
 
-        {/* エラーメッセージをカスタマイズ */}
-        {error && (
-          <p className="mt-4 text-red-500 text-center">
-            {error === "Email not confirmed" 
-              ? "メールアドレスの確認が完了していません。確認メールのリンクをクリックしてください。"
-              : error}
-          </p>
-        )}
+        {/* パスワードリセットリンクを追加 */}
+        <div className="mt-2 text-center">
+          <button
+            onClick={() => router.push("/resetPassword")}
+            className="text-blue-400 hover:text-blue-300 text-sm"
+          >
+            パスワードをお忘れの方はこちら
+          </button>
+        </div>
       </div>
     </div>
   );
