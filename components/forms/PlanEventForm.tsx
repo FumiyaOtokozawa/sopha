@@ -78,6 +78,7 @@ export const FormField = {
         height: "40px",
         border: "none",
         outline: "none",
+        fontSize: "0.875rem",
       }}
       {...props}
     />
@@ -95,11 +96,18 @@ export const FormField = {
         bgcolor: "#1D1D21",
         borderRadius: 1,
         p: 2,
-        height: "96px",
+        minHeight: "96px",
         color: "#FCFCFC",
         resize: "none",
         border: "none",
         outline: "none",
+        fontSize: "0.875rem",
+        overflow: "hidden",
+      }}
+      onInput={(e) => {
+        const target = e.target as HTMLTextAreaElement;
+        target.style.height = "96px";
+        target.style.height = `${target.scrollHeight}px`;
       }}
       {...props}
     />
@@ -162,7 +170,15 @@ export const PlanEventForm: React.FC<PlanEventFormProps> = ({ control }) => {
       <Controller
         name="deadline"
         control={control}
-        rules={{ required: "締切日時は必須です" }}
+        rules={{
+          required: "締切日時は必須です",
+          validate: (value) => {
+            if (!value) return true;
+            const now = new Date();
+            const selectedDate = new Date(value);
+            return selectedDate > now || "過去の日時は選択できません";
+          },
+        }}
         render={({ field, fieldState }) => (
           <FormField.Container>
             <FormField.Label required>締切日時</FormField.Label>
@@ -172,7 +188,18 @@ export const PlanEventForm: React.FC<PlanEventFormProps> = ({ control }) => {
             >
               <DateTimePicker
                 value={field.value ? new Date(field.value) : null}
-                onChange={(date) => field.onChange(date?.toISOString())}
+                onChange={(date) => {
+                  if (date) {
+                    // JSTの日時をそのまま保存するように調整
+                    const jstDate = new Date(
+                      date.getTime() - date.getTimezoneOffset() * 60000
+                    );
+                    field.onChange(jstDate.toISOString());
+                  } else {
+                    field.onChange(null);
+                  }
+                }}
+                minDateTime={new Date()} // 現在時刻より前を選択不可に
                 className="plan-event-form__datetime-picker"
                 sx={{
                   width: "100%",
@@ -180,7 +207,7 @@ export const PlanEventForm: React.FC<PlanEventFormProps> = ({ control }) => {
                     backgroundColor: "#1D1D21",
                     color: "#FCFCFC",
                     height: "40px",
-                    fontSize: "14px",
+                    fontSize: "0.875rem",
                     border: "none",
                     outline: "none",
                   },
@@ -190,7 +217,7 @@ export const PlanEventForm: React.FC<PlanEventFormProps> = ({ control }) => {
                     "&::placeholder": {
                       color: "#6B7280",
                       opacity: 1,
-                      fontSize: "12px",
+                      fontSize: "0.875rem",
                     },
                   },
                   "& .MuiSvgIcon-root": {

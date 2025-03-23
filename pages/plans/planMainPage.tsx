@@ -63,6 +63,7 @@ const PlanMainPage: NextPage = () => {
   const user = useUser();
   const [planEvents, setPlanEvents] = useState<PlanEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [displayCount, setDisplayCount] = useState(5);
 
   // 受付中と締切済みのイベントを分類
   const { pendingEvents, recentClosedEvents } = useMemo(() => {
@@ -321,12 +322,12 @@ const PlanMainPage: NextPage = () => {
                             event.status === "pending"
                               ? "linear-gradient(135deg, #1D1D21 0%, #252941 100%)"
                               : "#1D1D21",
-                          p: 2,
+                          p: 1.5,
                           cursor: "pointer",
                           transition: "all 0.2s ease",
                           display: "flex",
                           flexDirection: "column",
-                          gap: 1.5,
+                          gap: 1,
                           borderRadius: "12px",
                           border: "1px solid",
                           borderColor:
@@ -370,7 +371,7 @@ const PlanMainPage: NextPage = () => {
                           <Typography
                             variant="subtitle2"
                             sx={{
-                              fontSize: "1rem",
+                              fontSize: "0.9rem",
                               fontWeight: "bold",
                               color: "#FCFCFC",
                               lineHeight: 1.2,
@@ -502,7 +503,7 @@ const PlanMainPage: NextPage = () => {
                     >
                       最近締め切られたイベント
                     </Typography>
-                    {recentClosedEvents.map((event) => (
+                    {recentClosedEvents.slice(0, displayCount).map((event) => (
                       <Paper
                         key={event.plan_id}
                         onClick={() => handlePlanClick(event.plan_id)}
@@ -515,12 +516,12 @@ const PlanMainPage: NextPage = () => {
                             event.status === "pending"
                               ? "linear-gradient(135deg, #1D1D21 0%, #252941 100%)"
                               : "#1D1D21",
-                          p: 2,
+                          p: 1.75,
                           cursor: "pointer",
                           transition: "all 0.2s ease",
                           display: "flex",
                           flexDirection: "column",
-                          gap: 1.5,
+                          gap: 1.25,
                           borderRadius: "12px",
                           border: "1px solid",
                           borderColor:
@@ -564,7 +565,7 @@ const PlanMainPage: NextPage = () => {
                           <Typography
                             variant="subtitle2"
                             sx={{
-                              fontSize: "1rem",
+                              fontSize: "0.9rem",
                               fontWeight: "bold",
                               color: "#FCFCFC",
                               lineHeight: 1.2,
@@ -678,6 +679,22 @@ const PlanMainPage: NextPage = () => {
                         </Box>
                       </Paper>
                     ))}
+                    {recentClosedEvents.length > displayCount && (
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "center",
+                          mt: 1,
+                        }}
+                      >
+                        <button
+                          onClick={() => setDisplayCount((prev) => prev + 5)}
+                          className="py-1.5 px-4 rounded-lg bg-[#1D1D21] text-white text-sm font-medium hover:bg-opacity-80 border border-[rgba(255,255,255,0.1)] transition-all duration-200"
+                        >
+                          もっと見る
+                        </button>
+                      </Box>
+                    )}
                   </Box>
                 )}
               </Box>

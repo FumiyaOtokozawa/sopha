@@ -4,7 +4,6 @@ import { useForm } from "react-hook-form";
 import { useState, useEffect } from "react";
 import { useUser } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/router";
-import { createClient } from "@supabase/supabase-js";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -12,6 +11,7 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import FooterMenu from "../../components/FooterMenu";
 import { PlanEventForm, FormField } from "../../components/forms/PlanEventForm";
 import { DateTimeSelector } from "../../components/forms/DateTimeSelector";
+import { supabase } from "../../utils/supabaseClient";
 import {
   PlanFormData,
   DateTimeSelection,
@@ -44,17 +44,13 @@ const PlanNewEventPage: NextPage = () => {
 
   // エラー発生時のスクロール処理
   useEffect(() => {
-    if (
-      Object.keys(errors).length > 0 ||
-      submitError ||
-      (isSubmitting && selectedDateTimes.length === 0)
-    ) {
+    if ((Object.keys(errors).length > 0 || submitError) && isSubmitting) {
       window.scrollTo({
         top: 0,
         behavior: "smooth",
       });
     }
-  }, [errors, submitError, isSubmitting, selectedDateTimes.length]);
+  }, [errors, submitError, isSubmitting]);
 
   // 時間選択オプション
   const timeOptions = Array.from({ length: 97 }, (_, i) => {
@@ -80,11 +76,6 @@ const PlanNewEventPage: NextPage = () => {
       }
 
       // ユーザー情報の取得
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
-
       const { data: userData, error: userError } = await supabase
         .from("USER_INFO")
         .select("emp_no")
@@ -251,11 +242,6 @@ export async function createPlanEvent(
       message: validationError,
     };
   }
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
 
   try {
     const { data, error } = await supabase.rpc("create_plan_event", {

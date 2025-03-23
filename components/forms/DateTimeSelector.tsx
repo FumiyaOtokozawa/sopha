@@ -67,6 +67,11 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
     (date: Dayjs | null) => {
       if (!date) return;
 
+      // 過去日のチェック
+      if (date.isBefore(new Date(), "day")) {
+        return;
+      }
+
       const formattedDate = date.startOf("day");
       const dateKey = formattedDate.format("YYYY-MM-DD");
       const dateExists = selectedDateTimes.some(
@@ -361,6 +366,7 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
         slots={{
           day: CustomDay,
         }}
+        disablePast
         sx={{
           width: "100%",
           height: "290px",
@@ -402,6 +408,9 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
             margin: "0 auto",
             "&.Mui-selected": {
               bgcolor: "#5b63d3",
+            },
+            "&.Mui-disabled": {
+              color: "rgba(255, 255, 255, 0.3)",
             },
           },
           "& .MuiDayCalendar-weekDayLabel": {
