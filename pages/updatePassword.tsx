@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../utils/supabaseClient";
 
@@ -8,6 +8,21 @@ const UpdatePassword = () => {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    // URLからハッシュパラメータを取得
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get("access_token");
+    const refreshToken = hashParams.get("refresh_token");
+
+    // トークンが存在する場合、セッションを設定
+    if (accessToken && refreshToken) {
+      supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+    }
+  }, []);
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,6 +36,15 @@ const UpdatePassword = () => {
     }
 
     try {
+      const { data: session } = await supabase.auth.getSession();
+
+      if (!session.session) {
+        setMessage(
+          "セッションが無効です。パスワードリセットのリンクから再度アクセスしてください。"
+        );
+        return;
+      }
+
       const { error } = await supabase.auth.updateUser({
         password: password,
       });
@@ -33,7 +57,9 @@ const UpdatePassword = () => {
       }, 2000);
     } catch (error) {
       console.error("パスワード更新エラー:", error);
-      setMessage("パスワードの更新に失敗しました。");
+      setMessage(
+        "パスワードの更新に失敗しました。パスワードリセットのリンクから再度アクセスしてください。"
+      );
     } finally {
       setIsLoading(false);
     }

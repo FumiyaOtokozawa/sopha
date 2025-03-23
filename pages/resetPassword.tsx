@@ -18,14 +18,29 @@ const ResetPassword = () => {
         redirectTo: `${window.location.origin}/updatePassword`,
       });
 
-      if (error) throw error;
+      if (error) {
+        // セキュリティ制限による待機時間のエラーをチェック
+        const waitTimeMatch = error.message.match(/(\d+) seconds/);
+        if (waitTimeMatch) {
+          const waitTime = waitTimeMatch[1];
+          setMessage(
+            `セキュリティのため、パスワードリセットメールの再送信は${waitTime}秒後に可能となります。`
+          );
+          return;
+        }
+        throw error;
+      }
 
       setMessage(
         "パスワードリセット用のメールを送信しました。メールをご確認ください。"
       );
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("パスワードリセットエラー:", error);
-      setMessage("パスワードリセットメールの送信に失敗しました。");
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "パスワードリセットメールの送信に失敗しました。";
+      setMessage(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -46,6 +61,18 @@ const ResetPassword = () => {
         <h1 className="text-xl font-bold mb-6 text-center text-[#FCFCFC]">
           パスワードリセット
         </h1>
+
+        {message && (
+          <p
+            className={`mb-4 text-center text-xs whitespace-pre-line leading-relaxed ${
+              message.includes("送信しました")
+                ? "text-green-500"
+                : "text-red-500"
+            }`}
+          >
+            {message}
+          </p>
+        )}
 
         <form onSubmit={handleResetPassword} className="space-y-4">
           <div>
@@ -81,16 +108,6 @@ const ResetPassword = () => {
             </button>
           </div>
         </form>
-
-        {message && (
-          <p
-            className={`mt-4 text-center ${
-              message.includes("失敗") ? "text-red-500" : "text-green-500"
-            }`}
-          >
-            {message}
-          </p>
-        )}
       </div>
     </div>
   );

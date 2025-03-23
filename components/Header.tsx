@@ -116,7 +116,7 @@ export default function Header() {
   };
 
   const handlePasswordChange = () => {
-    router.push("/update-password");
+    router.push("/updatePassword");
     handleMenuClose();
   };
 
