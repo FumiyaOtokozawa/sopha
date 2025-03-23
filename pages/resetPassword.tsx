@@ -15,14 +15,27 @@ const ResetPassword = () => {
     setMessage("");
 
     try {
+      // まずUSER_INFOテーブルでメールアドレスの存在確認
+      const { data: userInfo, error: userError } = await supabase
+        .from("USER_INFO")
+        .select("user_id")
+        .eq("email", email)
+        .single();
+
+      if (userError || !userInfo) {
+        setMessage("このメールアドレスは登録されていません。");
+        return;
+      }
+
+      // パスワードリセットメールの送信
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/updatePassword?reset=true`,
+        redirectTo: `${window.location.origin}/updatePassword#access_token={ACCESS_TOKEN}&refresh_token={REFRESH_TOKEN}&type=recovery`,
       });
 
       if (error) throw error;
 
       setMessage(
-        "パスワードリセット用のメールを送信しました。メールをご確認ください。"
+        "パスワードリセット用のメールを送信しました。\nメールに記載されたリンクからパスワードの再設定を行ってください。"
       );
     } catch (error) {
       console.error("Error:", error);
@@ -87,6 +100,7 @@ const ResetPassword = () => {
 
           <div className="mt-4 text-center">
             <button
+              type="button"
               onClick={() => router.push("/loginPage")}
               className="text-blue-400 hover:text-blue-300"
             >
@@ -101,12 +115,12 @@ const ResetPassword = () => {
 
 const handleError = (error: AuthError | Error) => {
   if (error.message.includes("rate limit")) {
-    return "メール送信の制限回数を超えました。しばらく待ってから再試行してください。";
+    return "メール送信の制限回数を超えました。\nしばらく待ってから再試行してください。";
   }
   if (error.message.includes("Invalid login credentials")) {
-    return "SMTPの認証に失敗しました。設定を確認してください。";
+    return "メールの送信に失敗しました。\n時間をおいて再度お試しください。";
   }
-  return "エラーが発生しました。";
+  return "エラーが発生しました。\n時間をおいて再度お試しください。";
 };
 
 export default ResetPassword;
