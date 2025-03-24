@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../utils/supabaseClient";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { motion, AnimatePresence } from "framer-motion";
 
 const ResetPassword = () => {
   const [email, setEmail] = useState("");
@@ -50,28 +51,62 @@ const ResetPassword = () => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center overflow-hidden touch-none">
-      <div className="bg-[#FCFCFC19] rounded-lg shadow-md p-6 w-[300px]">
-        <div className="flex items-center mb-6">
-          <button
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="bg-[#FCFCFC19] rounded-lg shadow-md p-6 w-[300px]"
+      >
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className="flex items-center mb-6"
+        >
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             onClick={() => router.push("/loginPage")}
             className="text-[#FCFCFC] hover:text-blue-300"
           >
             <ArrowBackIcon />
-          </button>
+          </motion.button>
           <h1 className="text-xl font-bold text-center text-[#FCFCFC] flex-grow mr-6">
             パスワードリセット
           </h1>
-        </div>
+        </motion.div>
 
-        {error && (
-          <p className="mb-4 text-red-500 text-sm text-center">{error}</p>
-        )}
+        <AnimatePresence>
+          {error && (
+            <motion.p
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-4 text-red-500 text-sm text-center"
+            >
+              {error}
+            </motion.p>
+          )}
 
-        {message && (
-          <p className="mb-4 text-green-500 text-sm text-center">{message}</p>
-        )}
+          {message && (
+            <motion.p
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-4 text-green-500 text-sm text-center"
+            >
+              {message}
+            </motion.p>
+          )}
+        </AnimatePresence>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <motion.form
+          onSubmit={handleSubmit}
+          className="space-y-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+        >
           <div>
             <input
               type="email"
@@ -95,8 +130,8 @@ const ResetPassword = () => {
           >
             {isLoading ? "送信中..." : "リセットメールを送信"}
           </button>
-        </form>
-      </div>
+        </motion.form>
+      </motion.div>
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../utils/supabaseClient";
+import { motion } from "framer-motion";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -101,21 +102,40 @@ const LoginPage = () => {
   `;
 
   return (
-    // 画面中央揃えとスクロール無効化
     <div className="fixed inset-0 flex items-center justify-center overflow-hidden touch-none">
-      {/* カード風コンテナ*/}
-      <div className="bg-[#FCFCFC19] rounded-lg shadow-md p-6 w-[300px]">
-        <h1 className="text-xl font-bold mb-6 text-center text-[#FCFCFC]">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="bg-[#FCFCFC19] rounded-lg shadow-md p-6 w-[300px]"
+      >
+        <motion.h1
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className="text-xl font-bold mb-6 text-center text-[#FCFCFC]"
+        >
           Welcome to SOPHA
-        </h1>
+        </motion.h1>
 
-        {/* エラーメッセージ */}
         {error && (
-          <p className="mb-4 text-red-500 text-sm text-center">{error}</p>
+          <motion.p
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 text-red-500 text-sm text-center"
+          >
+            {error}
+          </motion.p>
         )}
 
-        {/* ログインフォーム */}
-        <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
+        <motion.form
+          onSubmit={handleLogin}
+          className="space-y-4"
+          autoComplete="off"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+        >
           <div>
             <input
               id="email"
@@ -154,9 +174,8 @@ const LoginPage = () => {
           >
             {isLoading ? "ログイン中..." : "LOGIN"}
           </button>
-        </form>
+        </motion.form>
 
-        {/* 新規登録リンクを追加 */}
         <div className="mt-4 text-center">
           <button
             onClick={() => router.push("/registerPages/tempRegistPage")}
@@ -166,7 +185,6 @@ const LoginPage = () => {
           </button>
         </div>
 
-        {/* パスワードリセットリンクを追加 */}
         <div className="mt-2 text-center">
           <button
             onClick={() => router.push("/resetPassword")}
@@ -175,7 +193,7 @@ const LoginPage = () => {
             パスワードをお忘れの方はこちら
           </button>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 };
