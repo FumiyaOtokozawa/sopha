@@ -42,11 +42,7 @@ const PlanChat: React.FC<PlanChatProps> = ({ planId, currentUserEmpNo }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const fetchMessages = async () => {
+  const fetchMessages = React.useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("PLAN_CHAT")
@@ -66,7 +62,11 @@ const PlanChat: React.FC<PlanChatProps> = ({ planId, currentUserEmpNo }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [planId]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   useEffect(() => {
     fetchMessages();
@@ -91,7 +91,7 @@ const PlanChat: React.FC<PlanChatProps> = ({ planId, currentUserEmpNo }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [planId]);
+  }, [planId, fetchMessages]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !currentUserEmpNo) return;
