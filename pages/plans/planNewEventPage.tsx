@@ -106,10 +106,19 @@ const PlanNewEventPage: NextPage = () => {
         deadline: dayjs(data.deadline)
           .tz("Asia/Tokyo")
           .format("YYYY-MM-DD HH:mm:ss"),
-        dates: selectedDateTimes.map((dt) => ({
-          date: dt.date.format("YYYY-MM-DD"),
-          time: dt.time,
-        })),
+        dates: Array.from(
+          new Set(
+            selectedDateTimes.map(
+              (dt) => `${dt.date.format("YYYY-MM-DD")}_${dt.time}`
+            )
+          )
+        ).map((dateTimeStr) => {
+          const [date, time] = dateTimeStr.split("_");
+          return {
+            date,
+            time,
+          };
+        }),
         createdBy: userData.emp_no,
       };
 

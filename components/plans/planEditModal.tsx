@@ -6,10 +6,17 @@ import { useForm } from "react-hook-form";
 import { PlanFormData } from "../../types/plan";
 import { useState, useEffect } from "react";
 import dayjs from "dayjs";
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
 import { DateTimeSelection } from "../../types/plan";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import "dayjs/locale/ja";
+
+// プラグインを設定
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.tz.setDefault("Asia/Tokyo");
 
 interface PlanEditModalProps {
   open: boolean;
@@ -45,12 +52,12 @@ export const PlanEditModal: React.FC<PlanEditModalProps> = ({
   // 日本語ロケールを設定
   dayjs.locale("ja");
 
-  // 30分刻みの時間オプションを生成
-  const timeOptions = Array.from({ length: 48 }, (_, i) => {
-    const hour = Math.floor(i / 2)
+  // 15分刻みの時間オプションを生成
+  const timeOptions = Array.from({ length: 96 }, (_, i) => {
+    const hour = Math.floor(i / 4)
       .toString()
       .padStart(2, "0");
-    const minute = i % 2 === 0 ? "00" : "30";
+    const minute = ((i % 4) * 15).toString().padStart(2, "0");
     return `${hour}:${minute}`;
   });
 
@@ -64,11 +71,19 @@ export const PlanEditModal: React.FC<PlanEditModalProps> = ({
       });
 
       // 日時選択の初期値を設定
-      const initialDateTimes = planEvent.dates.map((date) => ({
-        id: `existing-${date.date_id}`,
-        date: dayjs(date.datetime),
-        time: dayjs(date.datetime).format("HH:mm"),
-      }));
+      const initialDateTimes = planEvent.dates.map((date) => {
+        const dateTime = dayjs(date.datetime).tz("Asia/Tokyo");
+        const minutes = dateTime.minute();
+        // 15分単位で丸める
+        const roundedMinutes = Math.round(minutes / 15) * 15;
+        const adjustedTime = dateTime.minute(roundedMinutes);
+
+        return {
+          id: `existing-${date.date_id}`,
+          date: dateTime,
+          time: adjustedTime.format("HH:mm"),
+        };
+      });
       setSelectedDateTimes(initialDateTimes);
     }
   }, [planEvent, reset]);
@@ -88,7 +103,27 @@ export const PlanEditModal: React.FC<PlanEditModalProps> = ({
           : formData.deadline,
       };
 
-      await onSubmit(adjustedFormData, selectedDateTimes);
+      // 重複する日時を排除
+      const uniqueDateTimes = Array.from(
+        new Set(
+          selectedDateTimes.map(
+            (dt) => `${dt.date.format("YYYY-MM-DD")}_${dt.time}`
+          )
+        )
+      ).map((dateTimeStr) => {
+        const [dateStr, time] = dateTimeStr.split("_");
+        return {
+          id:
+            selectedDateTimes.find(
+              (dt) =>
+                dt.date.format("YYYY-MM-DD") === dateStr && dt.time === time
+            )?.id || `new-${Date.now()}`,
+          date: dayjs(dateStr),
+          time: time,
+        };
+      });
+
+      await onSubmit(adjustedFormData, uniqueDateTimes);
       onClose();
     } catch (error) {
       console.error("Error submitting form:", error);
