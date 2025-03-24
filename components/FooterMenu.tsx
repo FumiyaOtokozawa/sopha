@@ -13,11 +13,12 @@ import Alert from "@mui/material/Alert";
 export default function FooterMenu() {
   const router = useRouter();
   const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // 現在のパスに基づいて適切な値を設定
   const getActiveTab = (path: string) => {
     if (path.includes("/employeePages/empMainPage")) return 0;
-    if (path.includes("/events/")) return 1; // イベント関連の全てのパスに対応
+    if (path.includes("/events/")) return 1;
     if (path.includes("/plans/")) return 2;
     if (path.includes("/employeePages/empCizTransPage")) return 3;
     return 0;
@@ -30,7 +31,25 @@ export default function FooterMenu() {
     setValue(getActiveTab(router.pathname));
   }, [router.pathname]);
 
+  // ルート変更の監視
+  useEffect(() => {
+    const handleStart = () => setIsNavigating(true);
+    const handleComplete = () => setIsNavigating(false);
+
+    router.events.on("routeChangeStart", handleStart);
+    router.events.on("routeChangeComplete", handleComplete);
+    router.events.on("routeChangeError", handleComplete);
+
+    return () => {
+      router.events.off("routeChangeStart", handleStart);
+      router.events.off("routeChangeComplete", handleComplete);
+      router.events.off("routeChangeError", handleComplete);
+    };
+  }, [router]);
+
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+    if (isNavigating) return; // ナビゲーション中は新しい遷移を防止
+
     // CIZタブ（newValue === 3）の場合は、valueを更新せずメッセージのみ表示
     if (newValue === 3) {
       setOpenSnackbar(true);
@@ -38,16 +57,21 @@ export default function FooterMenu() {
     }
 
     setValue(newValue);
+    let targetPath = "";
     switch (newValue) {
       case 0:
-        router.push("/employeePages/empMainPage");
+        targetPath = "/employeePages/empMainPage";
         break;
       case 1:
-        router.push("/events/eventListPage");
+        targetPath = "/events/eventListPage";
         break;
       case 2:
-        router.push("/plans/planMainPage");
+        targetPath = "/plans/planMainPage";
         break;
+    }
+
+    if (targetPath && router.pathname !== targetPath) {
+      router.push(targetPath);
     }
   };
 
@@ -63,6 +87,7 @@ export default function FooterMenu() {
           height: "calc(64px + 20px)",
           zIndex: 1000,
           borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+          pointerEvents: isNavigating ? "none" : "auto", // ナビゲーション中はクリックを無効化
         }}
         elevation={0}
       >
@@ -71,16 +96,17 @@ export default function FooterMenu() {
           value={value}
           onChange={handleChange}
           sx={{
-            height: "64px", // ナビゲーション自体の高さは固定
+            height: "64px",
             bgcolor: "#2D2D2D",
+            opacity: isNavigating ? 0.7 : 1, // ナビゲーション中は少し透明に
             "& .MuiBottomNavigationAction-root": {
               color: "#8E93DA",
               minWidth: "25%",
               padding: "8px 0",
-              transition: "none", // 遷移アニメーションを無効化
+              transition: "none",
               "& .MuiBottomNavigationAction-label": {
                 fontSize: "0.625rem",
-                transition: "none", // ラベルの遷移も無効化
+                transition: "none",
                 "&.Mui-selected": {
                   fontSize: "0.75rem",
                   color: "#FCFCFC",
@@ -88,8 +114,8 @@ export default function FooterMenu() {
               },
               "& .MuiSvgIcon-root": {
                 fontSize: "2rem",
-                transition: "none", // アイコンの遷移も無効化
-                color: "#8E93DA", // 非選択時の色を明示的に設定
+                transition: "none",
+                color: "#8E93DA",
                 "&.Mui-selected": {
                   color: "#FCFCFC",
                 },
@@ -98,11 +124,11 @@ export default function FooterMenu() {
             "& .Mui-selected": {
               "& .MuiSvgIcon-root": {
                 color: "#FCFCFC",
-                transition: "none", // 選択時の遷移も無効化
+                transition: "none",
               },
               "& .MuiBottomNavigationAction-label": {
                 color: "#FCFCFC",
-                transition: "none", // 選択時のラベル遷移も無効化
+                transition: "none",
               },
             },
           }}

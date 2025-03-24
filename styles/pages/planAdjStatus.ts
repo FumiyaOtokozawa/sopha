@@ -100,7 +100,7 @@ export const planAdjStatusStyles = {
     width: "95%",
     "& .MuiTab-root": {
       minHeight: "32px",
-      padding: "4px 8px",
+      padding: "2px",
       color: "#FCFCFC",
       fontSize: "0.8rem",
       textTransform: "none",
@@ -264,7 +264,6 @@ export const planAdjStatusStyles = {
     color: "#FCFCFC",
     display: "flex",
     alignItems: "center",
-    gap: 0.5,
     fontSize: "0.75rem",
     position: "sticky",
     left: 0,

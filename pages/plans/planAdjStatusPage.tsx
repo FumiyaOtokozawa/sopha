@@ -20,6 +20,7 @@ import { motion } from "framer-motion";
 import { planAdjStatusStyles } from "../../styles/pages/planAdjStatus";
 import { PlanFormData } from "../../types/plan";
 import { DateTimeSelection } from "../../types/plan";
+import PlanChat from "../../components/plans/planChat";
 
 // 曜日の漢字マッピング
 const weekdayKanji = ["日", "月", "火", "水", "木", "金", "土"];
@@ -618,13 +619,34 @@ const PlanAdjStatusPage: NextPage = () => {
                 onChange={handleTabChange}
                 variant="fullWidth"
                 className="plan-status__tabs-container"
-                sx={planAdjStatusStyles.tabsContainer}
+                sx={{
+                  ...planAdjStatusStyles.tabsContainer,
+                  width: "100%",
+                  "& .MuiTabs-flexContainer": {
+                    display: "flex",
+                    width: "100%",
+                  },
+                  "& .MuiTab-root": {
+                    flex: "1 1 33.333%",
+                    padding: "0 6px",
+                    maxWidth: "none",
+                    minHeight: "48px",
+                    textTransform: "none",
+                    fontSize: "0.85rem",
+                    fontWeight: "bold",
+                    color: "rgba(255, 255, 255, 0.7)",
+                    "&.Mui-selected": {
+                      color: "#FCFCFC",
+                    },
+                  },
+                }}
               >
-                <Tab className="plan-status__tab" label="回答状況" />
+                <Tab className="plan-status__tab" label="参加状況" />
                 <Tab
                   className="plan-status__tab"
                   label={`回答者一覧（${participants.length}）`}
                 />
+                <Tab className="plan-status__tab" label="チャット" />
               </Tabs>
             </Box>
 
@@ -767,7 +789,7 @@ const PlanAdjStatusPage: NextPage = () => {
                   })}
                 </Box>
               </Box>
-            ) : (
+            ) : selectedTab === 1 ? (
               <Box
                 sx={{ width: "100%", flex: 1, minHeight: 0, overflow: "auto" }}
               >
@@ -957,6 +979,15 @@ const PlanAdjStatusPage: NextPage = () => {
                     </React.Fragment>
                   ))}
                 </Box>
+              </Box>
+            ) : (
+              <Box
+                sx={{ width: "100%", flex: 1, minHeight: 0, overflow: "auto" }}
+              >
+                <PlanChat
+                  planId={planEvent.plan_id}
+                  currentUserEmpNo={currentUserEmpNo}
+                />
               </Box>
             )}
           </Paper>
