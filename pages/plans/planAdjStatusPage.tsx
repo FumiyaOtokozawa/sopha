@@ -60,8 +60,12 @@ interface ParticipantAvailability {
   };
   availabilities: {
     date_id: number;
-    availability: "○" | "△" | "×";
+    availability: "○" | "△" | "×" | null;
   }[];
+}
+
+interface AvailabilityType {
+  type: "○" | "△" | "×" | null;
 }
 
 interface DateRespondents {
@@ -71,7 +75,9 @@ interface DateRespondents {
 }
 
 // アイコンコンポーネントの定義
-const AvailabilityIcon = ({ type }: { type: "○" | "△" | "×" }) => {
+const AvailabilityIcon: React.FC<AvailabilityType> = ({ type }) => {
+  if (type === null) return null;
+
   switch (type) {
     case "○":
       return (
@@ -105,7 +111,7 @@ const PlanAdjStatusPage: NextPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [availabilities, setAvailabilities] = useState<{
-    [key: number]: "○" | "△" | "×";
+    [key: number]: "○" | "△" | "×" | null;
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedTab, setSelectedTab] = useState(0);
@@ -194,7 +200,7 @@ const PlanAdjStatusPage: NextPage = () => {
         if (existingParticipant) {
           existingParticipant.availabilities.push({
             date_id: rawData.date_id,
-            availability: rawData.availability as "○" | "△" | "×",
+            availability: rawData.availability as "○" | "△" | "×" | null,
           });
           return acc;
         }
@@ -208,7 +214,7 @@ const PlanAdjStatusPage: NextPage = () => {
           availabilities: [
             {
               date_id: rawData.date_id,
-              availability: rawData.availability as "○" | "△" | "×",
+              availability: rawData.availability as "○" | "△" | "×" | null,
             },
           ],
         });
@@ -229,7 +235,11 @@ const PlanAdjStatusPage: NextPage = () => {
 
   const handleOpenDialog = async () => {
     // 初期化
-    setAvailabilities({});
+    const initialAvailabilities: { [key: number]: "○" | "△" | "×" | null } = {};
+    planEvent?.dates.forEach((date) => {
+      initialAvailabilities[date.date_id] = null;
+    });
+    setAvailabilities(initialAvailabilities);
 
     // ユーザーの回答を取得
     if (user?.email && planEvent) {
@@ -255,12 +265,16 @@ const PlanAdjStatusPage: NextPage = () => {
 
         // 回答データを設定
         if (responseData) {
-          const initialAvailabilities: { [key: number]: "○" | "△" | "×" } = {};
-          responseData.forEach((response) => {
-            initialAvailabilities[response.date_id] = response.availability as
-              | "○"
-              | "△"
-              | "×";
+          const initialAvailabilities: {
+            [key: number]: "○" | "△" | "×" | null;
+          } = {};
+          planEvent.dates.forEach((date) => {
+            const response = responseData.find(
+              (r) => r.date_id === date.date_id
+            );
+            initialAvailabilities[date.date_id] = response
+              ? (response.availability as "○" | "△" | "×" | null)
+              : null;
           });
           setAvailabilities(initialAvailabilities);
         }
@@ -276,7 +290,10 @@ const PlanAdjStatusPage: NextPage = () => {
     setIsDialogOpen(false);
   };
 
-  const handleAvailabilityChange = (dateId: number, value: "○" | "△" | "×") => {
+  const handleAvailabilityChange = (
+    dateId: number,
+    value: "○" | "△" | "×" | null
+  ) => {
     setAvailabilities((prev) => ({
       ...prev,
       [dateId]: value,
@@ -310,21 +327,29 @@ const PlanAdjStatusPage: NextPage = () => {
 
       if (deleteError) throw deleteError;
 
-      // 新しい回答を登録
-      const { error: insertError } = await supabase
-        .from("PLAN_PAR_AVAILABILITY")
-        .insert(
-          planEvent.dates.map((date) => ({
+      // 新しい回答を登録（nullでない回答のみ）
+      const validAvailabilities = Object.entries(availabilities)
+        .filter(([, value]) => value !== null)
+        .map(([dateId, value]) => {
+          if (value === null) return null;
+          return {
             plan_id: planEvent.plan_id,
             emp_no: userData.emp_no,
-            date_id: date.date_id,
-            availability: availabilities[date.date_id] || "×",
+            date_id: parseInt(dateId),
+            availability: value,
             created_at: now,
             updated_at: now,
-          }))
-        );
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null);
 
-      if (insertError) throw insertError;
+      if (validAvailabilities.length > 0) {
+        const { error: insertError } = await supabase
+          .from("PLAN_PAR_AVAILABILITY")
+          .insert(validAvailabilities);
+
+        if (insertError) throw insertError;
+      }
 
       // 画面を更新
       await fetchPlanEventAndAvailabilities();
@@ -362,26 +387,132 @@ const PlanAdjStatusPage: NextPage = () => {
 
       if (eventError) throw eventError;
 
-      // 既存の日時を削除
-      const { error: deleteError } = await supabase
+      // 既存の日時を取得
+      const { data: existingDates, error: existingDatesError } = await supabase
         .from("PLAN_EVENT_DATES")
-        .delete()
+        .select("date_id, datetime")
         .eq("plan_id", planEvent.plan_id);
 
-      if (deleteError) throw deleteError;
+      if (existingDatesError) throw existingDatesError;
 
-      // 新しい日時を登録
-      const { error: insertError } = await supabase
-        .from("PLAN_EVENT_DATES")
-        .insert(
-          selectedDateTimes.map((dateTime) => ({
-            plan_id: planEvent.plan_id,
-            datetime: dateTime.date.format("YYYY-MM-DD") + " " + dateTime.time,
-            created_at: now,
-          }))
-        );
+      // 新しい日時の文字列形式を作成
+      const newDateTimeStrings = selectedDateTimes.map(
+        (dt) => dt.date.format("YYYY-MM-DD") + " " + dt.time
+      );
 
-      if (insertError) throw insertError;
+      // 既存の日時を文字列形式に変換
+      const existingDateTimeStrings = existingDates.map((ed) =>
+        dayjs(ed.datetime).format("YYYY-MM-DD HH:mm")
+      );
+
+      // 削除される日時のIDを特定
+      const dateIdsToDelete = existingDates
+        .filter(
+          (ed, index) =>
+            !newDateTimeStrings.includes(existingDateTimeStrings[index])
+        )
+        .map((ed) => ed.date_id);
+
+      // 既存の日時を更新（同じdate_idで日時のみ更新）
+      const dateTimesToUpdate = selectedDateTimes
+        .filter(
+          (_, index) =>
+            index < existingDates.length &&
+            !dateIdsToDelete.includes(existingDates[index].date_id)
+        )
+        .map((dt, index) => ({
+          date_id: existingDates[index].date_id,
+          datetime: dt.date.format("YYYY-MM-DD") + " " + dt.time,
+        }));
+
+      // 完全に新規の日時を特定
+      const newDateTimesToAdd = selectedDateTimes.filter((dt) => {
+        const dateTimeStr = dt.date.format("YYYY-MM-DD") + " " + dt.time;
+        return !existingDateTimeStrings.includes(dateTimeStr);
+      });
+
+      // 削除される日時に関連する回答のみを削除
+      if (dateIdsToDelete.length > 0) {
+        const { error: deleteAvailError } = await supabase
+          .from("PLAN_PAR_AVAILABILITY")
+          .delete()
+          .eq("plan_id", planEvent.plan_id)
+          .in("date_id", dateIdsToDelete);
+
+        if (deleteAvailError) throw deleteAvailError;
+
+        // 削除される日時を削除
+        const { error: deleteDatesError } = await supabase
+          .from("PLAN_EVENT_DATES")
+          .delete()
+          .in("date_id", dateIdsToDelete);
+
+        if (deleteDatesError) throw deleteDatesError;
+      }
+
+      // 既存の日時を更新
+      for (const dateTime of dateTimesToUpdate) {
+        const { error: updateError } = await supabase
+          .from("PLAN_EVENT_DATES")
+          .update({ datetime: dateTime.datetime })
+          .eq("date_id", dateTime.date_id);
+
+        if (updateError) throw updateError;
+      }
+
+      // 完全に新規の日時を追加
+      if (newDateTimesToAdd.length > 0) {
+        // 新規日時をPLAN_EVENT_DATESに追加
+        const { data: newDates, error: insertError } = await supabase
+          .from("PLAN_EVENT_DATES")
+          .insert(
+            newDateTimesToAdd.map((dateTime) => ({
+              plan_id: planEvent.plan_id,
+              datetime:
+                dateTime.date.format("YYYY-MM-DD") + " " + dateTime.time,
+              created_at: now,
+            }))
+          )
+          .select();
+
+        if (insertError) throw insertError;
+        if (!newDates) throw new Error("新規日時の追加に失敗しました");
+
+        // 既存の参加者を取得
+        const { data: existingParticipants, error: participantsError } =
+          await supabase
+            .from("PLAN_PAR_AVAILABILITY")
+            .select("emp_no")
+            .eq("plan_id", planEvent.plan_id);
+
+        if (participantsError) throw participantsError;
+
+        // 重複を除去して一意の参加者リストを作成
+        const uniqueParticipants = existingParticipants
+          ? Array.from(new Set(existingParticipants.map((p) => p.emp_no))).map(
+              (emp_no) => ({ emp_no })
+            )
+          : [];
+
+        // 新規日時に対して既存の参加者分のレコードを追加
+        if (uniqueParticipants.length > 0) {
+          const newAvailabilityRecords = newDates.flatMap((newDate) =>
+            uniqueParticipants.map((participant: { emp_no: number }) => ({
+              plan_id: planEvent.plan_id,
+              date_id: newDate.date_id,
+              emp_no: participant.emp_no,
+              availability: null,
+              created_at: now,
+            }))
+          );
+
+          const { error: availabilityError } = await supabase
+            .from("PLAN_PAR_AVAILABILITY")
+            .insert(newAvailabilityRecords);
+
+          if (availabilityError) throw availabilityError;
+        }
+      }
 
       // 画面を更新
       await fetchPlanEventAndAvailabilities();
@@ -655,138 +786,147 @@ const PlanAdjStatusPage: NextPage = () => {
                 sx={{ width: "100%", flex: 1, minHeight: 0, overflowY: "auto" }}
               >
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                  {planEvent.dates.map((date) => {
-                    const respondents: DateRespondents = {
-                      available: participants.filter(
-                        (p) =>
-                          p.availabilities.find(
-                            (a) => a.date_id === date.date_id
-                          )?.availability === "○"
-                      ),
-                      maybe: participants.filter(
-                        (p) =>
-                          p.availabilities.find(
-                            (a) => a.date_id === date.date_id
-                          )?.availability === "△"
-                      ),
-                      unavailable: participants.filter(
-                        (p) =>
-                          p.availabilities.find(
-                            (a) => a.date_id === date.date_id
-                          )?.availability === "×" ||
-                          !p.availabilities.find(
-                            (a) => a.date_id === date.date_id
-                          )
-                      ),
-                    };
-
-                    const totalRespondents = participants.length;
-                    const availableCount = respondents.available.length;
-                    const maybeCount = respondents.maybe.length;
-                    const unavailableCount = respondents.unavailable.length;
-                    const availableRate =
-                      (availableCount / totalRespondents) * 100;
-                    const maybeRate = (maybeCount / totalRespondents) * 100;
-                    const unavailableRate =
-                      (unavailableCount / totalRespondents) * 100;
-
-                    const maxAvailableRate = Math.max(
-                      ...planEvent.dates.map((d) => {
-                        const availableCount = participants.filter(
+                  {[...planEvent.dates]
+                    .sort(
+                      (a, b) =>
+                        dayjs(a.datetime).valueOf() -
+                        dayjs(b.datetime).valueOf()
+                    )
+                    .map((date) => {
+                      const respondents: DateRespondents = {
+                        available: participants.filter(
                           (p) =>
                             p.availabilities.find(
-                              (a) => a.date_id === d.date_id
+                              (a) => a.date_id === date.date_id
                             )?.availability === "○"
-                        ).length;
-                        return (availableCount / participants.length) * 100;
-                      })
-                    );
+                        ),
+                        maybe: participants.filter(
+                          (p) =>
+                            p.availabilities.find(
+                              (a) => a.date_id === date.date_id
+                            )?.availability === "△"
+                        ),
+                        unavailable: participants.filter(
+                          (p) =>
+                            p.availabilities.find(
+                              (a) => a.date_id === date.date_id
+                            )?.availability === "×" ||
+                            !p.availabilities.find(
+                              (a) => a.date_id === date.date_id
+                            )
+                        ),
+                      };
 
-                    return (
-                      <Box key={date.date_id} sx={planAdjStatusStyles.dateItem}>
-                        <Box sx={planAdjStatusStyles.dateItemContent}>
-                          <Box sx={planAdjStatusStyles.dateItemDateTime}>
-                            <Typography
-                              component="div"
-                              sx={planAdjStatusStyles.dateItemDateTimeText}
-                            >
-                              <EventIcon sx={{ fontSize: "1rem" }} />
-                              <Box
-                                sx={
-                                  planAdjStatusStyles.dateItemDateTimeContainer
-                                }
+                      const totalRespondents = participants.length;
+                      const availableCount = respondents.available.length;
+                      const maybeCount = respondents.maybe.length;
+                      const unavailableCount = respondents.unavailable.length;
+                      const availableRate =
+                        (availableCount / totalRespondents) * 100;
+                      const maybeRate = (maybeCount / totalRespondents) * 100;
+                      const unavailableRate =
+                        (unavailableCount / totalRespondents) * 100;
+
+                      const maxAvailableRate = Math.max(
+                        ...planEvent.dates.map((d) => {
+                          const availableCount = participants.filter(
+                            (p) =>
+                              p.availabilities.find(
+                                (a) => a.date_id === d.date_id
+                              )?.availability === "○"
+                          ).length;
+                          return (availableCount / participants.length) * 100;
+                        })
+                      );
+
+                      return (
+                        <Box
+                          key={date.date_id}
+                          sx={planAdjStatusStyles.dateItem}
+                        >
+                          <Box sx={planAdjStatusStyles.dateItemContent}>
+                            <Box sx={planAdjStatusStyles.dateItemDateTime}>
+                              <Typography
+                                component="div"
+                                sx={planAdjStatusStyles.dateItemDateTimeText}
                               >
-                                <Box sx={planAdjStatusStyles.dateItemDate}>
-                                  {dayjs(date.datetime).format("MM月DD日")}
-                                </Box>
+                                <EventIcon sx={{ fontSize: "1rem" }} />
                                 <Box
-                                  sx={{
-                                    ...planAdjStatusStyles.dateItemWeekday(),
-                                  }}
+                                  sx={
+                                    planAdjStatusStyles.dateItemDateTimeContainer
+                                  }
                                 >
-                                  （
-                                  <span
-                                    style={{
-                                      color:
-                                        dayjs(date.datetime).day() === 0
-                                          ? "rgb(233, 112, 112)"
-                                          : dayjs(date.datetime).day() === 6
-                                          ? "rgb(136, 142, 214)"
-                                          : "inherit",
+                                  <Box sx={planAdjStatusStyles.dateItemDate}>
+                                    {dayjs(date.datetime).format("MM月DD日")}
+                                  </Box>
+                                  <Box
+                                    sx={{
+                                      ...planAdjStatusStyles.dateItemWeekday(),
                                     }}
                                   >
-                                    {weekdayKanji[dayjs(date.datetime).day()]}
-                                  </span>
-                                  ）
+                                    （
+                                    <span
+                                      style={{
+                                        color:
+                                          dayjs(date.datetime).day() === 0
+                                            ? "rgb(233, 112, 112)"
+                                            : dayjs(date.datetime).day() === 6
+                                            ? "rgb(136, 142, 214)"
+                                            : "inherit",
+                                      }}
+                                    >
+                                      {weekdayKanji[dayjs(date.datetime).day()]}
+                                    </span>
+                                    ）
+                                  </Box>
+                                  <Box sx={planAdjStatusStyles.dateItemTime}>
+                                    {dayjs(date.datetime).format("HH:mm")}
+                                  </Box>
                                 </Box>
-                                <Box sx={planAdjStatusStyles.dateItemTime}>
-                                  {dayjs(date.datetime).format("HH:mm")}
-                                </Box>
-                              </Box>
-                            </Typography>
+                              </Typography>
+                            </Box>
+
+                            <Box sx={planAdjStatusStyles.dateItemStatus}>
+                              <Typography
+                                component="div"
+                                sx={{
+                                  ...planAdjStatusStyles.dateItemAvailabilityRate(
+                                    Math.round(availableRate) ===
+                                      Math.round(maxAvailableRate)
+                                  ),
+                                }}
+                              >
+                                {Math.round(availableRate)}%
+                              </Typography>
+                            </Box>
                           </Box>
 
-                          <Box sx={planAdjStatusStyles.dateItemStatus}>
-                            <Typography
-                              component="div"
-                              sx={{
-                                ...planAdjStatusStyles.dateItemAvailabilityRate(
-                                  Math.round(availableRate) ===
-                                    Math.round(maxAvailableRate)
-                                ),
-                              }}
-                            >
-                              {Math.round(availableRate)}%
-                            </Typography>
+                          <Box sx={planAdjStatusStyles.progressBar}>
+                            <Box
+                              sx={planAdjStatusStyles.progressBarSegment(
+                                "rgba(74, 222, 128, 1)",
+                                0,
+                                availableRate
+                              )}
+                            />
+                            <Box
+                              sx={planAdjStatusStyles.progressBarSegment(
+                                "rgb(189, 132, 0)",
+                                availableRate,
+                                maybeRate
+                              )}
+                            />
+                            <Box
+                              sx={planAdjStatusStyles.progressBarSegment(
+                                "rgb(185, 55, 55)",
+                                availableRate + maybeRate,
+                                unavailableRate
+                              )}
+                            />
                           </Box>
                         </Box>
-
-                        <Box sx={planAdjStatusStyles.progressBar}>
-                          <Box
-                            sx={planAdjStatusStyles.progressBarSegment(
-                              "rgba(74, 222, 128, 1)",
-                              0,
-                              availableRate
-                            )}
-                          />
-                          <Box
-                            sx={planAdjStatusStyles.progressBarSegment(
-                              "rgb(189, 132, 0)",
-                              availableRate,
-                              maybeRate
-                            )}
-                          />
-                          <Box
-                            sx={planAdjStatusStyles.progressBarSegment(
-                              "rgb(185, 55, 55)",
-                              availableRate + maybeRate,
-                              unavailableRate
-                            )}
-                          />
-                        </Box>
-                      </Box>
-                    );
-                  })}
+                      );
+                    })}
                 </Box>
               </Box>
             ) : selectedTab === 1 ? (
@@ -801,30 +941,36 @@ const PlanAdjStatusPage: NextPage = () => {
                       gridTemplateColumns: `repeat(${planEvent.dates.length}, 60px)`,
                     }}
                   >
-                    {planEvent.dates.map((date) => (
-                      <Box
-                        key={date.date_id}
-                        sx={planAdjStatusStyles.participantDateCell}
-                      >
-                        {dayjs(date.datetime).format("MM/DD")}
-                        <br />（
-                        <span
-                          style={{
-                            color:
-                              dayjs(date.datetime).day() === 0
-                                ? "rgb(233, 112, 112)"
-                                : dayjs(date.datetime).day() === 6
-                                ? "rgb(136, 142, 214)"
-                                : "inherit",
-                          }}
+                    {[...planEvent.dates]
+                      .sort(
+                        (a, b) =>
+                          dayjs(a.datetime).valueOf() -
+                          dayjs(b.datetime).valueOf()
+                      )
+                      .map((date) => (
+                        <Box
+                          key={date.date_id}
+                          sx={planAdjStatusStyles.participantDateCell}
                         >
-                          {weekdayKanji[dayjs(date.datetime).day()]}
-                        </span>
-                        ）
-                        <br />
-                        {dayjs(date.datetime).format("HH:mm")}
-                      </Box>
-                    ))}
+                          {dayjs(date.datetime).format("MM/DD")}
+                          <br />（
+                          <span
+                            style={{
+                              color:
+                                dayjs(date.datetime).day() === 0
+                                  ? "rgb(233, 112, 112)"
+                                  : dayjs(date.datetime).day() === 6
+                                  ? "rgb(136, 142, 214)"
+                                  : "inherit",
+                            }}
+                          >
+                            {weekdayKanji[dayjs(date.datetime).day()]}
+                          </span>
+                          ）
+                          <br />
+                          {dayjs(date.datetime).format("HH:mm")}
+                        </Box>
+                      ))}
                   </Box>
 
                   {/* 参加率の行 */}
@@ -847,92 +993,98 @@ const PlanAdjStatusPage: NextPage = () => {
                       zIndex: 1,
                     }}
                   >
-                    {planEvent.dates.map((date) => {
-                      const availableCount = participants.filter(
-                        (p) =>
-                          p.availabilities.find(
-                            (a) => a.date_id === date.date_id
-                          )?.availability === "○"
-                      ).length;
-                      const totalParticipants = participants.length;
+                    {[...planEvent.dates]
+                      .sort(
+                        (a, b) =>
+                          dayjs(a.datetime).valueOf() -
+                          dayjs(b.datetime).valueOf()
+                      )
+                      .map((date) => {
+                        const availableCount = participants.filter(
+                          (p) =>
+                            p.availabilities.find(
+                              (a) => a.date_id === date.date_id
+                            )?.availability === "○"
+                        ).length;
+                        const totalParticipants = participants.length;
 
-                      return (
-                        <Box
-                          key={date.date_id}
-                          sx={{
-                            textAlign: "center",
-                            color: "#FCFCFC",
-                            px: 0.5,
-                            pt: 0.75,
-                            pb: 1,
-                            borderLeft: "1px solid rgba(255, 255, 255, 0.1)",
-                            fontSize: "0.75rem",
-                            display: "flex",
-                            flexDirection: "column",
-                          }}
-                        >
-                          <Box>
-                            {availableCount} / {totalParticipants}
-                          </Box>
+                        return (
                           <Box
+                            key={date.date_id}
                             sx={{
-                              ...planAdjStatusStyles.progressBar,
-                              height: "3px",
-                              minHeight: "3px",
-                              maxHeight: "3px",
-                              mt: 0,
+                              textAlign: "center",
+                              color: "#FCFCFC",
+                              px: 0.5,
+                              pt: 0.75,
+                              pb: 1,
+                              borderLeft: "1px solid rgba(255, 255, 255, 0.1)",
+                              fontSize: "0.75rem",
+                              display: "flex",
+                              flexDirection: "column",
                             }}
                           >
+                            <Box>
+                              {availableCount} / {totalParticipants}
+                            </Box>
                             <Box
-                              sx={planAdjStatusStyles.progressBarSegment(
-                                "rgba(74, 222, 128, 1)",
-                                0,
-                                (availableCount / totalParticipants) * 100
-                              )}
-                            />
-                            <Box
-                              sx={planAdjStatusStyles.progressBarSegment(
-                                "rgb(189, 132, 0)",
-                                (availableCount / totalParticipants) * 100,
-                                (participants.filter(
-                                  (p) =>
-                                    p.availabilities.find(
-                                      (a) => a.date_id === date.date_id
-                                    )?.availability === "△"
-                                ).length /
-                                  totalParticipants) *
-                                  100
-                              )}
-                            />
-                            <Box
-                              sx={planAdjStatusStyles.progressBarSegment(
-                                "rgb(185, 55, 55)",
-                                ((availableCount +
-                                  participants.filter(
+                              sx={{
+                                ...planAdjStatusStyles.progressBar,
+                                height: "3px",
+                                minHeight: "3px",
+                                maxHeight: "3px",
+                                mt: 0,
+                              }}
+                            >
+                              <Box
+                                sx={planAdjStatusStyles.progressBarSegment(
+                                  "rgba(74, 222, 128, 1)",
+                                  0,
+                                  (availableCount / totalParticipants) * 100
+                                )}
+                              />
+                              <Box
+                                sx={planAdjStatusStyles.progressBarSegment(
+                                  "rgb(189, 132, 0)",
+                                  (availableCount / totalParticipants) * 100,
+                                  (participants.filter(
                                     (p) =>
                                       p.availabilities.find(
                                         (a) => a.date_id === date.date_id
                                       )?.availability === "△"
-                                  ).length) /
-                                  totalParticipants) *
-                                  100,
-                                (participants.filter(
-                                  (p) =>
-                                    p.availabilities.find(
-                                      (a) => a.date_id === date.date_id
-                                    )?.availability === "×" ||
-                                    !p.availabilities.find(
-                                      (a) => a.date_id === date.date_id
-                                    )
-                                ).length /
-                                  totalParticipants) *
-                                  100
-                              )}
-                            />
+                                  ).length /
+                                    totalParticipants) *
+                                    100
+                                )}
+                              />
+                              <Box
+                                sx={planAdjStatusStyles.progressBarSegment(
+                                  "rgb(185, 55, 55)",
+                                  ((availableCount +
+                                    participants.filter(
+                                      (p) =>
+                                        p.availabilities.find(
+                                          (a) => a.date_id === date.date_id
+                                        )?.availability === "△"
+                                    ).length) /
+                                    totalParticipants) *
+                                    100,
+                                  (participants.filter(
+                                    (p) =>
+                                      p.availabilities.find(
+                                        (a) => a.date_id === date.date_id
+                                      )?.availability === "×" ||
+                                      !p.availabilities.find(
+                                        (a) => a.date_id === date.date_id
+                                      )
+                                  ).length /
+                                    totalParticipants) *
+                                    100
+                                )}
+                              />
+                            </Box>
                           </Box>
-                        </Box>
-                      );
-                    })}
+                        );
+                      })}
                   </Box>
 
                   {participants.map((participant) => (
@@ -956,25 +1108,31 @@ const PlanAdjStatusPage: NextPage = () => {
                           zIndex: 1,
                         }}
                       >
-                        {planEvent.dates.map((date) => {
-                          const availability =
-                            participant.availabilities.find(
-                              (a) => a.date_id === date.date_id
-                            )?.availability || "×";
+                        {[...planEvent.dates]
+                          .sort(
+                            (a, b) =>
+                              dayjs(a.datetime).valueOf() -
+                              dayjs(b.datetime).valueOf()
+                          )
+                          .map((date) => {
+                            const availability =
+                              participant.availabilities.find(
+                                (a) => a.date_id === date.date_id
+                              )?.availability || null;
 
-                          return (
-                            <Box
-                              key={date.date_id}
-                              sx={{
-                                ...planAdjStatusStyles.participantAvailability(
-                                  availability
-                                ),
-                              }}
-                            >
-                              <AvailabilityIcon type={availability} />
-                            </Box>
-                          );
-                        })}
+                            return (
+                              <Box
+                                key={date.date_id}
+                                sx={{
+                                  ...planAdjStatusStyles.participantAvailability(
+                                    availability as "○" | "△" | "×"
+                                  ),
+                                }}
+                              >
+                                <AvailabilityIcon type={availability} />
+                              </Box>
+                            );
+                          })}
                       </Box>
                     </React.Fragment>
                   ))}

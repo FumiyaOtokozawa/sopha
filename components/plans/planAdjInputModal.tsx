@@ -44,7 +44,7 @@ interface PlanAdjInputModalProps {
   open: boolean;
   onClose: () => void;
   dates: PlanDate[];
-  availabilities: { [key: number]: "○" | "△" | "×" };
+  availabilities: { [key: number]: "○" | "△" | "×" | null };
   onAvailabilityChange: (dateId: number, value: "○" | "△" | "×") => void;
   onSubmit: () => void;
   isSubmitting: boolean;
@@ -59,6 +59,18 @@ const PlanAdjInputModal: React.FC<PlanAdjInputModalProps> = ({
   onSubmit,
   isSubmitting,
 }) => {
+  // 未回答の日付があるかチェック
+  const hasNullAvailability = dates.some(
+    (date) =>
+      availabilities[date.date_id] === null ||
+      availabilities[date.date_id] === undefined
+  );
+
+  // 日付を早い順にソート
+  const sortedDates = [...dates].sort(
+    (a, b) => dayjs(a.datetime).valueOf() - dayjs(b.datetime).valueOf()
+  );
+
   return (
     <Dialog
       open={open}
@@ -101,7 +113,7 @@ const PlanAdjInputModal: React.FC<PlanAdjInputModalProps> = ({
         }}
       >
         <AnimatePresence>
-          {dates.map((date, index) => (
+          {sortedDates.map((date, index) => (
             <motion.div
               key={date.date_id}
               initial={{ opacity: 0, x: -20 }}
@@ -189,7 +201,7 @@ const PlanAdjInputModal: React.FC<PlanAdjInputModalProps> = ({
                 <FormControl sx={{ ml: "auto" }}>
                   <RadioGroup
                     row
-                    value={availabilities[date.date_id] || "×"}
+                    value={availabilities[date.date_id] || null}
                     onChange={(e) =>
                       onAvailabilityChange(
                         date.date_id,
@@ -288,7 +300,7 @@ const PlanAdjInputModal: React.FC<PlanAdjInputModalProps> = ({
         </Button>
         <Button
           onClick={onSubmit}
-          disabled={isSubmitting}
+          disabled={isSubmitting || hasNullAvailability}
           variant="contained"
           sx={{
             bgcolor: "#5b63d3",
@@ -304,7 +316,11 @@ const PlanAdjInputModal: React.FC<PlanAdjInputModalProps> = ({
             },
           }}
         >
-          {isSubmitting ? "送信中..." : "回答を送信"}
+          {isSubmitting
+            ? "送信中..."
+            : hasNullAvailability
+            ? "未回答があります"
+            : "回答を送信"}
         </Button>
       </DialogActions>
     </Dialog>
