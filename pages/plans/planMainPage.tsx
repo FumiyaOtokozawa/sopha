@@ -214,7 +214,7 @@ const PlanMainPage: NextPage = () => {
 
   return (
     <Box
-      className="plan-main-container"
+      className="plan-main"
       sx={{
         minHeight: "100vh",
         color: "#FCFCFC",
@@ -222,7 +222,7 @@ const PlanMainPage: NextPage = () => {
       }}
     >
       <Box
-        className="plan-main-content"
+        className="plan-main__content"
         sx={{
           px: 1.5,
           maxWidth: "600px",
@@ -234,13 +234,13 @@ const PlanMainPage: NextPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="mb-4"
+          className="plan-main__new-event mb-4"
         >
           <button
             onClick={handleCreateNewPlan}
-            className="w-full py-2 rounded-lg bg-[#5b63d3] text-white font-bold hover:bg-opacity-80 flex items-center justify-center gap-2"
+            className="plan-main__new-event-button w-full py-2 rounded-lg bg-[#5b63d3] text-white font-bold hover:bg-opacity-80 flex items-center justify-center gap-2"
           >
-            <AddIcon />
+            <AddIcon className="plan-main__new-event-icon" />
             新規イベントの日程調整
           </button>
         </motion.div>
@@ -249,9 +249,11 @@ const PlanMainPage: NextPage = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
+          className="plan-main__events"
         >
           <Paper
             elevation={0}
+            className="plan-main__events-container"
             sx={{
               p: 1.5,
               mb: 2,
@@ -259,15 +261,17 @@ const PlanMainPage: NextPage = () => {
               borderRadius: "8px",
             }}
           >
-            <Box>
+            <Box className="plan-main__events-list">
               {isLoading ? (
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.2 }}
+                  className="plan-main__loading"
                 >
                   <Typography
                     variant="body2"
+                    className="plan-main__loading-text"
                     sx={{
                       color: "rgba(255, 255, 255, 0.7)",
                       textAlign: "center",
@@ -278,12 +282,17 @@ const PlanMainPage: NextPage = () => {
                   </Typography>
                 </motion.div>
               ) : pendingEvents.length > 0 || recentClosedEvents.length > 0 ? (
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <Box
+                  className="plan-main__events-content"
+                  sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+                >
                   {pendingEvents.length > 0 && (
                     <Box
+                      className="plan-main__pending-events"
                       sx={{ display: "flex", flexDirection: "column", gap: 1 }}
                     >
                       <Box
+                        className="plan-main__section-header"
                         sx={{
                           display: "flex",
                           justifyContent: "space-between",
@@ -293,6 +302,7 @@ const PlanMainPage: NextPage = () => {
                       >
                         <Typography
                           variant="subtitle2"
+                          className="plan-main__section-title"
                           sx={{
                             fontSize: "0.875rem",
                             color: "rgba(255, 255, 255, 0.7)",
@@ -305,6 +315,7 @@ const PlanMainPage: NextPage = () => {
                           onClick={handleRefresh}
                           disabled={isLoading}
                           size="small"
+                          className="plan-main__refresh-button"
                           sx={{
                             color: "rgba(255, 255, 255, 0.7)",
                             "&:hover": {
@@ -313,7 +324,10 @@ const PlanMainPage: NextPage = () => {
                             },
                           }}
                         >
-                          <RefreshIcon fontSize="small" />
+                          <RefreshIcon
+                            className="plan-main__refresh-icon"
+                            fontSize="small"
+                          />
                         </IconButton>
                       </Box>
                       <AnimatePresence>
@@ -327,6 +341,11 @@ const PlanMainPage: NextPage = () => {
                           >
                             <Paper
                               onClick={() => handlePlanClick(event.plan_id)}
+                              className={`plan-event ${
+                                event.status === "pending"
+                                  ? "plan-event--pending"
+                                  : "plan-event--closed"
+                              }`}
                               sx={{
                                 bgcolor:
                                   event.status === "pending"
@@ -354,11 +373,14 @@ const PlanMainPage: NextPage = () => {
                                       event.status === "pending"
                                         ? "linear-gradient(135deg, #252941 0%, #2A2E4D 100%)"
                                         : "#262626",
-                                    transform: "translateY(-2px)",
+                                    transform:
+                                      event.status === "pending"
+                                        ? "translateY(-2px)"
+                                        : "none",
                                     boxShadow:
                                       event.status === "pending"
                                         ? "0 4px 20px rgba(91, 99, 211, 0.15)"
-                                        : "0 4px 12px rgba(0, 0, 0, 0.2)",
+                                        : "none",
                                   },
                                 },
                                 "@media (hover: none)": {
@@ -376,6 +398,7 @@ const PlanMainPage: NextPage = () => {
                               }}
                             >
                               <Box
+                                className="plan-event__header"
                                 sx={{
                                   display: "flex",
                                   justifyContent: "space-between",
@@ -384,10 +407,20 @@ const PlanMainPage: NextPage = () => {
                               >
                                 <Typography
                                   variant="subtitle2"
+                                  className="plan-event__title"
                                   sx={{
-                                    fontSize: "0.9rem",
-                                    fontWeight: "bold",
-                                    color: "#FCFCFC",
+                                    fontSize:
+                                      event.status === "pending"
+                                        ? "0.9rem"
+                                        : "0.85rem",
+                                    fontWeight:
+                                      event.status === "pending"
+                                        ? "bold"
+                                        : "normal",
+                                    color:
+                                      event.status === "pending"
+                                        ? "#FCFCFC"
+                                        : "rgba(255, 255, 255, 0.7)",
                                     lineHeight: 1.2,
                                     flex: 1,
                                     minWidth: 0,
@@ -402,29 +435,45 @@ const PlanMainPage: NextPage = () => {
                                 </Typography>
 
                                 <Box
+                                  className="plan-event__status"
                                   sx={{
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "center",
-                                    minWidth: "64px",
-                                    height: "24px",
-                                    borderRadius: "12px",
+                                    minWidth:
+                                      event.status === "pending"
+                                        ? "64px"
+                                        : "48px",
+                                    height:
+                                      event.status === "pending"
+                                        ? "24px"
+                                        : "20px",
+                                    borderRadius:
+                                      event.status === "pending"
+                                        ? "12px"
+                                        : "10px",
                                     ml: 2,
-                                    ...(event.status === "pending"
-                                      ? {
-                                          bgcolor: "rgba(34, 197, 94, 0.15)",
-                                          color: "#4ADE80",
-                                        }
-                                      : {
-                                          bgcolor: "rgba(255, 86, 86, 0.15)",
-                                          color: "#FF5656",
-                                        }),
+                                    bgcolor:
+                                      event.status === "pending"
+                                        ? "rgba(34, 197, 94, 0.15)"
+                                        : "rgba(255, 86, 86, 0.1)",
+                                    color:
+                                      event.status === "pending"
+                                        ? "#4ADE80"
+                                        : "rgba(255, 86, 86, 0.7)",
                                   }}
                                 >
                                   <Typography
+                                    className="plan-event__status-text"
                                     sx={{
-                                      fontSize: "0.75rem",
-                                      fontWeight: "bold",
+                                      fontSize:
+                                        event.status === "pending"
+                                          ? "0.75rem"
+                                          : "0.7rem",
+                                      fontWeight:
+                                        event.status === "pending"
+                                          ? "bold"
+                                          : "normal",
                                       letterSpacing: "0.02em",
                                     }}
                                   >
@@ -436,6 +485,7 @@ const PlanMainPage: NextPage = () => {
                               </Box>
 
                               <Box
+                                className="plan-event__info"
                                 sx={{
                                   display: "flex",
                                   gap: 2,
@@ -443,28 +493,52 @@ const PlanMainPage: NextPage = () => {
                                 }}
                               >
                                 <Box
+                                  className="plan-event__creator"
                                   sx={{
                                     display: "flex",
                                     alignItems: "center",
                                     gap: 0.75,
                                     backgroundColor:
                                       "rgba(255, 255, 255, 0.05)",
-                                    padding: "4px 8px",
-                                    borderRadius: "6px",
+                                    padding:
+                                      event.status === "pending"
+                                        ? "4px 8px"
+                                        : "2px 6px",
+                                    borderRadius:
+                                      event.status === "pending"
+                                        ? "6px"
+                                        : "4px",
                                   }}
                                 >
                                   <PersonIcon
+                                    className="plan-event__creator-icon"
                                     sx={{
-                                      fontSize: "0.875rem",
-                                      color: "rgba(255, 255, 255, 0.7)",
+                                      fontSize:
+                                        event.status === "pending"
+                                          ? "0.875rem"
+                                          : "0.8rem",
+                                      color:
+                                        event.status === "pending"
+                                          ? "rgba(255, 255, 255, 0.7)"
+                                          : "rgba(255, 255, 255, 0.5)",
                                     }}
                                   />
                                   <Typography
                                     variant="body2"
+                                    className="plan-event__creator-name"
                                     sx={{
-                                      fontSize: "0.75rem",
-                                      color: "rgba(255, 255, 255, 0.7)",
-                                      fontWeight: "500",
+                                      fontSize:
+                                        event.status === "pending"
+                                          ? "0.75rem"
+                                          : "0.7rem",
+                                      color:
+                                        event.status === "pending"
+                                          ? "rgba(255, 255, 255, 0.7)"
+                                          : "rgba(255, 255, 255, 0.5)",
+                                      fontWeight:
+                                        event.status === "pending"
+                                          ? "500"
+                                          : "normal",
                                     }}
                                   >
                                     {event.creator.name}
@@ -472,36 +546,60 @@ const PlanMainPage: NextPage = () => {
                                 </Box>
 
                                 <Box
+                                  className="plan-event__deadline"
                                   sx={{
                                     display: "flex",
                                     alignItems: "center",
                                     gap: 0.75,
                                     backgroundColor:
                                       "rgba(255, 255, 255, 0.05)",
-                                    padding: "4px 8px",
-                                    borderRadius: "6px",
+                                    padding:
+                                      event.status === "pending"
+                                        ? "4px 8px"
+                                        : "2px 6px",
+                                    borderRadius:
+                                      event.status === "pending"
+                                        ? "6px"
+                                        : "4px",
                                     width: "160px",
                                     marginLeft: "auto",
                                     justifyContent: "flex-start",
                                   }}
                                 >
                                   <EventIcon
+                                    className="plan-event__deadline-icon"
                                     sx={{
-                                      fontSize: "0.875rem",
-                                      color: "rgba(255, 255, 255, 0.7)",
+                                      fontSize:
+                                        event.status === "pending"
+                                          ? "0.875rem"
+                                          : "0.8rem",
+                                      color:
+                                        event.status === "pending"
+                                          ? "rgba(255, 255, 255, 0.7)"
+                                          : "rgba(255, 255, 255, 0.5)",
                                     }}
                                   />
                                   <Typography
                                     variant="body2"
                                     noWrap
+                                    className="plan-event__deadline-text"
                                     sx={{
-                                      fontSize: "0.75rem",
-                                      color: "rgba(255, 255, 255, 0.7)",
-                                      fontWeight: "500",
+                                      fontSize:
+                                        event.status === "pending"
+                                          ? "0.75rem"
+                                          : "0.7rem",
+                                      color:
+                                        event.status === "pending"
+                                          ? "rgba(255, 255, 255, 0.7)"
+                                          : "rgba(255, 255, 255, 0.5)",
+                                      fontWeight:
+                                        event.status === "pending"
+                                          ? "500"
+                                          : "normal",
                                     }}
                                   >
                                     {dayjs(event.deadline).format(
-                                      "YYYY/M/D HH:mm "
+                                      "YYYY/M/D HH:mm"
                                     )}
                                     まで
                                   </Typography>
@@ -516,10 +614,12 @@ const PlanMainPage: NextPage = () => {
 
                   {recentClosedEvents.length > 0 && (
                     <Box
+                      className="plan-main__closed-events"
                       sx={{ display: "flex", flexDirection: "column", gap: 1 }}
                     >
                       <Typography
                         variant="subtitle2"
+                        className="plan-main__section-title"
                         sx={{
                           fontSize: "0.875rem",
                           color: "rgba(255, 255, 255, 0.7)",
@@ -545,6 +645,11 @@ const PlanMainPage: NextPage = () => {
                             >
                               <Paper
                                 onClick={() => handlePlanClick(event.plan_id)}
+                                className={`plan-event ${
+                                  event.status === "pending"
+                                    ? "plan-event--pending"
+                                    : "plan-event--closed"
+                                }`}
                                 sx={{
                                   background: "#1D1D21",
                                   p: 1.25,
@@ -567,6 +672,7 @@ const PlanMainPage: NextPage = () => {
                                 }}
                               >
                                 <Box
+                                  className="plan-event__header"
                                   sx={{
                                     display: "flex",
                                     justifyContent: "space-between",
@@ -575,6 +681,7 @@ const PlanMainPage: NextPage = () => {
                                 >
                                   <Typography
                                     variant="subtitle2"
+                                    className="plan-event__title"
                                     sx={{
                                       fontSize: "0.85rem",
                                       fontWeight: "normal",
@@ -593,6 +700,7 @@ const PlanMainPage: NextPage = () => {
                                   </Typography>
 
                                   <Box
+                                    className="plan-event__status"
                                     sx={{
                                       display: "flex",
                                       alignItems: "center",
@@ -606,6 +714,7 @@ const PlanMainPage: NextPage = () => {
                                     }}
                                   >
                                     <Typography
+                                      className="plan-event__status-text"
                                       sx={{
                                         fontSize: "0.7rem",
                                         fontWeight: "normal",
@@ -618,6 +727,7 @@ const PlanMainPage: NextPage = () => {
                                 </Box>
 
                                 <Box
+                                  className="plan-event__info"
                                   sx={{
                                     display: "flex",
                                     gap: 2,
@@ -625,6 +735,7 @@ const PlanMainPage: NextPage = () => {
                                   }}
                                 >
                                   <Box
+                                    className="plan-event__creator"
                                     sx={{
                                       display: "flex",
                                       alignItems: "center",
@@ -636,6 +747,7 @@ const PlanMainPage: NextPage = () => {
                                     }}
                                   >
                                     <PersonIcon
+                                      className="plan-event__creator-icon"
                                       sx={{
                                         fontSize: "0.8rem",
                                         color: "rgba(255, 255, 255, 0.5)",
@@ -643,6 +755,7 @@ const PlanMainPage: NextPage = () => {
                                     />
                                     <Typography
                                       variant="body2"
+                                      className="plan-event__creator-name"
                                       sx={{
                                         fontSize: "0.7rem",
                                         color: "rgba(255, 255, 255, 0.5)",
@@ -654,6 +767,7 @@ const PlanMainPage: NextPage = () => {
                                   </Box>
 
                                   <Box
+                                    className="plan-event__deadline"
                                     sx={{
                                       display: "flex",
                                       alignItems: "center",
@@ -668,6 +782,7 @@ const PlanMainPage: NextPage = () => {
                                     }}
                                   >
                                     <EventIcon
+                                      className="plan-event__deadline-icon"
                                       sx={{
                                         fontSize: "0.8rem",
                                         color: "rgba(255, 255, 255, 0.5)",
@@ -676,6 +791,7 @@ const PlanMainPage: NextPage = () => {
                                     <Typography
                                       variant="body2"
                                       noWrap
+                                      className="plan-event__deadline-text"
                                       sx={{
                                         fontSize: "0.7rem",
                                         color: "rgba(255, 255, 255, 0.5)",
@@ -700,6 +816,7 @@ const PlanMainPage: NextPage = () => {
                           transition={{ duration: 0.3, delay: 0.3 }}
                         >
                           <Box
+                            className="plan-main__load-more"
                             sx={{
                               display: "flex",
                               justifyContent: "center",
@@ -711,7 +828,7 @@ const PlanMainPage: NextPage = () => {
                               onClick={() =>
                                 setDisplayCount((prev) => prev + 5)
                               }
-                              className="w-full py-1.5 px-4 rounded-lg bg-[#1D1D21] text-[rgba(255,255,255,0.5)] text-sm font-medium hover:bg-opacity-100 border border-[rgba(255,255,255,0.1)] transition-all duration-200 opacity-85 hover:opacity-100"
+                              className="plan-main__load-more w-full py-1.5 px-4 rounded-lg bg-[#1D1D21] text-[rgba(255,255,255,0.5)] text-sm font-medium hover:bg-opacity-100 border border-[rgba(255,255,255,0.1)] transition-all duration-200 opacity-85 hover:opacity-100"
                             >
                               もっと見る
                             </button>
@@ -729,6 +846,7 @@ const PlanMainPage: NextPage = () => {
                 >
                   <Typography
                     variant="body2"
+                    className="plan-main__no-events-text"
                     sx={{
                       color: "rgba(255, 255, 255, 0.7)",
                       textAlign: "center",

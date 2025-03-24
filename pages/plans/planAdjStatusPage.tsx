@@ -485,7 +485,10 @@ const PlanAdjStatusPage: NextPage = () => {
 
   return (
     <Box className="plan-status" sx={planAdjStatusStyles.root}>
-      <Box className="plan-status__content" sx={planAdjStatusStyles.content}>
+      <Box
+        className="plan-status__content"
+        sx={{ ...planAdjStatusStyles.content, gap: 2 }}
+      >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -590,7 +593,6 @@ const PlanAdjStatusPage: NextPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
-            className="mb-2"
           >
             <button
               onClick={handleOpenDialog}
