@@ -1,13 +1,16 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import { supabase } from "../utils/supabaseClient";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -76,12 +79,23 @@ const LoginPage = () => {
         return;
       }
 
-      // 遷移先の決定
+      // 遷移先のパスを事前に決定
       const path =
         roleData.role === "1"
           ? "/adminPages/admMainPage"
           : "/employeePages/empMainPage";
-      router.push(path);
+
+      // 次の画面を事前に読み込み開始
+      router.prefetch(path);
+
+      // 成功アニメーションの開始
+      setIsSuccess(true);
+      setIsExiting(true);
+
+      // アニメーション完了と同時に遷移
+      setTimeout(() => {
+        router.push(path);
+      }, 1800); // ロゴアニメーションの時間に合わせて調整
     } catch (error) {
       console.error("ログインエラー:", error);
       setError(
@@ -92,109 +106,320 @@ const LoginPage = () => {
     }
   };
 
+  const handleRegisterClick = () => {
+    setIsExiting(true);
+    setTimeout(() => {
+      router.push("/registerPages/tempRegistPage");
+    }, 400); // 遷移時間を短縮
+  };
+
+  const handleResetClick = () => {
+    setIsExiting(true);
+    setTimeout(() => {
+      router.push("/resetPassword");
+    }, 400); // 遷移時間を短縮
+  };
+
   // 共通の入力欄スタイル
   const inputClassName = `
-    w-full p-2 rounded-md
-    bg-[#CFD8DC80] text-[#37373F] placeholder-[#37373F]
-    focus:outline-none focus:ring-2 focus:ring-blue-500
-    focus:bg-[#FCFCFC]
-    [&:not(:placeholder-shown)]:bg-[#FCFCFC]
+    w-full p-3 rounded-lg
+    bg-[rgb(207,216,220,0.25)] text-[rgb(55,55,63)] placeholder-[rgb(55,55,63,0.5)]
+    focus:outline-none focus:ring-2 focus:ring-[rgb(91,99,211)]
+    focus:bg-[rgb(252,252,252)]
+    [&:not(:placeholder-shown)]:bg-[rgb(252,252,252)]
+    transition-all duration-200
+    border border-transparent hover:border-[rgb(91,99,211,0.5)]
   `;
 
+  // フレームのアニメーション設定
+  const frameVariants = {
+    hidden: {
+      opacity: 0,
+      y: 20,
+      scale: 0.95,
+      backgroundColor: "rgba(252, 252, 252, 0)",
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      backgroundColor: "rgba(252, 252, 252, 0.1)",
+      transition: {
+        duration: 0.8,
+        ease: [0.23, 1, 0.32, 1],
+      },
+    },
+    exit: {
+      opacity: 0,
+      y: -20,
+      scale: 0.95,
+      transition: {
+        duration: 0.4,
+        ease: [0.23, 1, 0.32, 1],
+      },
+    },
+  };
+
+  // ロゴのアニメーション設定
+  const logoVariants = {
+    initial: {
+      opacity: 0,
+      y: 20,
+    },
+    animate: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        delay: 0.2,
+        ease: [0.23, 1, 0.32, 1],
+      },
+    },
+    success: {
+      scale: [1, 1.4],
+      opacity: [1, 0],
+      transition: {
+        duration: 1.6,
+        ease: "easeInOut",
+        times: [0, 1],
+      },
+    },
+  };
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center overflow-hidden touch-none">
+    <AnimatePresence mode="wait">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="bg-[#FCFCFC19] rounded-lg shadow-md p-6 w-[300px]"
+        key="login-container"
+        className="fixed inset-0 flex items-center justify-center overflow-hidden touch-none"
+        initial={{
+          opacity: 0,
+          background:
+            "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 100%)",
+        }}
+        animate={{
+          opacity: 1,
+          background:
+            "linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.5) 100%)",
+        }}
+        exit={{ opacity: 0 }}
+        transition={{
+          duration: 0.6,
+          ease: "easeInOut",
+        }}
       >
-        <motion.h1
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className="text-xl font-bold mb-6 text-center text-[#FCFCFC]"
+        <motion.div
+          key="login-form"
+          variants={frameVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          className="backdrop-blur-md rounded-2xl shadow-2xl p-8 w-[360px] border border-[rgba(255,255,255,0.12)] relative overflow-hidden"
         >
-          Welcome to SOPHA
-        </motion.h1>
-
-        {error && (
-          <motion.p
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-4 text-red-500 text-sm text-center"
+          <motion.div
+            key="logo-container"
+            className="flex flex-col items-center mb-2"
+            variants={logoVariants}
+            initial="initial"
+            animate={isSuccess ? "success" : "animate"}
           >
-            {error}
-          </motion.p>
-        )}
+            <div className="w-64 h-48 relative">
+              <Image
+                src="/logo_white_v.svg"
+                alt="SOPHA Logo"
+                layout="fill"
+                objectFit="contain"
+                priority
+              />
+            </div>
+          </motion.div>
 
-        <motion.form
-          onSubmit={handleLogin}
-          className="space-y-4"
-          autoComplete="off"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-        >
-          <div>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email"
-              className={inputClassName}
-              required
-              autoComplete="off"
-            />
-          </div>
+          {/* Success Message */}
+          {isSuccess && (
+            <motion.div
+              key="success-message"
+              className="absolute inset-0 flex items-center justify-center"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{
+                delay: 0.6,
+                duration: 0.8,
+                ease: [0.23, 1, 0.32, 1],
+              }}
+            >
+              <motion.div
+                className="text-[rgb(252,252,252)] text-2xl font-bold"
+                animate={{
+                  scale: [1, 1.05, 1],
+                }}
+                transition={{
+                  duration: 2,
+                  times: [0, 0.5, 1],
+                  ease: "easeInOut",
+                  repeat: Infinity,
+                  repeatType: "reverse",
+                }}
+              >
+                ログイン成功！
+              </motion.div>
+            </motion.div>
+          )}
 
-          <div>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              className={inputClassName}
-              required
-              autoComplete="current-password"
-            />
-          </div>
+          {error && (
+            <motion.div
+              key="error-message"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.4 }}
+              className="mb-6 p-3 bg-[rgba(255,0,0,0.1)] border border-[rgba(255,0,0,0.25)] rounded-lg"
+            >
+              <p className="text-[rgb(248,113,113)] text-sm text-center">
+                {error}
+              </p>
+            </motion.div>
+          )}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="
-              w-full py-2 rounded-md
-              bg-[#5b63d3] text-white font-semibold
-              hover:bg-opacity-90 transition-colors
-              disabled:opacity-50
-            "
+          <motion.form
+            key="login-form-fields"
+            onSubmit={handleLogin}
+            className="space-y-5"
+            autoComplete="off"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isExiting ? 0 : 1 }}
+            transition={{
+              duration: 0.6,
+              delay: 0.2,
+              ease: [0.23, 1, 0.32, 1],
+            }}
+            style={{
+              visibility: isSuccess ? "hidden" : "visible",
+            }}
           >
-            {isLoading ? "ログイン中..." : "LOGIN"}
-          </button>
-        </motion.form>
+            <div className="space-y-2">
+              <label
+                htmlFor="email"
+                className="text-[rgba(252,252,252,0.5)] text-sm block ml-1"
+              >
+                メールアドレス
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="sopha@comsize.com"
+                className={inputClassName}
+                required
+                autoComplete="off"
+              />
+            </div>
 
-        <div className="mt-4 text-center">
-          <button
-            onClick={() => router.push("/registerPages/tempRegistPage")}
-            className="text-blue-400 hover:text-blue-300 text-sm"
-          >
-            アカウントをお持ちでない方はこちら
-          </button>
-        </div>
+            <div className="space-y-2">
+              <label
+                htmlFor="password"
+                className="text-[rgba(252,252,252,0.5)] text-sm block ml-1"
+              >
+                パスワード
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className={inputClassName}
+                required
+                autoComplete="current-password"
+              />
+            </div>
 
-        <div className="mt-2 text-center">
-          <button
-            onClick={() => router.push("/resetPassword")}
-            className="text-blue-400 hover:text-blue-300 text-sm"
+            <motion.button
+              type="submit"
+              disabled={isLoading}
+              className="
+                w-full py-3 rounded-lg
+                bg-[rgb(91,99,211)] text-[rgb(252,252,252)] font-semibold
+                hover:bg-[rgb(73,81,197)] transition-all duration-200
+                disabled:opacity-50 disabled:cursor-not-allowed
+                shadow-lg shadow-[rgba(91,99,211,0.12)]
+                mt-8
+              "
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {isLoading ? "ログイン中..." : "ログイン"}
+            </motion.button>
+          </motion.form>
+
+          <motion.div
+            key="additional-links"
+            className="mt-6 flex flex-col items-center space-y-3"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isExiting ? 0 : 1 }}
+            transition={{
+              duration: 0.6,
+              delay: 0.3,
+              ease: [0.23, 1, 0.32, 1],
+            }}
+            style={{
+              visibility: isSuccess ? "hidden" : "visible",
+            }}
           >
-            パスワードをお忘れの方はこちら
-          </button>
-        </div>
+            <motion.button
+              onClick={handleRegisterClick}
+              className="text-[rgba(252,252,252,0.5)] hover:text-[rgb(91,99,211)] text-sm transition-colors duration-200"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              アカウントをお持ちでない方はこちら
+            </motion.button>
+            <motion.button
+              onClick={handleResetClick}
+              className="text-[rgba(252,252,252,0.5)] hover:text-[rgb(91,99,211)] text-sm transition-colors duration-200"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              パスワードをお忘れの方はこちら
+            </motion.button>
+          </motion.div>
+
+          {/* Success Particles */}
+          {isSuccess && (
+            <motion.div
+              key="success-particles"
+              className="absolute inset-0 pointer-events-none"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+            >
+              {[...Array(8)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-2 h-2 bg-[rgb(252,252,252)] rounded-full"
+                  initial={{
+                    x: "50%",
+                    y: "50%",
+                    scale: 0,
+                    opacity: 1,
+                  }}
+                  animate={{
+                    x: `${50 + (Math.random() - 0.5) * 60}%`,
+                    y: `${50 + (Math.random() - 0.5) * 60}%`,
+                    scale: [0, 1, 0.8],
+                    opacity: [1, 1, 0],
+                  }}
+                  transition={{
+                    duration: 1.5,
+                    delay: i * 0.1,
+                    ease: [0.23, 1, 0.32, 1],
+                  }}
+                />
+              ))}
+            </motion.div>
+          )}
+        </motion.div>
       </motion.div>
-    </div>
+    </AnimatePresence>
   );
 };
 
