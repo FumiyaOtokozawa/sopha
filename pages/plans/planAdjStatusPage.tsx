@@ -21,6 +21,7 @@ import { planAdjStatusStyles } from "../../styles/pages/planAdjStatus";
 import { PlanFormData } from "../../types/plan";
 import { DateTimeSelection } from "../../types/plan";
 import PlanChat from "../../components/plans/planChat";
+import PlanDateConfirmDialog from "../../components/plans/PlanDateConfirmDialog";
 
 // 曜日の漢字マッピング
 const weekdayKanji = ["日", "月", "火", "水", "木", "金", "土"];
@@ -117,6 +118,8 @@ const PlanAdjStatusPage: NextPage = () => {
   const [selectedTab, setSelectedTab] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [currentUserEmpNo, setCurrentUserEmpNo] = useState<number | null>(null);
+  const [selectedDate, setSelectedDate] = useState<PlanDate | null>(null);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
 
   // イベントが締め切られているかどうかを判定する
   const isEventClosed = useMemo(() => {
@@ -595,6 +598,51 @@ const PlanAdjStatusPage: NextPage = () => {
     }
   };
 
+  const handleDateCardClick = (date: PlanDate) => {
+    setSelectedDate(date);
+    setIsConfirmDialogOpen(true);
+  };
+
+  const handleConfirmDialogClose = () => {
+    setIsConfirmDialogOpen(false);
+    setSelectedDate(null);
+  };
+
+  const handleConfirmDialogConfirm = async () => {
+    if (!selectedDate || !planEvent) return;
+
+    try {
+      // PLANを締め切る
+      const closeDateTime = dayjs().format("YYYY-MM-DD HH:mm:ss");
+      const { error } = await supabase
+        .from("PLAN_EVENT")
+        .update({
+          status: "closed",
+          deadline: closeDateTime,
+          updated_at: closeDateTime,
+        })
+        .eq("plan_id", planEvent.plan_id);
+
+      if (error) throw error;
+
+      // イベント作成ページに遷移
+      const selectedDateTime = dayjs(selectedDate.datetime);
+      const endDateTime = selectedDateTime.add(1, "hour"); // デフォルトで1時間後を終了時間に設定
+
+      router.push({
+        pathname: "/events/eventAddPage",
+        query: {
+          title: planEvent.plan_title,
+          description: planEvent.description || "",
+          start_date: selectedDateTime.format("YYYY-MM-DDTHH:mm"),
+          end_date: endDateTime.format("YYYY-MM-DDTHH:mm"),
+        },
+      });
+    } catch (error) {
+      console.error("Error closing plan:", error);
+    }
+  };
+
   if (isLoading) {
     return (
       <Box sx={planAdjStatusStyles.root}>
@@ -735,6 +783,22 @@ const PlanAdjStatusPage: NextPage = () => {
           </motion.div>
         )}
 
+        {/* イベント締め切りボタン */}
+        {currentUserEmpNo === planEvent.created_by && !isEventClosed && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.3 }}
+          >
+            <button
+              onClick={handleCloseEvent}
+              className="w-full py-2 rounded-lg bg-[rgb(185,55,55)] text-white font-bold hover:bg-opacity-80 flex items-center justify-center gap-2 transition-all duration-200"
+            >
+              イベントを締め切る
+            </button>
+          </motion.div>
+        )}
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -842,7 +906,24 @@ const PlanAdjStatusPage: NextPage = () => {
                       return (
                         <Box
                           key={date.date_id}
-                          sx={planAdjStatusStyles.dateItem}
+                          sx={{
+                            ...planAdjStatusStyles.dateItem,
+                            ...(currentUserEmpNo === planEvent.created_by &&
+                              !isEventClosed && {
+                                cursor: "pointer",
+                                "&:hover": {
+                                  backgroundColor: "rgba(255, 255, 255, 0.05)",
+                                },
+                              }),
+                          }}
+                          onClick={() => {
+                            if (
+                              currentUserEmpNo === planEvent.created_by &&
+                              !isEventClosed
+                            ) {
+                              handleDateCardClick(date);
+                            }
+                          }}
                         >
                           <Box sx={planAdjStatusStyles.dateItemContent}>
                             <Box sx={planAdjStatusStyles.dateItemDateTime}>
@@ -1151,22 +1232,6 @@ const PlanAdjStatusPage: NextPage = () => {
           </Paper>
         </motion.div>
 
-        {/* イベント締め切りボタン */}
-        {currentUserEmpNo === planEvent.created_by && !isEventClosed && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.3 }}
-          >
-            <button
-              onClick={handleCloseEvent}
-              className="w-full py-2 rounded-lg bg-[rgb(185,55,55)] text-white font-bold hover:bg-opacity-80 flex items-center justify-center gap-2 transition-all duration-200"
-            >
-              イベントを締め切る
-            </button>
-          </motion.div>
-        )}
-
         <PlanAdjInputModal
           open={isDialogOpen}
           onClose={handleCloseDialog}
@@ -1182,6 +1247,13 @@ const PlanAdjStatusPage: NextPage = () => {
           onClose={() => setIsEditModalOpen(false)}
           planEvent={planEvent}
           onSubmit={handleEditSubmit}
+        />
+
+        <PlanDateConfirmDialog
+          open={isConfirmDialogOpen}
+          onClose={handleConfirmDialogClose}
+          onConfirm={handleConfirmDialogConfirm}
+          dateTime={selectedDate?.datetime}
         />
       </Box>
     </Box>

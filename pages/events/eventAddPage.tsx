@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../../utils/supabaseClient';
-import { useRouter } from 'next/router';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { ja } from 'date-fns/locale';
-import { Box } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import PlaceSelectModal from '../../components/PlaceSelectModal';
-import UserSelectModal from '../../components/UserSelectModal';
-import type { User } from '../../types/user';
+import { useState, useEffect } from "react";
+import { supabase } from "../../utils/supabaseClient";
+import { useRouter } from "next/router";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { ja } from "date-fns/locale";
+import { Box } from "@mui/material";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import PlaceSelectModal from "../../components/PlaceSelectModal";
+import UserSelectModal from "../../components/UserSelectModal";
+import type { User } from "../../types/user";
 
 interface EventForm {
   title: string;
@@ -23,7 +23,7 @@ interface EventForm {
   recurringType: string;
   recurringEndDate: Date | null;
   abbreviation: string;
-  format: 'offline' | 'online' | 'hybrid';
+  format: "offline" | "online" | "hybrid";
   url?: string;
   participants: User[];
 }
@@ -31,29 +31,51 @@ interface EventForm {
 const EventAddPage = () => {
   const router = useRouter();
   const [formData, setFormData] = useState<EventForm>({
-    title: '',
+    title: "",
     start: null,
     end: null,
     venue_id: null,
-    venue_nm: '',
-    description: '',
-    genre: '0',
+    venue_nm: "",
+    description: "",
+    genre: "0",
     isRecurring: false,
-    recurringType: 'weekly',
+    recurringType: "weekly",
     recurringEndDate: null,
-    abbreviation: '',
-    format: 'offline',
-    url: '',
+    abbreviation: "",
+    format: "offline",
+    url: "",
     participants: [],
   });
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
   const [isPlaceModalOpen, setIsPlaceModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
 
+  // クエリパラメータから初期値を設定
+  useEffect(() => {
+    if (
+      router.query.title ||
+      router.query.description ||
+      router.query.start_date ||
+      router.query.end_date
+    ) {
+      setFormData((prev) => ({
+        ...prev,
+        title: (router.query.title as string) || prev.title,
+        description: (router.query.description as string) || prev.description,
+        start: router.query.start_date
+          ? new Date(router.query.start_date as string)
+          : prev.start,
+        end: router.query.end_date
+          ? new Date(router.query.end_date as string)
+          : prev.end,
+      }));
+    }
+  }, [router.query]);
+
   // ポータル用のdivをマウント時に作成
   useEffect(() => {
-    const portalRoot = document.createElement('div');
-    portalRoot.setAttribute('id', 'date-picker-portal');
+    const portalRoot = document.createElement("div");
+    portalRoot.setAttribute("id", "date-picker-portal");
     document.body.appendChild(portalRoot);
     return () => {
       document.body.removeChild(portalRoot);
@@ -72,7 +94,10 @@ const EventAddPage = () => {
     for (let i = 0; i < value.length; i++) {
       const charCode = value.charCodeAt(i);
       // 半角文字（ASCII文字とカタカナ）は1バイト、それ以外は2バイト
-      if ((charCode >= 0x0001 && charCode <= 0x007e) || (charCode >= 0xff61 && charCode <= 0xff9f)) {
+      if (
+        (charCode >= 0x0001 && charCode <= 0x007e) ||
+        (charCode >= 0xff61 && charCode <= 0xff9f)
+      ) {
         byteCount += 1;
       } else {
         byteCount += 2;
@@ -83,21 +108,28 @@ const EventAddPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
-    if (!formData.title || !formData.start || !formData.end || !formData.venue_id) {
-      setError('必須項目を入力してください');
+    if (
+      !formData.title ||
+      !formData.start ||
+      !formData.end ||
+      !formData.venue_id
+    ) {
+      setError("必須項目を入力してください");
       return;
     }
 
     if (formData.isRecurring && !formData.recurringEndDate) {
-      setError('繰り返し終了日を設定してください');
+      setError("繰り返し終了日を設定してください");
       return;
     }
 
     if (formData.abbreviation) {
       if (!validateAbbreviation(formData.abbreviation)) {
-        setError('省略名は合計6バイト以内で入力してください（全角文字は2バイト、半角文字は1バイト）');
+        setError(
+          "省略名は合計6バイト以内で入力してください（全角文字は2バイト、半角文字は1バイト）"
+        );
         return;
       }
     }
@@ -106,60 +138,83 @@ const EventAddPage = () => {
     const endDate = formData.end;
 
     if (startDate >= endDate) {
-      setError('終了日時は開始日時より後に設定してください');
+      setError("終了日時は開始日時より後に設定してください");
       return;
     }
 
-    if (formData.isRecurring && formData.recurringEndDate && formData.recurringEndDate < endDate) {
-      setError('繰り返し終了日はイベント終了日より後に設定してください');
+    if (
+      formData.isRecurring &&
+      formData.recurringEndDate &&
+      formData.recurringEndDate < endDate
+    ) {
+      setError("繰り返し終了日はイベント終了日より後に設定してください");
       return;
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('ユーザー情報が取得できません');
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("ユーザー情報が取得できません");
 
       // ユーザーのemp_noを取得
       const { data: userData, error: userError } = await supabase
-        .from('USER_INFO')
-        .select('emp_no')
-        .eq('email', user.email)
+        .from("USER_INFO")
+        .select("emp_no")
+        .eq("email", user.email)
         .single();
 
-      if (userError) throw new Error('ユーザー情報の取得に失敗しました');
+      if (userError) throw new Error("ユーザー情報の取得に失敗しました");
 
       // 繰り返しイベントの作成
-      if (formData.isRecurring && formData.start && formData.end && formData.recurringEndDate) {
+      if (
+        formData.isRecurring &&
+        formData.start &&
+        formData.end &&
+        formData.recurringEndDate
+      ) {
         // 新しいrepeat_idを生成（タイムスタンプを使用）
         const repeat_id = Date.now();
-        
+
         // 最大のevent_idを取得
         const { data: maxEventData, error: maxEventError } = await supabase
-          .from('EVENT_LIST')
-          .select('event_id')
-          .order('event_id', { ascending: false })
+          .from("EVENT_LIST")
+          .select("event_id")
+          .order("event_id", { ascending: false })
           .limit(1);
 
-        if (maxEventError) throw new Error('イベントIDの取得に失敗しました');
+        if (maxEventError) throw new Error("イベントIDの取得に失敗しました");
 
-        let nextEventId = maxEventData && maxEventData.length > 0 ? maxEventData[0].event_id + 1 : 1;
-        
+        let nextEventId =
+          maxEventData && maxEventData.length > 0
+            ? maxEventData[0].event_id + 1
+            : 1;
+
         const events = [];
         let currentStart = new Date(formData.start.getTime());
         let currentEnd = new Date(formData.end.getTime());
         const endDate = new Date(formData.recurringEndDate.getTime());
-        
+
         // 自分自身（ログインユーザー）を除外した運営メンバーリストを作成
-        const filteredParticipants = formData.participants.filter(p => p.emp_no !== userData.emp_no);
+        const filteredParticipants = formData.participants.filter(
+          (p) => p.emp_no !== userData.emp_no
+        );
         // 社員番号をカンマ区切りのテキストに変換
-        const memberString = filteredParticipants.length > 0 ? filteredParticipants.map(p => p.emp_no).join(',') + ',' : '';
-        
+        const memberString =
+          filteredParticipants.length > 0
+            ? filteredParticipants.map((p) => p.emp_no).join(",") + ","
+            : "";
+
         while (currentStart <= endDate) {
           events.push({
-            event_id: nextEventId++,  // 各イベントに一意のIDを設定
+            event_id: nextEventId++, // 各イベントに一意のIDを設定
             title: formData.title,
-            start_date: new Date(currentStart.getTime() - (currentStart.getTimezoneOffset() * 60000)).toISOString(),
-            end_date: new Date(currentEnd.getTime() - (currentEnd.getTimezoneOffset() * 60000)).toISOString(),
+            start_date: new Date(
+              currentStart.getTime() - currentStart.getTimezoneOffset() * 60000
+            ).toISOString(),
+            end_date: new Date(
+              currentEnd.getTime() - currentEnd.getTimezoneOffset() * 60000
+            ).toISOString(),
             venue_id: formData.venue_id,
             description: formData.description,
             owner: userData.emp_no,
@@ -175,22 +230,30 @@ const EventAddPage = () => {
           });
 
           // 次の日付を計算
-          if (formData.recurringType === 'daily') {
-            currentStart = new Date(currentStart.setDate(currentStart.getDate() + 1));
+          if (formData.recurringType === "daily") {
+            currentStart = new Date(
+              currentStart.setDate(currentStart.getDate() + 1)
+            );
             currentEnd = new Date(currentEnd.setDate(currentEnd.getDate() + 1));
-          } else if (formData.recurringType === 'weekly') {
-            currentStart = new Date(currentStart.setDate(currentStart.getDate() + 7));
+          } else if (formData.recurringType === "weekly") {
+            currentStart = new Date(
+              currentStart.setDate(currentStart.getDate() + 7)
+            );
             currentEnd = new Date(currentEnd.setDate(currentEnd.getDate() + 7));
-          } else if (formData.recurringType === 'monthly') {
-            currentStart = new Date(currentStart.setMonth(currentStart.getMonth() + 1));
-            currentEnd = new Date(currentEnd.setMonth(currentEnd.getMonth() + 1));
+          } else if (formData.recurringType === "monthly") {
+            currentStart = new Date(
+              currentStart.setMonth(currentStart.getMonth() + 1)
+            );
+            currentEnd = new Date(
+              currentEnd.setMonth(currentEnd.getMonth() + 1)
+            );
           }
         }
 
         // 一括登録
         for (const event of events) {
           const { error: insertError } = await supabase
-            .from('EVENT_LIST')
+            .from("EVENT_LIST")
             .insert(event);
 
           if (insertError) throw insertError;
@@ -198,25 +261,39 @@ const EventAddPage = () => {
       } else {
         // 新しいイベントIDを設定（既存の最大値 + 1）
         const { data: maxEventData, error: maxEventError } = await supabase
-          .from('EVENT_LIST')
-          .select('event_id')
-          .order('event_id', { ascending: false })
+          .from("EVENT_LIST")
+          .select("event_id")
+          .order("event_id", { ascending: false })
           .limit(1);
 
-        if (maxEventError) throw new Error('イベントIDの取得に失敗しました');
+        if (maxEventError) throw new Error("イベントIDの取得に失敗しました");
 
         // 自分自身（ログインユーザー）を除外した運営メンバーリストを作成
-        const filteredParticipants = formData.participants.filter(p => p.emp_no !== userData.emp_no);
+        const filteredParticipants = formData.participants.filter(
+          (p) => p.emp_no !== userData.emp_no
+        );
         // 社員番号をカンマ区切りのテキストに変換
-        const memberString = filteredParticipants.length > 0 ? filteredParticipants.map(p => p.emp_no).join(',') + ',' : '';
+        const memberString =
+          filteredParticipants.length > 0
+            ? filteredParticipants.map((p) => p.emp_no).join(",") + ","
+            : "";
 
         const eventData = {
-          event_id: maxEventData && maxEventData.length > 0 
-            ? maxEventData[0].event_id + 1 
-            : 1,
+          event_id:
+            maxEventData && maxEventData.length > 0
+              ? maxEventData[0].event_id + 1
+              : 1,
           title: formData.title,
-          start_date: startDate ? new Date(startDate.getTime() - (startDate.getTimezoneOffset() * 60000)).toISOString() : null,
-          end_date: endDate ? new Date(endDate.getTime() - (endDate.getTimezoneOffset() * 60000)).toISOString() : null,
+          start_date: startDate
+            ? new Date(
+                startDate.getTime() - startDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : null,
+          end_date: endDate
+            ? new Date(
+                endDate.getTime() - endDate.getTimezoneOffset() * 60000
+              ).toISOString()
+            : null,
           venue_id: formData.venue_id,
           description: formData.description,
           owner: userData.emp_no,
@@ -232,15 +309,15 @@ const EventAddPage = () => {
         };
 
         const { error: insertError } = await supabase
-          .from('EVENT_LIST')
+          .from("EVENT_LIST")
           .insert(eventData);
 
         if (insertError) throw insertError;
       }
 
-      router.push('/events/eventListPage');
+      router.push("/events/eventListPage");
     } catch (err) {
-      setError('イベントの登録に失敗しました');
+      setError("イベントの登録に失敗しました");
       console.error(err);
     }
   };
@@ -262,38 +339,34 @@ const EventAddPage = () => {
     setFormData({
       ...formData,
       venue_id: venue.id,
-      venue_nm: venue.name
+      venue_nm: venue.name,
     });
   };
-  
+
   // ユーザー選択時のハンドラーを追加
   const handleUserSelect = (user: User) => {
     // 既に追加されているユーザーは追加しない
-    if (!formData.participants.some(p => p.emp_no === user.emp_no)) {
+    if (!formData.participants.some((p) => p.emp_no === user.emp_no)) {
       setFormData({
         ...formData,
-        participants: [...formData.participants, user]
+        participants: [...formData.participants, user],
       });
     }
   };
-  
+
   // 参加者削除のハンドラーを追加
   const handleRemoveParticipant = (empNo: number) => {
     setFormData({
       ...formData,
-      participants: formData.participants.filter(p => p.emp_no !== empNo)
+      participants: formData.participants.filter((p) => p.emp_no !== empNo),
     });
   };
 
   return (
-    <Box 
-      sx={{ pb: 7 }}
-      component="div"
-      role="main"
-    >
+    <Box sx={{ pb: 7 }} component="div" role="main">
       <div className="p-4 mb-[30px]">
         <form onSubmit={handleSubmit} className="max-w-xl mx-auto">
-          <div 
+          <div
             className="bg-[#2D2D33] rounded-lg p-4 space-y-3"
             role="region"
             aria-label="イベント登録フォーム"
@@ -307,7 +380,9 @@ const EventAddPage = () => {
                 </label>
                 <select
                   value={formData.genre}
-                  onChange={(e) => setFormData({...formData, genre: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, genre: e.target.value })
+                  }
                   className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
                   required
                 >
@@ -323,7 +398,12 @@ const EventAddPage = () => {
                 </label>
                 <select
                   value={formData.format}
-                  onChange={(e) => setFormData({...formData, format: e.target.value as 'offline' | 'online' | 'hybrid'})}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      format: e.target.value as "offline" | "online" | "hybrid",
+                    })
+                  }
                   className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
                   required
                 >
@@ -342,7 +422,9 @@ const EventAddPage = () => {
               <input
                 type="text"
                 value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
                 className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
                 required
               />
@@ -359,7 +441,7 @@ const EventAddPage = () => {
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value.length <= 20) {
-                    setFormData({...formData, abbreviation: value});
+                    setFormData({ ...formData, abbreviation: value });
                   }
                 }}
                 className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px] placeholder-[#6B7280]"
@@ -373,31 +455,36 @@ const EventAddPage = () => {
                 <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
                   開始日時<span className="text-red-500">*</span>
                 </label>
-                <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>
+                <LocalizationProvider
+                  dateAdapter={AdapterDateFns}
+                  adapterLocale={ja}
+                >
                   <DateTimePicker
                     value={formData.start}
-                    onChange={(date) => setFormData({...formData, start: date})}
+                    onChange={(date) =>
+                      setFormData({ ...formData, start: date })
+                    }
                     sx={{
-                      width: '100%',
-                      '& .MuiInputBase-root': {
-                        backgroundColor: '#1D1D21',
-                        color: '#FCFCFC',
-                        height: '40px',
-                        fontSize: '14px',
+                      width: "100%",
+                      "& .MuiInputBase-root": {
+                        backgroundColor: "#1D1D21",
+                        color: "#FCFCFC",
+                        height: "40px",
+                        fontSize: "14px",
                       },
-                      '& .MuiInputBase-input': {
-                        padding: '8px 8px',
-                        height: '24px',
-                        '&::placeholder': {
-                          color: '#6B7280',
+                      "& .MuiInputBase-input": {
+                        padding: "8px 8px",
+                        height: "24px",
+                        "&::placeholder": {
+                          color: "#6B7280",
                           opacity: 1,
-                          fontSize: '12px',
+                          fontSize: "12px",
                         },
                       },
-                      '& .MuiSvgIcon-root': {
-                        color: '#FCFCFC',
-                        fontSize: '20px',
-                      }
+                      "& .MuiSvgIcon-root": {
+                        color: "#FCFCFC",
+                        fontSize: "20px",
+                      },
                     }}
                   />
                 </LocalizationProvider>
@@ -406,31 +493,34 @@ const EventAddPage = () => {
                 <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
                   終了日時<span className="text-red-500">*</span>
                 </label>
-                <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>
+                <LocalizationProvider
+                  dateAdapter={AdapterDateFns}
+                  adapterLocale={ja}
+                >
                   <DateTimePicker
                     value={formData.end}
-                    onChange={(date) => setFormData({...formData, end: date})}
+                    onChange={(date) => setFormData({ ...formData, end: date })}
                     sx={{
-                      width: '100%',
-                      '& .MuiInputBase-root': {
-                        backgroundColor: '#1D1D21',
-                        color: '#FCFCFC',
-                        height: '40px',
-                        fontSize: '14px',
+                      width: "100%",
+                      "& .MuiInputBase-root": {
+                        backgroundColor: "#1D1D21",
+                        color: "#FCFCFC",
+                        height: "40px",
+                        fontSize: "14px",
                       },
-                      '& .MuiInputBase-input': {
-                        padding: '8px 8px',
-                        height: '24px',
-                        '&::placeholder': {
-                          color: '#6B7280',
+                      "& .MuiInputBase-input": {
+                        padding: "8px 8px",
+                        height: "24px",
+                        "&::placeholder": {
+                          color: "#6B7280",
                           opacity: 1,
-                          fontSize: '12px',
+                          fontSize: "12px",
                         },
                       },
-                      '& .MuiSvgIcon-root': {
-                        color: '#FCFCFC',
-                        fontSize: '20px',
-                      }
+                      "& .MuiSvgIcon-root": {
+                        color: "#FCFCFC",
+                        fontSize: "20px",
+                      },
                     }}
                   />
                 </LocalizationProvider>
@@ -443,7 +533,9 @@ const EventAddPage = () => {
                 <input
                   type="checkbox"
                   checked={formData.isRecurring}
-                  onChange={(e) => setFormData({...formData, isRecurring: e.target.checked})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, isRecurring: e.target.checked })
+                  }
                   className="mr-2"
                 />
                 繰り返し設定
@@ -458,7 +550,12 @@ const EventAddPage = () => {
                   </label>
                   <select
                     value={formData.recurringType}
-                    onChange={(e) => setFormData({...formData, recurringType: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        recurringType: e.target.value,
+                      })
+                    }
                     className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
                   >
                     <option value="daily">毎日</option>
@@ -471,31 +568,34 @@ const EventAddPage = () => {
                   <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
                     繰り返し終了日<span className="text-red-500">*</span>
                   </label>
-                  <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>
+                  <LocalizationProvider
+                    dateAdapter={AdapterDateFns}
+                    adapterLocale={ja}
+                  >
                     <DatePicker
                       value={formData.recurringEndDate}
                       onChange={handleRecurringEndDateChange}
                       sx={{
-                        width: '100%',
-                        '& .MuiInputBase-root': {
-                          backgroundColor: '#1D1D21',
-                          color: '#FCFCFC',
-                          height: '40px',
-                          fontSize: '14px',
+                        width: "100%",
+                        "& .MuiInputBase-root": {
+                          backgroundColor: "#1D1D21",
+                          color: "#FCFCFC",
+                          height: "40px",
+                          fontSize: "14px",
                         },
-                        '& .MuiInputBase-input': {
-                          padding: '8px 14px',
-                          height: '24px',
-                          '&::placeholder': {
-                            color: '#6B7280',
+                        "& .MuiInputBase-input": {
+                          padding: "8px 14px",
+                          height: "24px",
+                          "&::placeholder": {
+                            color: "#6B7280",
                             opacity: 1,
-                            fontSize: '14px',
+                            fontSize: "14px",
                           },
                         },
-                        '& .MuiSvgIcon-root': {
-                          color: '#FCFCFC',
-                          fontSize: '20px',
-                        }
+                        "& .MuiSvgIcon-root": {
+                          color: "#FCFCFC",
+                          fontSize: "20px",
+                        },
                       }}
                     />
                   </LocalizationProvider>
@@ -527,7 +627,9 @@ const EventAddPage = () => {
               <input
                 type="url"
                 value={formData.url}
-                onChange={(e) => setFormData({...formData, url: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, url: e.target.value })
+                }
                 className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px] placeholder-[#6B7280]"
                 placeholder="https://..."
               />
@@ -540,11 +642,13 @@ const EventAddPage = () => {
               </label>
               <textarea
                 value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 className="w-full bg-[#1D1D21] rounded p-2 h-32 text-[#FCFCFC]"
               />
             </div>
-            
+
             {/* 運営メンバー */}
             <div>
               <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
@@ -558,15 +662,17 @@ const EventAddPage = () => {
                 >
                   <span className="text-sm">+ 運営メンバーを追加</span>
                 </button>
-                
+
                 {formData.participants.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {formData.participants.map(user => (
-                      <div 
-                        key={user.emp_no} 
+                    {formData.participants.map((user) => (
+                      <div
+                        key={user.emp_no}
                         className="flex items-center bg-[#3D3D45] rounded-full pl-2 pr-1.5 py-0.5 text-xs"
                       >
-                        <span className="text-[#FCFCFC] mr-1.5">{user.myoji} {user.namae}</span>
+                        <span className="text-[#FCFCFC] mr-1.5">
+                          {user.myoji} {user.namae}
+                        </span>
                         <button
                           type="button"
                           onClick={() => handleRemoveParticipant(user.emp_no)}
@@ -581,9 +687,7 @@ const EventAddPage = () => {
               </div>
             </div>
 
-            {error && (
-              <div className="text-red-500 text-sm">{error}</div>
-            )}
+            {error && <div className="text-red-500 text-sm">{error}</div>}
 
             <div className="flex justify-end gap-4">
               <button
@@ -617,4 +721,4 @@ const EventAddPage = () => {
   );
 };
 
-export default EventAddPage; 
+export default EventAddPage;
