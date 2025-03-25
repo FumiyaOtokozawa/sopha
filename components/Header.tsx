@@ -6,7 +6,6 @@ import MenuIcon from "@mui/icons-material/Menu";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import HomeIcon from "@mui/icons-material/Home";
-import LockResetIcon from "@mui/icons-material/LockReset";
 import { Menu, MenuItem, IconButton } from "@mui/material";
 import { useRouter } from "next/router";
 import Image from "next/image";
@@ -112,11 +111,6 @@ export default function Header() {
 
   const handleContactPage = () => {
     router.push("/common/contactBugReportPage");
-    handleMenuClose();
-  };
-
-  const handlePasswordChange = () => {
-    router.push("/updatePassword");
     handleMenuClose();
   };
 
@@ -252,13 +246,6 @@ export default function Header() {
                       sx={{ color: "#FCFCFC" }}
                     />
                     <span>お問い合わせ/不具合報告</span>
-                  </MenuItem>
-                  <MenuItem
-                    onClick={handlePasswordChange}
-                    className="flex items-center gap-2"
-                  >
-                    <LockResetIcon fontSize="small" sx={{ color: "#FCFCFC" }} />
-                    <span>パスワード変更</span>
                   </MenuItem>
                   <MenuItem
                     onClick={handleLogout}
