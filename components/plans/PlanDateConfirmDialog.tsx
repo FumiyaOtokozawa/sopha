@@ -101,7 +101,7 @@ const PlanDateConfirmDialog: React.FC<PlanDateConfirmDialogProps> = ({
             <Typography
               sx={{
                 fontSize: "1.25rem",
-                color: "rgb(226, 255, 62)",
+                color: "rgb(252, 252, 252)",
                 fontWeight: "bold",
                 letterSpacing: "0.5px",
               }}
@@ -139,22 +139,6 @@ const PlanDateConfirmDialog: React.FC<PlanDateConfirmDialogProps> = ({
       >
         <Button
           onClick={onClose}
-          variant="contained"
-          sx={{
-            backgroundColor: "rgb(91, 99, 211)",
-            color: "rgb(252, 252, 252)",
-            "&:hover": {
-              backgroundColor: "rgb(74, 81, 194)",
-            },
-            textTransform: "none",
-            minWidth: "120px",
-            fontWeight: "bold",
-          }}
-        >
-          いいえ
-        </Button>
-        <Button
-          onClick={onConfirm}
           variant="outlined"
           sx={{
             color: "rgb(252, 252, 252)",
@@ -165,6 +149,22 @@ const PlanDateConfirmDialog: React.FC<PlanDateConfirmDialogProps> = ({
             },
             textTransform: "none",
             minWidth: "120px",
+          }}
+        >
+          いいえ
+        </Button>
+        <Button
+          onClick={onConfirm}
+          variant="contained"
+          sx={{
+            backgroundColor: "rgb(91, 99, 211)",
+            color: "rgb(252, 252, 252)",
+            "&:hover": {
+              backgroundColor: "rgb(74, 81, 194)",
+            },
+            textTransform: "none",
+            minWidth: "120px",
+            fontWeight: "bold",
           }}
         >
           はい

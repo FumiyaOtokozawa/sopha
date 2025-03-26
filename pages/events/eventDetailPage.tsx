@@ -22,6 +22,7 @@ import VideocamIcon from "@mui/icons-material/Videocam";
 import PeopleIcon from "@mui/icons-material/People";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import DoneIcon from "@mui/icons-material/Done";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { motion, AnimatePresence } from "framer-motion";
 import ProfileModal from "../../components/ProfileModal";
 import AttendanceButtons from "../../components/AttendanceButtons";
@@ -264,35 +265,6 @@ const EventDetailPage: React.FC = () => {
         setEvent(formattedEvent);
         setEditedEvent(formattedEvent);
 
-        // 運営メンバーの情報を取得
-        if (eventData.manage_member) {
-          const memberIds = eventData.manage_member
-            .split(",")
-            .map((id: string) => id.trim())
-            .filter(Boolean);
-
-          if (memberIds.length > 0) {
-            const { data: membersData } = await supabase
-              .from("USER_INFO")
-              .select("emp_no, myoji, namae")
-              .in("emp_no", memberIds);
-
-            if (membersData && membersData.length > 0) {
-              // 社員番号順に並べ替え
-              const sortedMembers = memberIds.map((id: string) => {
-                const member = membersData.find(
-                  (m) => m.emp_no.toString() === id
-                );
-                return member
-                  ? `${member.myoji} ${member.namae}`
-                  : `未登録(${id})`;
-              });
-
-              setManageMembers(sortedMembers);
-            }
-          }
-        }
-
         // ログインユーザーの情報を取得
         const {
           data: { user },
@@ -305,7 +277,8 @@ const EventDetailPage: React.FC = () => {
             .single();
 
           if (userData) {
-            setIsOwner(userData.emp_no === eventData.owner);
+            const isEventOwner = userData.emp_no === eventData.owner;
+            setIsOwner(isEventOwner);
             setCurrentUserEmpNo(userData.emp_no);
 
             // 参加者一覧を取得
@@ -345,6 +318,35 @@ const EventDetailPage: React.FC = () => {
             );
             if (userEntry) {
               setEntryStatus(userEntry.status);
+            }
+          }
+        }
+
+        // 運営メンバーの情報を取得
+        if (eventData.manage_member) {
+          const memberIds = eventData.manage_member
+            .split(",")
+            .map((id: string) => id.trim())
+            .filter(Boolean);
+
+          if (memberIds.length > 0) {
+            const { data: membersData } = await supabase
+              .from("USER_INFO")
+              .select("emp_no, myoji, namae")
+              .in("emp_no", memberIds);
+
+            if (membersData && membersData.length > 0) {
+              // 社員番号順に並べ替え
+              const sortedMembers = memberIds.map((id: string) => {
+                const member = membersData.find(
+                  (m) => m.emp_no.toString() === id
+                );
+                return member
+                  ? `${member.myoji} ${member.namae}`
+                  : `未登録(${id})`;
+              });
+
+              setManageMembers(sortedMembers);
             }
           }
         }
@@ -392,7 +394,6 @@ const EventDetailPage: React.FC = () => {
 
       setEvent(editedEvent);
       setIsEditing(false);
-      router.push("/events/eventListPage");
     } catch (error) {
       console.error("更新エラー:", error);
     }
@@ -929,9 +930,29 @@ const EventDetailPage: React.FC = () => {
                   className="mb-4 bg-[#8E93DA]/20 border border-[#8E93DA]/40 rounded-xl p-3 flex items-center justify-center"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-[#8E93DA] font-medium">
-                      あなたが主催しているイベントです
-                    </span>
+                    {(() => {
+                      const missingItems = [];
+                      if (!event.venue_id) missingItems.push("場所");
+                      if (!event.format) missingItems.push("開催形式");
+
+                      if (missingItems.length > 0) {
+                        return (
+                          <>
+                            <WarningAmberIcon className="text-red-500" />
+                            <span className="text-red-500 font-medium">
+                              {missingItems.join("と")}
+                              を設定してください
+                            </span>
+                          </>
+                        );
+                      }
+
+                      return (
+                        <span className="text-[#8E93DA] font-medium">
+                          あなたが主催しているイベントです
+                        </span>
+                      );
+                    })()}
                   </div>
                 </motion.div>
               )}

@@ -8,11 +8,14 @@ import Close from "@mui/icons-material/Close";
 import EventIcon from "@mui/icons-material/Event";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useRouter } from "next/router";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useUser } from "@supabase/auth-helpers-react";
 import dayjs from "dayjs";
 import "dayjs/locale/ja";
+import timezone from "dayjs/plugin/timezone";
+import utc from "dayjs/plugin/utc";
 import { supabase } from "../../utils/supabaseClient";
 import PlanAdjInputModal from "../../components/plans/planAdjInputModal";
 import { PlanEditModal } from "../../components/plans/planEditModal";
@@ -22,6 +25,11 @@ import { PlanFormData } from "../../types/plan";
 import { DateTimeSelection } from "../../types/plan";
 import PlanChat from "../../components/plans/planChat";
 import PlanDateConfirmDialog from "../../components/plans/PlanDateConfirmDialog";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.tz.setDefault("Asia/Tokyo");
+dayjs.locale("ja");
 
 // 曜日の漢字マッピング
 const weekdayKanji = ["日", "月", "火", "水", "木", "金", "土"];
@@ -564,40 +572,6 @@ const PlanAdjStatusPage: NextPage = () => {
     }
   };
 
-  // イベントを手動で締め切る関数
-  const handleCloseEvent = async () => {
-    if (!planEvent) return;
-
-    // 確認ダイアログを表示
-    if (
-      !window.confirm(
-        "このイベントを締め切りますか？\n締め切り後は編集や回答の入力ができなくなります。"
-      )
-    ) {
-      return;
-    }
-
-    try {
-      const now = dayjs().format("YYYY-MM-DD HH:mm:ss");
-      const { error } = await supabase
-        .from("PLAN_EVENT")
-        .update({
-          status: "closed",
-          deadline: now, // 締め切り日時を現在時刻に更新
-          updated_at: now,
-        })
-        .eq("plan_id", planEvent.plan_id);
-
-      if (error) throw error;
-
-      // 画面を更新
-      await fetchPlanEventAndAvailabilities();
-    } catch (error) {
-      console.error("Error closing event:", error);
-      alert("イベントの締め切りに失敗しました");
-    }
-  };
-
   const handleDateCardClick = (date: PlanDate) => {
     setSelectedDate(date);
     setIsConfirmDialogOpen(true);
@@ -614,7 +588,7 @@ const PlanAdjStatusPage: NextPage = () => {
     try {
       // PLANを締め切る
       const closeDateTime = dayjs().format("YYYY-MM-DD HH:mm:ss");
-      const { error } = await supabase
+      const { error: closeError } = await supabase
         .from("PLAN_EVENT")
         .update({
           status: "closed",
@@ -623,23 +597,42 @@ const PlanAdjStatusPage: NextPage = () => {
         })
         .eq("plan_id", planEvent.plan_id);
 
-      if (error) throw error;
+      if (closeError) throw closeError;
 
-      // イベント作成ページに遷移
+      // イベントの作成
       const selectedDateTime = dayjs(selectedDate.datetime);
-      const endDateTime = selectedDateTime.add(1, "hour"); // デフォルトで1時間後を終了時間に設定
+      const endDateTime = selectedDateTime.add(1, "hour");
 
-      router.push({
-        pathname: "/events/eventAddPage",
-        query: {
+      const { data: eventData, error: createError } = await supabase
+        .from("EVENT_LIST")
+        .insert({
           title: planEvent.plan_title,
-          description: planEvent.description || "",
-          start_date: selectedDateTime.format("YYYY-MM-DDTHH:mm"),
-          end_date: endDateTime.format("YYYY-MM-DDTHH:mm"),
-        },
-      });
+          description: planEvent.description,
+          start_date: selectedDateTime.format("YYYY-MM-DD HH:mm:ss"),
+          end_date: endDateTime.format("YYYY-MM-DD HH:mm:ss"),
+          created_at: closeDateTime,
+          created_by: currentUserEmpNo,
+          updated_at: closeDateTime,
+          genre: null,
+          abbreviation: null,
+          format: null,
+          url: null,
+          venue_id: null,
+          manage_member: null,
+          owner: currentUserEmpNo,
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+      if (!eventData) throw new Error("イベントの作成に失敗しました");
+
+      // イベント詳細画面に遷移
+      router.push(`/events/eventDetailPage?event_id=${eventData.event_id}`);
     } catch (error) {
-      console.error("Error closing plan:", error);
+      console.error("Error creating event:", error);
+      alert("イベントの作成に失敗しました");
+      setIsConfirmDialogOpen(false);
     }
   };
 
@@ -783,22 +776,6 @@ const PlanAdjStatusPage: NextPage = () => {
           </motion.div>
         )}
 
-        {/* イベント締め切りボタン */}
-        {currentUserEmpNo === planEvent.created_by && !isEventClosed && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.3 }}
-          >
-            <button
-              onClick={handleCloseEvent}
-              className="w-full py-2 rounded-lg bg-[rgb(185,55,55)] text-white font-bold hover:bg-opacity-80 flex items-center justify-center gap-2 transition-all duration-200"
-            >
-              イベントを締め切る
-            </button>
-          </motion.div>
-        )}
-
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -849,6 +826,29 @@ const PlanAdjStatusPage: NextPage = () => {
               <Box
                 sx={{ width: "100%", flex: 1, minHeight: 0, overflowY: "auto" }}
               >
+                {currentUserEmpNo === planEvent.created_by &&
+                  !isEventClosed && (
+                    <Box
+                      sx={{
+                        p: 1,
+                        mb: 1,
+                        backgroundColor: "rgba(91, 99, 211, 0.1)",
+                        borderRadius: "8px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                      }}
+                    >
+                      <InfoOutlinedIcon
+                        sx={{ color: "rgb(252, 252, 252)", fontSize: "20px" }}
+                      />
+                      <Typography
+                        sx={{ color: "rgb(252, 252, 252)", fontSize: "0.9rem" }}
+                      >
+                        日付を選択してイベントを確定
+                      </Typography>
+                    </Box>
+                  )}
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                   {[...planEvent.dates]
                     .sort(

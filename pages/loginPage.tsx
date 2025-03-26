@@ -224,7 +224,7 @@ const LoginPage = () => {
           >
             <div className="w-64 h-48 relative">
               <Image
-                src="/logo_white_v.svg"
+                src="/logo_vertical.svg"
                 alt="SOPHA Logo"
                 layout="fill"
                 objectFit="contain"

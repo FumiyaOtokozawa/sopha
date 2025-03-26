@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
-import PlaceSelectModal from './PlaceSelectModal';
-import UserSelectModal from './UserSelectModal';
-import { Event } from '../types/event';
-import { User } from '../types/user';
-import { LocalizationProvider, DateTimePicker } from '@mui/x-date-pickers';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { ja } from 'date-fns/locale';
-import { supabase } from '../utils/supabaseClient';
-import { parseISO } from 'date-fns';
+import { useState, useEffect } from "react";
+import PlaceSelectModal from "./PlaceSelectModal";
+import UserSelectModal from "./UserSelectModal";
+import { Event } from "../types/event";
+import { User } from "../types/user";
+import { LocalizationProvider, DateTimePicker } from "@mui/x-date-pickers";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import { ja } from "date-fns/locale";
+import { supabase } from "../utils/supabaseClient";
+import { parseISO } from "date-fns";
 
 interface EventEditFormProps {
   onSave: () => Promise<void>;
@@ -26,25 +26,27 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [participants, setParticipants] = useState<User[]>([]);
   const [currentUserEmpNo, setCurrentUserEmpNo] = useState<number | null>(null);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string>("");
 
   // 現在のユーザー情報を取得
   useEffect(() => {
     const fetchCurrentUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         const { data } = await supabase
-          .from('USER_INFO')
-          .select('emp_no')
-          .eq('email', user.email)
+          .from("USER_INFO")
+          .select("emp_no")
+          .eq("email", user.email)
           .single();
-        
+
         if (data) {
           setCurrentUserEmpNo(data.emp_no);
         }
       }
     };
-    
+
     fetchCurrentUser();
   }, []);
 
@@ -54,29 +56,29 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
       if (editedEvent && editedEvent.manage_member) {
         // カンマ区切りの社員番号を配列に変換
         const empNos = editedEvent.manage_member
-          .split(',')
-          .filter((no: string) => no.trim() !== '')
+          .split(",")
+          .filter((no: string) => no.trim() !== "")
           .map((no: string) => parseInt(no.trim(), 10));
-        
+
         if (empNos.length > 0) {
           const { data } = await supabase
-            .from('USER_INFO')
-            .select('emp_no, myoji, namae, last_nm, first_nm')
-            .in('emp_no', empNos);
-          
+            .from("USER_INFO")
+            .select("emp_no, myoji, namae, last_nm, first_nm")
+            .in("emp_no", empNos);
+
           if (data) {
             setParticipants(data);
           }
         }
       }
     };
-    
+
     fetchParticipants();
   }, [editedEvent]);
 
   const validateAbbreviation = (value: string): boolean => {
     if (!value) return true;
-    
+
     // 文字数チェック（20文字まで）
     if (value.length > 20) {
       return false;
@@ -87,7 +89,10 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
     for (let i = 0; i < value.length; i++) {
       const charCode = value.charCodeAt(i);
       // 半角文字（ASCII文字とカタカナ）は1バイト、それ以外は2バイト
-      if ((charCode >= 0x0001 && charCode <= 0x007e) || (charCode >= 0xff61 && charCode <= 0xff9f)) {
+      if (
+        (charCode >= 0x0001 && charCode <= 0x007e) ||
+        (charCode >= 0xff61 && charCode <= 0xff9f)
+      ) {
         byteCount += 1;
       } else {
         byteCount += 2;
@@ -100,38 +105,41 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
     setEditedEvent({
       ...editedEvent,
       venue_id: venue.id,
-      venue_nm: venue.name
+      venue_nm: venue.name,
     });
   };
 
   // ユーザー選択時のハンドラー
   const handleUserSelect = (user: User) => {
     // 既に追加されているユーザーは追加しない
-    if (!participants.some(p => p.emp_no === user.emp_no)) {
+    if (!participants.some((p) => p.emp_no === user.emp_no)) {
       const newParticipants = [...participants, user];
       setParticipants(newParticipants);
-      
+
       // 社員番号をカンマ区切りのテキストに変換
-      const memberString = newParticipants.map(p => p.emp_no).join(',') + ',';
-      
+      const memberString = newParticipants.map((p) => p.emp_no).join(",") + ",";
+
       setEditedEvent({
         ...editedEvent,
-        manage_member: memberString
+        manage_member: memberString,
       });
     }
   };
-  
+
   // 参加者削除のハンドラー
   const handleRemoveParticipant = (empNo: number) => {
-    const newParticipants = participants.filter(p => p.emp_no !== empNo);
+    const newParticipants = participants.filter((p) => p.emp_no !== empNo);
     setParticipants(newParticipants);
-    
+
     // 社員番号をカンマ区切りのテキストに変換
-    const memberString = newParticipants.length > 0 ? newParticipants.map(p => p.emp_no).join(',') + ',' : '';
-    
+    const memberString =
+      newParticipants.length > 0
+        ? newParticipants.map((p) => p.emp_no).join(",") + ","
+        : "";
+
     setEditedEvent({
       ...editedEvent,
-      manage_member: memberString
+      manage_member: memberString,
     });
   };
 
@@ -143,51 +151,89 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
   // 保存前に呼び出す関数
   const handleSave = async () => {
     // エラーをリセット
-    setError('');
+    setError("");
+
+    // 必須項目のチェック
+    const requiredFields = [
+      { field: editedEvent.title, name: "タイトル" },
+      { field: editedEvent.genre, name: "イベント種別" },
+      { field: editedEvent.format, name: "開催形式" },
+      { field: editedEvent.venue_id, name: "場所" },
+      { field: editedEvent.start_date, name: "開始日時" },
+      { field: editedEvent.end_date, name: "終了日時" },
+    ];
+
+    // オンライン形式の場合はURLも必須
+    if (editedEvent.format === "online" || editedEvent.format === "hybrid") {
+      requiredFields.push({ field: editedEvent.url || "", name: "URL" });
+    }
+
+    const missingFields = requiredFields
+      .filter((field) => !field.field)
+      .map((field) => field.name);
+
+    if (missingFields.length > 0) {
+      setError(
+        `以下の必須項目を入力してください：\n${missingFields.join("、")}`
+      );
+      // フォームの一番上までスクロール
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
 
     // 開始日時と終了日時の前後関係をチェック
     const startDate = toDate(editedEvent.start_date);
     const endDate = toDate(editedEvent.end_date);
 
     if (startDate >= endDate) {
-      setError('終了日時は開始日時より後に設定してください');
+      setError("終了日時は開始日時より後に設定してください");
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
     // 省略名のバリデーション
     if (editedEvent.abbreviation) {
       if (!validateAbbreviation(editedEvent.abbreviation)) {
-        setError('省略名は合計6バイト以内で入力してください（全角文字は2バイト、半角文字は1バイト）');
+        setError(
+          "省略名は合計6バイト以内で入力してください（全角文字は2バイト、半角文字は1バイト）"
+        );
+        window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
     }
 
-    // 保存前に日時のタイムゾーンオフセットを調整
-    if (editedEvent.start_date) {
-      editedEvent.start_date = new Date(startDate.getTime() - (startDate.getTimezoneOffset() * 60000)).toISOString();
-    }
-    
-    if (editedEvent.end_date) {
-      editedEvent.end_date = new Date(endDate.getTime() - (endDate.getTimezoneOffset() * 60000)).toISOString();
-    }
-    
+    // タイムゾーン調整を削除し、そのままの日時を使用
+    setEditedEvent({
+      ...editedEvent,
+      start_date: editedEvent.start_date,
+      end_date: editedEvent.end_date,
+    });
+
     // 元の保存処理を呼び出す
     await onSave();
   };
 
   return (
     <div className="space-y-3">
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-4">
+          <p className="text-red-500 text-sm whitespace-pre-line">{error}</p>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3 ">
         <div>
           <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
             イベント種別<span className="text-red-500">*</span>
           </label>
           <select
-            value={editedEvent?.genre}
-            onChange={(e) => setEditedEvent({...editedEvent, genre: e.target.value})}
+            value={editedEvent?.genre || ""}
+            onChange={(e) =>
+              setEditedEvent({ ...editedEvent, genre: e.target.value })
+            }
             className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
             required
           >
+            <option value="">選択してください</option>
             <option value="0">有志イベント</option>
             <option value="1">公式イベント</option>
           </select>
@@ -198,14 +244,17 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
             開催形式<span className="text-red-500">*</span>
           </label>
           <select
-            value={editedEvent?.format}
-            onChange={(e) => setEditedEvent({ 
-              ...editedEvent, 
-              format: e.target.value as 'offline' | 'online' | 'hybrid'
-            })}
+            value={editedEvent?.format || ""}
+            onChange={(e) =>
+              setEditedEvent({
+                ...editedEvent,
+                format: e.target.value as "offline" | "online" | "hybrid",
+              })
+            }
             className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
             required
           >
+            <option value="">選択してください</option>
             <option value="offline">オフライン</option>
             <option value="online">オンライン</option>
             <option value="hybrid">ハイブリッド</option>
@@ -220,7 +269,9 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
         <input
           type="text"
           value={editedEvent?.title}
-          onChange={(e) => setEditedEvent({ ...editedEvent, title: e.target.value })}
+          onChange={(e) =>
+            setEditedEvent({ ...editedEvent, title: e.target.value })
+          }
           className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
           required
         />
@@ -232,7 +283,7 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
         </label>
         <input
           type="text"
-          value={editedEvent?.abbreviation || ''}
+          value={editedEvent?.abbreviation || ""}
           onChange={(e) => {
             const value = e.target.value;
             if (value.length <= 20) {
@@ -256,31 +307,31 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
                 if (date) {
                   setEditedEvent({
                     ...editedEvent,
-                    start_date: date.toISOString()
+                    start_date: date.toISOString(),
                   });
                 }
               }}
               sx={{
-                width: '100%',
-                '& .MuiInputBase-root': {
-                  backgroundColor: '#1D1D21',
-                  color: '#FCFCFC',
-                  height: '40px',
-                  fontSize: '14px',
+                width: "100%",
+                "& .MuiInputBase-root": {
+                  backgroundColor: "#1D1D21",
+                  color: "#FCFCFC",
+                  height: "40px",
+                  fontSize: "14px",
                 },
-                '& .MuiInputBase-input': {
-                  padding: '8px 8px',
-                  height: '24px',
-                  '&::placeholder': {
-                    color: '#6B7280',
+                "& .MuiInputBase-input": {
+                  padding: "8px 8px",
+                  height: "24px",
+                  "&::placeholder": {
+                    color: "#6B7280",
                     opacity: 1,
-                    fontSize: '12px',
+                    fontSize: "12px",
                   },
                 },
-                '& .MuiSvgIcon-root': {
-                  color: '#FCFCFC',
-                  fontSize: '20px',
-                }
+                "& .MuiSvgIcon-root": {
+                  color: "#FCFCFC",
+                  fontSize: "20px",
+                },
               }}
             />
           </LocalizationProvider>
@@ -296,31 +347,31 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
                 if (date) {
                   setEditedEvent({
                     ...editedEvent,
-                    end_date: date.toISOString()
+                    end_date: date.toISOString(),
                   });
                 }
               }}
               sx={{
-                width: '100%',
-                '& .MuiInputBase-root': {
-                  backgroundColor: '#1D1D21',
-                  color: '#FCFCFC',
-                  height: '40px',
-                  fontSize: '14px',
+                width: "100%",
+                "& .MuiInputBase-root": {
+                  backgroundColor: "#1D1D21",
+                  color: "#FCFCFC",
+                  height: "40px",
+                  fontSize: "14px",
                 },
-                '& .MuiInputBase-input': {
-                  padding: '8px 8px',
-                  height: '24px',
-                  '&::placeholder': {
-                    color: '#6B7280',
+                "& .MuiInputBase-input": {
+                  padding: "8px 8px",
+                  height: "24px",
+                  "&::placeholder": {
+                    color: "#6B7280",
                     opacity: 1,
-                    fontSize: '12px',
+                    fontSize: "12px",
                   },
                 },
-                '& .MuiSvgIcon-root': {
-                  color: '#FCFCFC',
-                  fontSize: '20px',
-                }
+                "& .MuiSvgIcon-root": {
+                  color: "#FCFCFC",
+                  fontSize: "20px",
+                },
               }}
             />
           </LocalizationProvider>
@@ -345,14 +396,18 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
       <div>
         <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
           URL
-          {editedEvent?.format === 'online' && <span className="text-red-500">*</span>}
+          {editedEvent?.format === "online" && (
+            <span className="text-red-500">*</span>
+          )}
         </label>
         <input
           type="url"
-          value={editedEvent?.url || ''}
-          onChange={(e) => setEditedEvent({ ...editedEvent, url: e.target.value })}
+          value={editedEvent?.url || ""}
+          onChange={(e) =>
+            setEditedEvent({ ...editedEvent, url: e.target.value })
+          }
           className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px] placeholder-[#6B7280]"
-          required={editedEvent?.format === 'online'}
+          required={editedEvent?.format === "online"}
           placeholder="https://..."
         />
       </div>
@@ -362,12 +417,14 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
           説明
         </label>
         <textarea
-          value={editedEvent?.description || ''}
-          onChange={(e) => setEditedEvent({ ...editedEvent, description: e.target.value })}
+          value={editedEvent?.description || ""}
+          onChange={(e) =>
+            setEditedEvent({ ...editedEvent, description: e.target.value })
+          }
           className="w-full bg-[#1D1D21] rounded p-2 h-32 text-[#FCFCFC]"
         />
       </div>
-      
+
       {/* 運営メンバー */}
       <div>
         <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
@@ -381,15 +438,17 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
           >
             <span className="text-sm">+ 運営メンバーを追加</span>
           </button>
-          
+
           {participants.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
-              {participants.map(user => (
-                <div 
-                  key={user.emp_no} 
+              {participants.map((user) => (
+                <div
+                  key={user.emp_no}
                   className="flex items-center bg-[#3D3D45] rounded-full pl-2 pr-1.5 py-0.5 text-xs"
                 >
-                  <span className="text-[#FCFCFC] mr-1.5">{user.myoji} {user.namae}</span>
+                  <span className="text-[#FCFCFC] mr-1.5">
+                    {user.myoji} {user.namae}
+                  </span>
                   <button
                     type="button"
                     onClick={() => handleRemoveParticipant(user.emp_no)}
@@ -403,10 +462,6 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
           )}
         </div>
       </div>
-
-      {error && (
-        <div className="text-red-500 text-sm mt-2">{error}</div>
-      )}
 
       <div className="flex justify-end gap-4">
         <button
@@ -430,7 +485,7 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
         onClose={() => setIsPlaceModalOpen(false)}
         onSelect={handlePlaceSelect}
       />
-      
+
       <UserSelectModal
         open={isUserModalOpen}
         onClose={() => setIsUserModalOpen(false)}
@@ -439,6 +494,6 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
       />
     </div>
   );
-}
+};
 
-export default EventEditForm; 
+export default EventEditForm;

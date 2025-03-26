@@ -17,6 +17,7 @@ import "dayjs/locale/ja";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.tz.setDefault("Asia/Tokyo");
+dayjs.locale("ja");
 
 interface PlanEditModalProps {
   open: boolean;
@@ -48,9 +49,6 @@ export const PlanEditModal: React.FC<PlanEditModalProps> = ({
     DateTimeSelection[]
   >([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // 日本語ロケールを設定
-  dayjs.locale("ja");
 
   // 15分刻みの時間オプションを生成
   const timeOptions = Array.from({ length: 96 }, (_, i) => {
