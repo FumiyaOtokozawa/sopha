@@ -1,6 +1,14 @@
 import { NextPage } from "next";
 import React from "react";
-import { Box, Typography, Paper, Tabs, Tab, IconButton } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Paper,
+  Tabs,
+  Tab,
+  IconButton,
+  Button,
+} from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 import CircleOutlined from "@mui/icons-material/CircleOutlined";
 import ChangeHistory from "@mui/icons-material/ChangeHistory";
@@ -25,6 +33,7 @@ import { PlanFormData } from "../../types/plan";
 import { DateTimeSelection } from "../../types/plan";
 import PlanChat from "../../components/plans/planChat";
 import PlanDateConfirmDialog from "../../components/plans/PlanDateConfirmDialog";
+import PlanReopenDialog from "../../components/plans/PlanReopenDialog";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -128,6 +137,7 @@ const PlanAdjStatusPage: NextPage = () => {
   const [currentUserEmpNo, setCurrentUserEmpNo] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState<PlanDate | null>(null);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [isReopenDialogOpen, setIsReopenDialogOpen] = useState(false);
 
   // イベントが締め切られているかどうかを判定する
   const isEventClosed = useMemo(() => {
@@ -582,6 +592,35 @@ const PlanAdjStatusPage: NextPage = () => {
     setSelectedDate(null);
   };
 
+  const handleCloseWithoutEvent = async () => {
+    if (!planEvent) return;
+
+    try {
+      // PLANを締め切る（締切日時を現在時刻-1分に設定）
+      const closeDateTime = dayjs()
+        .subtract(1, "minute")
+        .format("YYYY-MM-DD HH:mm:ss");
+      const { error: closeError } = await supabase
+        .from("PLAN_EVENT")
+        .update({
+          status: "closed",
+          deadline: closeDateTime,
+          updated_at: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+        })
+        .eq("plan_id", planEvent.plan_id);
+
+      if (closeError) throw closeError;
+
+      // 画面を更新
+      await fetchPlanEventAndAvailabilities();
+      setIsConfirmDialogOpen(false);
+      setSelectedDate(null);
+    } catch (error) {
+      console.error("Error closing plan:", error);
+      alert("締め切りに失敗しました");
+    }
+  };
+
   const handleConfirmDialogConfirm = async () => {
     if (!selectedDate || !planEvent) return;
 
@@ -633,6 +672,31 @@ const PlanAdjStatusPage: NextPage = () => {
       console.error("Error creating event:", error);
       alert("イベントの作成に失敗しました");
       setIsConfirmDialogOpen(false);
+    }
+  };
+
+  const handleReopenPlan = async () => {
+    if (!planEvent) return;
+
+    try {
+      const newDeadline = dayjs().add(1, "day").format("YYYY-MM-DD HH:mm:ss");
+      const { error: updateError } = await supabase
+        .from("PLAN_EVENT")
+        .update({
+          status: null,
+          deadline: newDeadline,
+          updated_at: dayjs().format("YYYY-MM-DD HH:mm:ss"),
+        })
+        .eq("plan_id", planEvent.plan_id);
+
+      if (updateError) throw updateError;
+
+      // 画面を更新
+      await fetchPlanEventAndAvailabilities();
+      setIsReopenDialogOpen(false);
+    } catch (error) {
+      console.error("Error reopening plan:", error);
+      alert("締め切りの延長に失敗しました");
     }
   };
 
@@ -720,30 +784,49 @@ const PlanAdjStatusPage: NextPage = () => {
                   )}
                 </Box>
               </Box>
-              {currentUserEmpNo === planEvent.created_by && !isEventClosed && (
+              {currentUserEmpNo === planEvent.created_by && (
                 <Box sx={{ display: "flex", gap: 1 }}>
-                  <IconButton
-                    onClick={handleDelete}
-                    sx={{
-                      color: "rgba(255, 255, 255, 0.7)",
-                      "&:hover": {
+                  {isEventClosed ? (
+                    <Button
+                      onClick={() => setIsReopenDialogOpen(true)}
+                      variant="contained"
+                      size="small"
+                      sx={{
+                        bgcolor: "#5b63d3",
                         color: "#FCFCFC",
-                      },
-                    }}
-                  >
-                    <DeleteIcon sx={{ fontSize: "1.25rem" }} />
-                  </IconButton>
-                  <IconButton
-                    onClick={() => setIsEditModalOpen(true)}
-                    sx={{
-                      color: "rgba(255, 255, 255, 0.7)",
-                      "&:hover": {
-                        color: "#FCFCFC",
-                      },
-                    }}
-                  >
-                    <EditIcon sx={{ fontSize: "1.25rem" }} />
-                  </IconButton>
+                        "&:hover": {
+                          bgcolor: "rgba(91, 99, 211, 0.8)",
+                        },
+                      }}
+                    >
+                      締め切りを延長
+                    </Button>
+                  ) : (
+                    <>
+                      <IconButton
+                        onClick={handleDelete}
+                        sx={{
+                          color: "rgba(255, 255, 255, 0.7)",
+                          "&:hover": {
+                            color: "#FCFCFC",
+                          },
+                        }}
+                      >
+                        <DeleteIcon sx={{ fontSize: "1.25rem" }} />
+                      </IconButton>
+                      <IconButton
+                        onClick={() => setIsEditModalOpen(true)}
+                        sx={{
+                          color: "rgba(255, 255, 255, 0.7)",
+                          "&:hover": {
+                            color: "#FCFCFC",
+                          },
+                        }}
+                      >
+                        <EditIcon sx={{ fontSize: "1.25rem" }} />
+                      </IconButton>
+                    </>
+                  )}
                 </Box>
               )}
             </Box>
@@ -1253,7 +1336,14 @@ const PlanAdjStatusPage: NextPage = () => {
           open={isConfirmDialogOpen}
           onClose={handleConfirmDialogClose}
           onConfirm={handleConfirmDialogConfirm}
+          onCloseWithoutEvent={handleCloseWithoutEvent}
           dateTime={selectedDate?.datetime}
+        />
+
+        <PlanReopenDialog
+          open={isReopenDialogOpen}
+          onClose={() => setIsReopenDialogOpen(false)}
+          onConfirm={handleReopenPlan}
         />
       </Box>
     </Box>

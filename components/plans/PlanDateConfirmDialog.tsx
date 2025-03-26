@@ -14,6 +14,7 @@ interface PlanDateConfirmDialogProps {
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  onCloseWithoutEvent: () => void;
   dateTime?: string;
 }
 
@@ -24,6 +25,7 @@ const PlanDateConfirmDialog: React.FC<PlanDateConfirmDialogProps> = ({
   open,
   onClose,
   onConfirm,
+  onCloseWithoutEvent,
   dateTime,
 }) => {
   // 日時のフォーマット
@@ -37,7 +39,9 @@ const PlanDateConfirmDialog: React.FC<PlanDateConfirmDialogProps> = ({
     <Dialog
       open={open}
       onClose={onClose}
+      className="plan-date-confirm"
       PaperProps={{
+        className: "plan-date-confirm__paper",
         style: {
           backgroundColor: "rgb(45, 45, 51)",
           color: "rgb(252, 252, 252)",
@@ -48,9 +52,16 @@ const PlanDateConfirmDialog: React.FC<PlanDateConfirmDialogProps> = ({
         },
       }}
     >
-      <DialogContent sx={{ p: 0, mb: 3 }}>
-        <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+      <DialogContent
+        className="plan-date-confirm__content"
+        sx={{ p: 0, mb: 3 }}
+      >
+        <Box
+          className="plan-date-confirm__header"
+          sx={{ display: "flex", alignItems: "center", mb: 3 }}
+        >
           <Box
+            className="plan-date-confirm__icon-wrapper"
             sx={{
               backgroundColor: "rgba(91, 99, 211, 0)",
               borderRadius: "50%",
@@ -61,10 +72,14 @@ const PlanDateConfirmDialog: React.FC<PlanDateConfirmDialogProps> = ({
               justifyContent: "center",
             }}
           >
-            <EventIcon sx={{ color: "rgb(255, 255, 255)", fontSize: "24px" }} />
+            <EventIcon
+              className="plan-date-confirm__icon"
+              sx={{ color: "rgb(255, 255, 255)", fontSize: "24px" }}
+            />
           </Box>
           <Typography
             variant="h6"
+            className="plan-date-confirm__title"
             sx={{
               fontSize: "1.1rem",
               fontWeight: "bold",
@@ -74,8 +89,9 @@ const PlanDateConfirmDialog: React.FC<PlanDateConfirmDialogProps> = ({
             イベントの作成
           </Typography>
         </Box>
-        <Box sx={{ mb: 2 }}>
+        <Box className="plan-date-confirm__body" sx={{ mb: 2 }}>
           <Typography
+            className="plan-date-confirm__message"
             sx={{
               fontSize: "0.95rem",
               color: "rgb(252, 252, 252)",
@@ -87,6 +103,7 @@ const PlanDateConfirmDialog: React.FC<PlanDateConfirmDialogProps> = ({
             選択した日時でイベントを作成しますか？
           </Typography>
           <Box
+            className="plan-date-confirm__datetime"
             sx={{
               backgroundColor: "rgba(91, 99, 211, 0.1)",
               borderRadius: "8px",
@@ -99,6 +116,7 @@ const PlanDateConfirmDialog: React.FC<PlanDateConfirmDialogProps> = ({
             }}
           >
             <Typography
+              className="plan-date-confirm__datetime-text"
               sx={{
                 fontSize: "1.25rem",
                 color: "rgb(252, 252, 252)",
@@ -111,6 +129,7 @@ const PlanDateConfirmDialog: React.FC<PlanDateConfirmDialogProps> = ({
           </Box>
         </Box>
         <Box
+          className="plan-date-confirm__warning"
           sx={{
             backgroundColor: "rgba(255, 107, 107, 0.1)",
             borderRadius: "6px",
@@ -121,9 +140,11 @@ const PlanDateConfirmDialog: React.FC<PlanDateConfirmDialogProps> = ({
           }}
         >
           <InfoOutlinedIcon
+            className="plan-date-confirm__warning-icon"
             sx={{ color: "rgb(255, 107, 107)", fontSize: "18px" }}
           />
           <Typography
+            className="plan-date-confirm__warning-text"
             sx={{
               fontSize: "0.8rem",
               color: "rgb(255, 107, 107)",
@@ -135,11 +156,25 @@ const PlanDateConfirmDialog: React.FC<PlanDateConfirmDialogProps> = ({
         </Box>
       </DialogContent>
       <DialogActions
-        sx={{ p: 0, display: "flex", justifyContent: "space-between" }}
+        className="plan-date-confirm__actions"
+        sx={{
+          p: "0 !important",
+          m: "0 !important",
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          alignItems: "center",
+          width: "100%",
+          "& .MuiDialogActions-spacing": {
+            m: "0 !important",
+          },
+        }}
       >
         <Button
-          onClick={onClose}
+          onClick={onCloseWithoutEvent}
           variant="outlined"
+          fullWidth
+          className="plan-date-confirm__close-button"
           sx={{
             color: "rgb(252, 252, 252)",
             borderColor: "rgba(252, 252, 252, 0.3)",
@@ -148,27 +183,60 @@ const PlanDateConfirmDialog: React.FC<PlanDateConfirmDialogProps> = ({
               backgroundColor: "rgba(252, 252, 252, 0.05)",
             },
             textTransform: "none",
-            minWidth: "120px",
+            maxWidth: "400px",
           }}
         >
-          いいえ
+          イベントを作成せずに締め切る
         </Button>
-        <Button
-          onClick={onConfirm}
-          variant="contained"
+        <Box
+          className="plan-date-confirm__button-group"
           sx={{
-            backgroundColor: "rgb(91, 99, 211)",
-            color: "rgb(252, 252, 252)",
-            "&:hover": {
-              backgroundColor: "rgb(74, 81, 194)",
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 2,
+            width: "100%",
+            maxWidth: "400px",
+            m: "0 !important",
+            "&.MuiBox-root": {
+              m: "0 !important",
             },
-            textTransform: "none",
-            minWidth: "120px",
-            fontWeight: "bold",
           }}
         >
-          はい
-        </Button>
+          <Button
+            onClick={onClose}
+            variant="outlined"
+            className="plan-date-confirm__cancel-button"
+            sx={{
+              color: "rgb(252, 252, 252)",
+              borderColor: "rgba(252, 252, 252, 0.3)",
+              "&:hover": {
+                borderColor: "rgb(252, 252, 252)",
+                backgroundColor: "rgba(252, 252, 252, 0.05)",
+              },
+              textTransform: "none",
+              flex: 1,
+            }}
+          >
+            いいえ
+          </Button>
+          <Button
+            onClick={onConfirm}
+            variant="contained"
+            className="plan-date-confirm__confirm-button"
+            sx={{
+              backgroundColor: "rgb(91, 99, 211)",
+              color: "rgb(252, 252, 252)",
+              "&:hover": {
+                backgroundColor: "rgb(74, 81, 194)",
+              },
+              textTransform: "none",
+              flex: 1,
+              fontWeight: "bold",
+            }}
+          >
+            はい
+          </Button>
+        </Box>
       </DialogActions>
     </Dialog>
   );
