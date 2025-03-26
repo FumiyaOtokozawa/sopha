@@ -126,7 +126,10 @@ const PlanMainPage: NextPage = () => {
         (event) => ({
           ...event,
           creator: {
-            name: `${event.creator.myoji} ${event.creator.namae}`,
+            name:
+              event.creator?.myoji && event.creator?.namae
+                ? `${event.creator.myoji} ${event.creator.namae}`
+                : "（匿名）",
           },
           responses_count: event.responses_count || 0,
         })
@@ -185,7 +188,10 @@ const PlanMainPage: NextPage = () => {
           (event) => ({
             ...event,
             creator: {
-              name: `${event.creator.myoji} ${event.creator.namae}`,
+              name:
+                event.creator?.myoji && event.creator?.namae
+                  ? `${event.creator.myoji} ${event.creator.namae}`
+                  : "（匿名）",
             },
             responses_count: event.responses_count || 0,
           })
