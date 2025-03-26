@@ -76,31 +76,6 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
     fetchParticipants();
   }, [editedEvent]);
 
-  const validateAbbreviation = (value: string): boolean => {
-    if (!value) return true;
-
-    // 文字数チェック（20文字まで）
-    if (value.length > 20) {
-      return false;
-    }
-
-    // バイト数を計算（全角文字は2バイト、半角文字は1バイト）
-    let byteCount = 0;
-    for (let i = 0; i < value.length; i++) {
-      const charCode = value.charCodeAt(i);
-      // 半角文字（ASCII文字とカタカナ）は1バイト、それ以外は2バイト
-      if (
-        (charCode >= 0x0001 && charCode <= 0x007e) ||
-        (charCode >= 0xff61 && charCode <= 0xff9f)
-      ) {
-        byteCount += 1;
-      } else {
-        byteCount += 2;
-      }
-    }
-    return byteCount <= 6;
-  };
-
   const handlePlaceSelect = (venue: { id: number; name: string }) => {
     setEditedEvent({
       ...editedEvent,
@@ -191,17 +166,6 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
       return;
     }
 
-    // 省略名のバリデーション
-    if (editedEvent.abbreviation) {
-      if (!validateAbbreviation(editedEvent.abbreviation)) {
-        setError(
-          "省略名は合計6バイト以内で入力してください（全角文字は2バイト、半角文字は1バイト）"
-        );
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        return;
-      }
-    }
-
     // タイムゾーン調整を削除し、そのままの日時を使用
     setEditedEvent({
       ...editedEvent,
@@ -274,24 +238,6 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
           }
           className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
           required
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
-          省略名（6バイト以内：全角=2バイト、半角=1バイト）
-        </label>
-        <input
-          type="text"
-          value={editedEvent?.abbreviation || ""}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (value.length <= 20) {
-              setEditedEvent({ ...editedEvent, abbreviation: value });
-            }
-          }}
-          className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px] placeholder-[#6B7280]"
-          placeholder="例：懇親会、ポケカ、ああaa など"
         />
       </div>
 

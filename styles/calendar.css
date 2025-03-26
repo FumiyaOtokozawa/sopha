@@ -35,11 +35,12 @@
 .custom-calendar .rbc-toolbar button {
   color: #ffffff;
   border: 1px solid #52525b;
-  padding: 8px;
+  padding: 10px 16px;
   border-radius: 8px;
-  font-size: 0.875rem;
+  font-size: 0.95rem;
   transition: background-color 0.2s;
   white-space: nowrap;
+  min-width: 80px;
 }
 
 .custom-calendar .rbc-toolbar button:hover {
@@ -154,18 +155,20 @@
   background-color: #5b63d3;
   border: none;
   border-radius: 4px;
-  padding-top: 1px;
-  padding-bottom: 1px;
-  padding-left: 4px;
-  padding-right: 4px;
+  padding: 1px 4px;
   font-size: 0.5rem !important;
   margin: 1px 2px;
   max-width: calc(100% - 2px);
   box-sizing: border-box;
-  text-overflow: clip;
+  text-overflow: ellipsis;
   overflow: hidden;
-  white-space: nowrap;
+  white-space: normal;
   line-height: 1.2;
+  height: 2.4em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .custom-calendar .rbc-event.rbc-selected {
@@ -174,8 +177,10 @@
 
 /* イベントの行のスタイル */
 .custom-calendar .rbc-row-segment {
-  padding: 0 2px;
+  padding: 0 1px;
   margin-bottom: 1px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* イベントの「他 X 件」表示のスタイル */
@@ -183,16 +188,23 @@
   font-size: 0.7rem;
   color: #5b63d3;
   background-color: transparent;
-  padding-left:3px;
+  padding-left: 3px;
   margin-top: 1px;
+  order: 999; /* 常に最後に表示 */
 }
 
 /* カスタムイベントコンポーネントのスタイル */
 .custom-calendar .text-sm.truncate {
   font-size: 0.7rem;
-  line-height: 1.1;
-  max-height: 1.1em;
+  line-height: 1.2;
+  height: 2.6em;
   overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
 }
 
 /* 予定リスト表示のスタイル */
@@ -210,15 +222,15 @@
 
 /* 予定リストのヘッダー */
 .custom-calendar .rbc-agenda-table thead {
-  background-color: #37373F;
-  border: 1px solid #37373F;
+  background-color: #37373f;
+  border: 1px solid #37373f;
 }
 
 .custom-calendar .rbc-agenda-table th,
 .custom-calendar .rbc-agenda-table td,
 .custom-calendar .rbc-agenda-table tr {
-    border: 1px solid #2d2d33;
-    border-bottom: 1px solid #37373F;
+  border: 1px solid #2d2d33;
+  border-bottom: 1px solid #37373f;
 }
 
 /* 予定リストのセル共通スタイル */
@@ -264,7 +276,7 @@
 /* ボタングループのスタイル調整 */
 .custom-calendar .rbc-btn-group {
   display: flex;
-  gap: 4px;
+  gap: 8px;
   flex: 0 0 auto;
   order: 1;
 }
@@ -283,9 +295,9 @@
   }
 
   .custom-calendar .rbc-toolbar button {
-    padding: 4px 6px;
-    font-size: 0.7rem;
-    min-width: 0;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    min-width: 20px;
   }
 
   .custom-calendar .rbc-toolbar-label {
@@ -295,7 +307,7 @@
   }
 
   .custom-calendar .rbc-btn-group {
-    gap: 2px;
+    gap: 4px;
     flex-shrink: 1;
     min-width: 0;
   }
@@ -308,7 +320,7 @@
 
   /* 日付セルのフォントサイズを小さく */
   .custom-calendar .rbc-date-cell {
-    font-size: 0.60rem;
+    font-size: 0.6rem;
   }
 
   /* イベントのフォントサイズをさらに小さく */
@@ -317,21 +329,41 @@
   .custom-calendar .rbc-event-content,
   .custom-calendar .rbc-event-label {
     font-size: 0.55rem !important;
-    padding-top: 1 !important;
-    padding-bottom: 1 !important;
-    line-height: 1.4 !important;
-    height: auto !important;
+    padding-top: 0.5px !important;
+    padding-bottom: 1px !important;
+    line-height: 1.2 !important;
+    height: 2.6em !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    white-space: normal !important;
+    overflow: hidden !important;
   }
 
   /* イベントコンテナのサイズも調整 */
   .custom-calendar .rbc-event-content {
-    height: 1.5em !important;
+    height: 2.6em !important;
+    overflow: hidden !important;
   }
 
   /* ヘッダー（曜日）のフォントサイズも調整 */
   .custom-calendar .rbc-header {
     font-size: 0.75rem;
     padding: 4px 2px;
+  }
+
+  /* スマホでも同じ表示制限を適用 */
+  .custom-calendar .rbc-row-segment .rbc-event:nth-child(-n + 2) {
+    display: block !important;
+  }
+
+  .custom-calendar .rbc-row-segment .rbc-event:nth-child(n + 3) {
+    display: none !important;
+  }
+
+  .custom-calendar .rbc-month-row {
+    min-height: 80px;
   }
 }
 
@@ -376,7 +408,7 @@ body .rbc-overlay-header {
 body .rbc-overlay .rbc-event {
   margin: 4px 0 !important;
   padding: 8px 12px !important;
-  background-color: #37373F !important;
+  background-color: #37373f !important;
   border-radius: 4px !important;
   min-height: 36px !important;
   display: flex !important;
@@ -405,7 +437,7 @@ body .rbc-overlay .rbc-event .rbc-event-content {
     max-height: 70vh !important;
     padding: 12px !important;
   }
-  
+
   body .rbc-overlay .rbc-event {
     padding: 6px 8px !important;
     min-height: 32px !important;
@@ -428,4 +460,27 @@ body .rbc-overlay::-webkit-scrollbar-track {
 body .rbc-overlay::-webkit-scrollbar-thumb {
   background: #4a4a4f !important;
   border-radius: 2px !important;
-} 
+}
+
+/* イベント表示数の制限 */
+.custom-calendar .rbc-month-view .rbc-month-row {
+  overflow: visible;
+}
+
+.custom-calendar .rbc-month-row .rbc-row-content {
+  margin-right: 0;
+}
+
+.custom-calendar .rbc-row-content .rbc-row {
+  flex-wrap: nowrap !important;
+}
+
+/* 最初の2つのイベントは必ず表示 */
+.custom-calendar .rbc-row-segment .rbc-event:nth-child(-n + 2) {
+  display: block !important;
+}
+
+/* 3つ目以降のイベントを非表示 */
+.custom-calendar .rbc-row-segment .rbc-event:nth-child(n + 3) {
+  display: none !important;
+}

@@ -93,7 +93,7 @@ const CustomEvent = React.memo(function CustomEvent({
       className="text-sm truncate"
       style={{ fontSize: "0.7rem", lineHeight: "1.1" }}
     >
-      {event.abbreviation || event.title}
+      {event.title}
     </div>
   );
 });
@@ -535,11 +535,6 @@ export default function EventListPage() {
                     className="mb-2 sm:mb-3 md:mb-4 p-2 sm:p-3 md:p-4 bg-[#37373F] rounded-md sm:rounded-lg cursor-pointer hover:bg-[#404049] transition-colors relative last:mb-0"
                     onClick={() => handleEventClick(event)}
                   >
-                    {event.abbreviation && (
-                      <div className="text-xs sm:text-sm text-gray-400 mb-0.5">
-                        {event.abbreviation}
-                      </div>
-                    )}
                     <div className="text-base sm:text-lg font-medium mb-1 sm:mb-2 flex items-center gap-1 sm:gap-2">
                       {event.genre === "1" && (
                         <svg

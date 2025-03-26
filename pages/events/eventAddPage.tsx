@@ -22,7 +22,6 @@ interface EventForm {
   isRecurring: boolean;
   recurringType: string;
   recurringEndDate: Date | null;
-  abbreviation: string;
   format: "offline" | "online" | "hybrid";
   url?: string;
   participants: User[];
@@ -41,7 +40,6 @@ const EventAddPage = () => {
     isRecurring: false,
     recurringType: "weekly",
     recurringEndDate: null,
-    abbreviation: "",
     format: "offline",
     url: "",
     participants: [],
@@ -82,30 +80,6 @@ const EventAddPage = () => {
     };
   }, []);
 
-  // 省略名のバリデーション関数を修正
-  const validateAbbreviation = (value: string): boolean => {
-    // 文字数チェック（20文字まで）
-    if (value.length > 20) {
-      return false;
-    }
-
-    // バイト数を計算（全角文字は2バイト、半角文字は1バイト）
-    let byteCount = 0;
-    for (let i = 0; i < value.length; i++) {
-      const charCode = value.charCodeAt(i);
-      // 半角文字（ASCII文字とカタカナ）は1バイト、それ以外は2バイト
-      if (
-        (charCode >= 0x0001 && charCode <= 0x007e) ||
-        (charCode >= 0xff61 && charCode <= 0xff9f)
-      ) {
-        byteCount += 1;
-      } else {
-        byteCount += 2;
-      }
-    }
-    return byteCount <= 6;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -123,15 +97,6 @@ const EventAddPage = () => {
     if (formData.isRecurring && !formData.recurringEndDate) {
       setError("繰り返し終了日を設定してください");
       return;
-    }
-
-    if (formData.abbreviation) {
-      if (!validateAbbreviation(formData.abbreviation)) {
-        setError(
-          "省略名は合計6バイト以内で入力してください（全角文字は2バイト、半角文字は1バイト）"
-        );
-        return;
-      }
     }
 
     const startDate = formData.start;
@@ -207,7 +172,7 @@ const EventAddPage = () => {
 
         while (currentStart <= endDate) {
           events.push({
-            event_id: nextEventId++, // 各イベントに一意のIDを設定
+            event_id: nextEventId++,
             title: formData.title,
             start_date: new Date(
               currentStart.getTime() - currentStart.getTimezoneOffset() * 60000
@@ -223,7 +188,6 @@ const EventAddPage = () => {
             act_kbn: true,
             genre: formData.genre,
             repeat_id: repeat_id,
-            abbreviation: formData.abbreviation,
             format: formData.format,
             url: formData.url,
             manage_member: memberString,
@@ -302,7 +266,6 @@ const EventAddPage = () => {
           act_kbn: true,
           genre: formData.genre,
           repeat_id: null,
-          abbreviation: formData.abbreviation,
           format: formData.format,
           url: formData.url,
           manage_member: memberString,
@@ -427,25 +390,6 @@ const EventAddPage = () => {
                 }
                 className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
                 required
-              />
-            </div>
-
-            {/* 省略名入力フィールドを追加 */}
-            <div>
-              <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
-                省略名（6バイト以内：全角=2バイト、半角=1バイト）
-              </label>
-              <input
-                type="text"
-                value={formData.abbreviation}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value.length <= 20) {
-                    setFormData({ ...formData, abbreviation: value });
-                  }
-                }}
-                className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px] placeholder-[#6B7280]"
-                placeholder="例：懇親会、ポケカ、ああaa など"
               />
             </div>
 
