@@ -7,7 +7,7 @@ import { LocalizationProvider, DateTimePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { ja } from "date-fns/locale";
 import { supabase } from "../utils/supabaseClient";
-import { parseISO } from "date-fns";
+import { parseISO, format } from "date-fns";
 
 interface EventEditFormProps {
   onSave: () => Promise<void>;
@@ -123,6 +123,22 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
     return parseISO(isoString);
   };
 
+  // JSTの日時文字列を生成する関数
+  const formatToJST = (date: Date) => {
+    return format(date, "yyyy-MM-dd'T'HH:mm:ss'+09:00'");
+  };
+
+  // DateTimePickerのonChange処理
+  const handleDateChange = (date: Date | null, isStartDate: boolean) => {
+    if (date) {
+      const jstDate = formatToJST(date);
+      setEditedEvent({
+        ...editedEvent,
+        ...(isStartDate ? { start_date: jstDate } : { end_date: jstDate }),
+      });
+    }
+  };
+
   // 保存前に呼び出す関数
   const handleSave = async () => {
     // エラーをリセット
@@ -166,14 +182,7 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
       return;
     }
 
-    // タイムゾーン調整を削除し、そのままの日時を使用
-    setEditedEvent({
-      ...editedEvent,
-      start_date: editedEvent.start_date,
-      end_date: editedEvent.end_date,
-    });
-
-    // 元の保存処理を呼び出す
+    // 日時をそのまま使用（JSTのまま保存）
     await onSave();
   };
 
@@ -249,14 +258,7 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
           <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>
             <DateTimePicker
               value={toDate(editedEvent?.start_date)}
-              onChange={(date) => {
-                if (date) {
-                  setEditedEvent({
-                    ...editedEvent,
-                    start_date: date.toISOString(),
-                  });
-                }
-              }}
+              onChange={(date) => handleDateChange(date, true)}
               sx={{
                 width: "100%",
                 "& .MuiInputBase-root": {
@@ -289,14 +291,7 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
           <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>
             <DateTimePicker
               value={toDate(editedEvent?.end_date)}
-              onChange={(date) => {
-                if (date) {
-                  setEditedEvent({
-                    ...editedEvent,
-                    end_date: date.toISOString(),
-                  });
-                }
-              }}
+              onChange={(date) => handleDateChange(date, false)}
               sx={{
                 width: "100%",
                 "& .MuiInputBase-root": {
