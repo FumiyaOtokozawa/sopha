@@ -324,16 +324,21 @@ const EventDetailPage: React.FC = () => {
 
         // 運営メンバーの情報を取得
         if (eventData.manage_member) {
+          console.log("運営メンバー文字列:", eventData.manage_member);
           const memberIds = eventData.manage_member
             .split(",")
             .map((id: string) => id.trim())
             .filter(Boolean);
+
+          console.log("パース後のメンバーID:", memberIds);
 
           if (memberIds.length > 0) {
             const { data: membersData } = await supabase
               .from("USER_INFO")
               .select("emp_no, myoji, namae")
               .in("emp_no", memberIds);
+
+            console.log("取得したメンバーデータ:", membersData);
 
             if (membersData && membersData.length > 0) {
               // 社員番号順に並べ替え
@@ -343,10 +348,14 @@ const EventDetailPage: React.FC = () => {
                 );
                 return member
                   ? `${member.myoji} ${member.namae}`
-                  : `未登録(${id})`;
+                  : `未登録ユーザー`;
               });
 
+              console.log("整形後のメンバー表示名:", sortedMembers);
               setManageMembers(sortedMembers);
+            } else {
+              // メンバーデータが取得できない場合は未登録ユーザーとして表示
+              setManageMembers(memberIds.map(() => "未登録ユーザー"));
             }
           }
         }
@@ -392,7 +401,66 @@ const EventDetailPage: React.FC = () => {
 
       if (updateError) throw updateError;
 
-      setEvent(editedEvent);
+      // イベント情報を再取得
+      const { data: eventData } = await supabase
+        .from("EVENT_LIST")
+        .select(
+          `
+          *,
+          venue:EVENT_VENUE!venue_id(venue_nm, address)
+        `
+        )
+        .eq("event_id", editedEvent.event_id)
+        .single();
+
+      if (eventData) {
+        // オーナー情報を取得
+        const { data: ownerData } = await supabase
+          .from("USER_INFO")
+          .select("myoji, namae")
+          .eq("emp_no", eventData.owner)
+          .single();
+
+        const formattedEvent = {
+          ...eventData,
+          venue_nm: eventData.venue?.venue_nm,
+          venue_address: eventData.venue?.address,
+          ownerName: ownerData
+            ? `${ownerData.myoji} ${ownerData.namae}`
+            : undefined,
+        };
+
+        setEvent(formattedEvent);
+
+        // 運営メンバーの情報を再取得
+        if (eventData.manage_member) {
+          const memberIds = eventData.manage_member
+            .split(",")
+            .map((id: string) => id.trim())
+            .filter(Boolean);
+
+          if (memberIds.length > 0) {
+            const { data: membersData } = await supabase
+              .from("USER_INFO")
+              .select("emp_no, myoji, namae")
+              .in("emp_no", memberIds);
+
+            if (membersData && membersData.length > 0) {
+              const sortedMembers = memberIds.map((id: string) => {
+                const member = membersData.find(
+                  (m) => m.emp_no.toString() === id
+                );
+                return member
+                  ? `${member.myoji} ${member.namae}`
+                  : `未登録ユーザー`;
+              });
+
+              setManageMembers(sortedMembers);
+            }
+          }
+        }
+      }
+
       setIsEditing(false);
     } catch (error) {
       console.error("更新エラー:", error);
@@ -1183,21 +1251,32 @@ const EventDetailPage: React.FC = () => {
 
                             {/* 運営メンバー */}
                             {event.manage_member && (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-start gap-2">
                                 <div className="p-2 bg-[#37373F] rounded-lg flex-shrink-0">
                                   <PeopleIcon
                                     className="h-4 w-4 text-[#8E93DA]"
                                     fontSize="small"
                                   />
                                 </div>
-                                <div className="flex-1">
+                                <div className="flex-1 min-w-0">
                                   <div className="text-[10px] text-gray-400 leading-tight">
                                     運営メンバー
                                   </div>
-                                  <div className="text-gray-300 text-sm break-all">
-                                    {manageMembers.length > 0
-                                      ? manageMembers.join(" / ")
-                                      : event.manage_member}
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {manageMembers.length > 0 ? (
+                                      manageMembers.map((member, index) => (
+                                        <div
+                                          key={index}
+                                          className="inline-flex items-center bg-[#37373F]/50 px-2 py-0.5 rounded text-gray-300 text-xs"
+                                        >
+                                          {member}
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <div className="text-gray-300 text-sm">
+                                        {event.manage_member}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </div>
