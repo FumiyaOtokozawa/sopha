@@ -642,9 +642,23 @@ const PlanAdjStatusPage: NextPage = () => {
       const selectedDateTime = dayjs(selectedDate.datetime);
       const endDateTime = selectedDateTime.add(1, "hour");
 
+      // 最大のevent_idを取得
+      const { data: maxEventData, error: maxEventError } = await supabase
+        .from("EVENT_LIST")
+        .select("event_id")
+        .order("event_id", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (maxEventError) throw maxEventError;
+
+      const nextEventId = (maxEventData?.event_id || 0) + 1;
+
+      // イベントの作成
       const { data: eventData, error: createError } = await supabase
         .from("EVENT_LIST")
         .insert({
+          event_id: nextEventId,
           title: planEvent.plan_title,
           description: planEvent.description,
           start_date: selectedDateTime.format("YYYY-MM-DD HH:mm:ss"),
@@ -659,6 +673,7 @@ const PlanAdjStatusPage: NextPage = () => {
           venue_id: null,
           manage_member: null,
           owner: currentUserEmpNo,
+          plan_id: planEvent.plan_id,
         })
         .select()
         .single();
