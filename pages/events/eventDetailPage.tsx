@@ -12,6 +12,7 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import PersonIcon from "@mui/icons-material/Person";
 import LinkIcon from "@mui/icons-material/Link";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import ShareIcon from "@mui/icons-material/Share";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import GroupIcon from "@mui/icons-material/Group";
@@ -214,6 +215,7 @@ const EventDetailPage: React.FC = () => {
     "VENUE" | "FAR" | "TIMEOUT"
   >("VENUE");
   const [isCopied, setIsCopied] = useState(false);
+  const [isUrlCopied, setIsUrlCopied] = useState(false);
   const [manageMembers, setManageMembers] = useState<string[]>([]);
   const [confirmationDialog, setConfirmationDialog] = useState<{
     open: boolean;
@@ -839,35 +841,23 @@ const EventDetailPage: React.FC = () => {
   const copyToClipboard = (text: string) => {
     if (!text || text === "未定") return;
 
-    if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard
-        .writeText(text)
-        .then(() => {
-          setIsCopied(true);
-          setTimeout(() => setIsCopied(false), 2000);
-        })
-        .catch((err) => {
-          console.error("コピーに失敗しました:", err);
-        });
-    } else {
-      // フォールバック方法（セキュアコンテキストでない場合）
-      const textArea = document.createElement("textarea");
-      textArea.value = text;
-      textArea.style.position = "fixed";
-      textArea.style.left = "-999999px";
-      textArea.style.top = "-999999px";
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
+    // フォールバックを使用した安全なコピー処理
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    textArea.style.top = "-999999px";
+    textArea.style.opacity = "0";
+    document.body.appendChild(textArea);
+    textArea.select();
 
-      try {
-        document.execCommand("copy");
-        setIsCopied(true);
-        setTimeout(() => setIsCopied(false), 2000);
-      } catch (err) {
-        console.error("コピーに失敗しました:", err);
-      }
-
+    try {
+      document.execCommand("copy");
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch (error) {
+      console.error("コピーに失敗しました:", error);
+    } finally {
       document.body.removeChild(textArea);
     }
   };
@@ -1291,7 +1281,7 @@ const EventDetailPage: React.FC = () => {
                                     fontSize="small"
                                   />
                                 </div>
-                                <div>
+                                <div className="flex-1">
                                   <div className="text-[10px] text-gray-400 leading-tight">
                                     開催形式
                                   </div>
@@ -1302,6 +1292,50 @@ const EventDetailPage: React.FC = () => {
                                       ? "オンライン"
                                       : "ハイブリッド"}
                                   </span>
+                                </div>
+                                <div className="relative flex items-center gap-2">
+                                  {isUrlCopied && (
+                                    <div className="absolute top-0 right-full mr-2 px-2 py-1 bg-green-500 text-white text-xs rounded-md whitespace-nowrap">
+                                      コピーしました
+                                    </div>
+                                  )}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const url = window.location.href;
+
+                                      // フォールバックを使用した安全なコピー処理
+                                      const textArea =
+                                        document.createElement("textarea");
+                                      textArea.value = url;
+                                      textArea.style.position = "fixed";
+                                      textArea.style.left = "-999999px";
+                                      textArea.style.top = "-999999px";
+                                      textArea.style.opacity = "0";
+                                      document.body.appendChild(textArea);
+                                      textArea.select();
+
+                                      try {
+                                        document.execCommand("copy");
+                                        setIsUrlCopied(true);
+                                        setTimeout(
+                                          () => setIsUrlCopied(false),
+                                          2000
+                                        );
+                                      } catch (error) {
+                                        console.error(
+                                          "URLのコピーに失敗しました:",
+                                          error
+                                        );
+                                      } finally {
+                                        document.body.removeChild(textArea);
+                                      }
+                                    }}
+                                    className="inline-flex items-center justify-center p-1.5 rounded-lg bg-[#37373F] hover:bg-[#4A4B50] transition-colors relative"
+                                    title="URLをコピー"
+                                  >
+                                    <ShareIcon className="h-4 w-4 text-[#8E93DA]" />
+                                  </button>
                                 </div>
                               </div>
                             )}
