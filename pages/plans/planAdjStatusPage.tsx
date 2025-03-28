@@ -17,6 +17,7 @@ import EventIcon from "@mui/icons-material/Event";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import ShareIcon from "@mui/icons-material/Share";
 import { useRouter } from "next/router";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useUser } from "@supabase/auth-helpers-react";
@@ -138,6 +139,7 @@ const PlanAdjStatusPage: NextPage = () => {
   const [selectedDate, setSelectedDate] = useState<PlanDate | null>(null);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isReopenDialogOpen, setIsReopenDialogOpen] = useState(false);
+  const [isUrlCopied, setIsUrlCopied] = useState(false);
 
   // イベントが締め切られているかどうかを判定する
   const isEventClosed = useMemo(() => {
@@ -799,51 +801,90 @@ const PlanAdjStatusPage: NextPage = () => {
                   )}
                 </Box>
               </Box>
-              {currentUserEmpNo === planEvent.created_by && (
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  {isEventClosed ? (
-                    <Button
-                      onClick={() => setIsReopenDialogOpen(true)}
-                      variant="contained"
-                      size="small"
-                      sx={{
-                        bgcolor: "#5b63d3",
-                        color: "#FCFCFC",
-                        "&:hover": {
-                          bgcolor: "rgba(91, 99, 211, 0.8)",
-                        },
-                      }}
-                    >
-                      締め切りを延長
-                    </Button>
-                  ) : (
-                    <>
-                      <IconButton
-                        onClick={handleDelete}
-                        sx={{
-                          color: "rgba(255, 255, 255, 0.7)",
-                          "&:hover": {
-                            color: "#FCFCFC",
-                          },
-                        }}
-                      >
-                        <DeleteIcon sx={{ fontSize: "1.25rem" }} />
-                      </IconButton>
-                      <IconButton
-                        onClick={() => setIsEditModalOpen(true)}
-                        sx={{
-                          color: "rgba(255, 255, 255, 0.7)",
-                          "&:hover": {
-                            color: "#FCFCFC",
-                          },
-                        }}
-                      >
-                        <EditIcon sx={{ fontSize: "1.25rem" }} />
-                      </IconButton>
-                    </>
+              <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+                <div className="relative flex items-center gap-2">
+                  {isUrlCopied && (
+                    <div className="absolute top-0 right-full mr-2 px-2 py-1 bg-green-500 text-white text-xs rounded-md whitespace-nowrap">
+                      URLをコピーしました
+                    </div>
                   )}
-                </Box>
-              )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const url = window.location.href;
+
+                      // フォールバックを使用した安全なコピー処理
+                      const textArea = document.createElement("textarea");
+                      textArea.value = url;
+                      textArea.style.position = "fixed";
+                      textArea.style.left = "-999999px";
+                      textArea.style.top = "-999999px";
+                      textArea.style.opacity = "0";
+                      document.body.appendChild(textArea);
+                      textArea.select();
+
+                      try {
+                        document.execCommand("copy");
+                        setIsUrlCopied(true);
+                        setTimeout(() => setIsUrlCopied(false), 2000);
+                      } catch (error) {
+                        console.error("URLのコピーに失敗しました:", error);
+                      } finally {
+                        document.body.removeChild(textArea);
+                      }
+                    }}
+                    className="inline-flex items-center justify-center p-1.5 rounded-lg bg-[#37373F] hover:bg-[#4A4B50] transition-colors relative"
+                    title="URLをコピー"
+                  >
+                    <ShareIcon sx={{ fontSize: "1.25rem", color: "#8E93DA" }} />
+                  </button>
+                </div>
+                {currentUserEmpNo === planEvent.created_by && (
+                  <Box sx={{ display: "flex", gap: 1 }}>
+                    {isEventClosed ? (
+                      <Button
+                        onClick={() => setIsReopenDialogOpen(true)}
+                        variant="contained"
+                        size="small"
+                        sx={{
+                          bgcolor: "#5b63d3",
+                          color: "#FCFCFC",
+                          "&:hover": {
+                            bgcolor: "rgba(91, 99, 211, 0.8)",
+                          },
+                        }}
+                      >
+                        締め切りを延長
+                      </Button>
+                    ) : (
+                      <>
+                        <IconButton
+                          onClick={handleDelete}
+                          sx={{
+                            color: "rgba(255, 255, 255, 0.7)",
+                            "&:hover": {
+                              color: "#FCFCFC",
+                            },
+                          }}
+                        >
+                          <DeleteIcon sx={{ fontSize: "1.25rem" }} />
+                        </IconButton>
+                        <IconButton
+                          onClick={() => setIsEditModalOpen(true)}
+                          sx={{
+                            color: "rgba(255, 255, 255, 0.7)",
+                            "&:hover": {
+                              color: "#FCFCFC",
+                            },
+                          }}
+                        >
+                          <EditIcon sx={{ fontSize: "1.25rem" }} />
+                        </IconButton>
+                      </>
+                    )}
+                  </Box>
+                )}
+              </Box>
             </Box>
 
             {planEvent.description && (
