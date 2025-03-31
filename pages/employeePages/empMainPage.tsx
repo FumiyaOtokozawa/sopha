@@ -213,6 +213,7 @@ const EmpMainPage = () => {
         )
         .eq("emp_no", employeeNumber)
         .eq("status", "1")
+        .eq("EVENT_LIST.act_kbn", true)
         .lte("EVENT_LIST.start_date", threeMonthsLater.toISOString()) // 3ヶ月後まで
         .gte("EVENT_LIST.end_date", now.toISOString()) // 現在進行中または未来のイベント
         .order("EVENT_LIST(start_date)", { ascending: true });
