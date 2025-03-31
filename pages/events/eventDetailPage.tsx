@@ -1296,7 +1296,7 @@ const EventDetailPage: React.FC = () => {
                                 <div className="relative flex items-center gap-2">
                                   {isUrlCopied && (
                                     <div className="absolute top-0 right-full mr-2 px-2 py-1 bg-green-500 text-white text-xs rounded-md whitespace-nowrap">
-                                      コピーしました
+                                      この画面へのURLをコピーしました
                                     </div>
                                   )}
                                   <button

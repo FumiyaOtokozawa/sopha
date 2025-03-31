@@ -695,21 +695,6 @@ export default function EventListPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="mb-4"
-          >
-            <button
-              onClick={() => router.push("/events/eventAddPage")}
-              className="w-full py-2 rounded-lg bg-[#5b63d3] text-white font-bold hover:bg-opacity-80 flex items-center justify-center gap-2"
-            >
-              <AddBoxIcon />
-              イベント追加
-            </button>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
             className="mb-4"
           >
@@ -793,6 +778,20 @@ export default function EventListPage() {
                 </motion.div>
               )}
             </AnimatePresence>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mt-4"
+          >
+            <button
+              onClick={() => router.push("/events/eventAddPage")}
+              className="w-full py-2 rounded-lg bg-[#5b63d3] text-white font-bold hover:bg-opacity-80 flex items-center justify-center gap-2"
+            >
+              <AddBoxIcon />
+              イベント追加
+            </button>
           </motion.div>
         </div>
       </div>
