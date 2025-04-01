@@ -1086,14 +1086,60 @@ const EventDetailPage: React.FC = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.3, delay: 0.3 }}
-                            className="flex items-center gap-2"
+                            className="flex items-center justify-between gap-2"
                           >
-                            {event.genre === "1" && (
-                              <VerifiedIcon className="h-6 w-7 text-[#8E93DA] flex-shrink-0 mt-1" />
-                            )}
-                            <h2 className="text-2xl font-bold tracking-tight text-white break-all">
-                              {event.title}
-                            </h2>
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              {event.genre === "1" && (
+                                <VerifiedIcon className="h-6 w-7 text-[#8E93DA] flex-shrink-0 mt-1" />
+                              )}
+                              <h2 className="text-2xl font-bold tracking-tight text-white break-all">
+                                {event.title}
+                              </h2>
+                            </div>
+                            <div className="relative flex items-center">
+                              {isUrlCopied && (
+                                <div className="absolute top-0 right-full mr-2 px-2 py-1 bg-green-500 text-white text-xs rounded-md whitespace-nowrap">
+                                  この画面へのURLをコピーしました
+                                </div>
+                              )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const url = window.location.href;
+
+                                  // フォールバックを使用した安全なコピー処理
+                                  const textArea =
+                                    document.createElement("textarea");
+                                  textArea.value = url;
+                                  textArea.style.position = "fixed";
+                                  textArea.style.left = "-999999px";
+                                  textArea.style.top = "-999999px";
+                                  textArea.style.opacity = "0";
+                                  document.body.appendChild(textArea);
+                                  textArea.select();
+
+                                  try {
+                                    document.execCommand("copy");
+                                    setIsUrlCopied(true);
+                                    setTimeout(
+                                      () => setIsUrlCopied(false),
+                                      2000
+                                    );
+                                  } catch (error) {
+                                    console.error(
+                                      "URLのコピーに失敗しました:",
+                                      error
+                                    );
+                                  } finally {
+                                    document.body.removeChild(textArea);
+                                  }
+                                }}
+                                className="inline-flex items-center justify-center p-1 hover:opacity-80 transition-opacity"
+                                title="URLをコピー"
+                              >
+                                <ShareIcon className="h-5 w-5 text-gray-400" />
+                              </button>
+                            </div>
                           </motion.div>
 
                           {/* イベント情報 */}
@@ -1292,50 +1338,6 @@ const EventDetailPage: React.FC = () => {
                                       ? "オンライン"
                                       : "ハイブリッド"}
                                   </span>
-                                </div>
-                                <div className="relative flex items-center gap-2">
-                                  {isUrlCopied && (
-                                    <div className="absolute top-0 right-full mr-2 px-2 py-1 bg-green-500 text-white text-xs rounded-md whitespace-nowrap">
-                                      この画面へのURLをコピーしました
-                                    </div>
-                                  )}
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const url = window.location.href;
-
-                                      // フォールバックを使用した安全なコピー処理
-                                      const textArea =
-                                        document.createElement("textarea");
-                                      textArea.value = url;
-                                      textArea.style.position = "fixed";
-                                      textArea.style.left = "-999999px";
-                                      textArea.style.top = "-999999px";
-                                      textArea.style.opacity = "0";
-                                      document.body.appendChild(textArea);
-                                      textArea.select();
-
-                                      try {
-                                        document.execCommand("copy");
-                                        setIsUrlCopied(true);
-                                        setTimeout(
-                                          () => setIsUrlCopied(false),
-                                          2000
-                                        );
-                                      } catch (error) {
-                                        console.error(
-                                          "URLのコピーに失敗しました:",
-                                          error
-                                        );
-                                      } finally {
-                                        document.body.removeChild(textArea);
-                                      }
-                                    }}
-                                    className="inline-flex items-center justify-center p-1.5 rounded-lg bg-[#37373F] hover:bg-[#4A4B50] transition-colors relative"
-                                    title="URLをコピー"
-                                  >
-                                    <ShareIcon className="h-4 w-4 text-[#8E93DA]" />
-                                  </button>
                                 </div>
                               </div>
                             )}

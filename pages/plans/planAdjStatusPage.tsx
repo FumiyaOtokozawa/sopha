@@ -805,7 +805,7 @@ const PlanAdjStatusPage: NextPage = () => {
                 <div className="relative flex items-center gap-2">
                   {isUrlCopied && (
                     <div className="absolute top-0 right-full mr-2 px-2 py-1 bg-green-500 text-white text-xs rounded-md whitespace-nowrap">
-                      URLをコピーしました
+                      この画面へのURLをコピーしました
                     </div>
                   )}
                   <button
@@ -833,7 +833,7 @@ const PlanAdjStatusPage: NextPage = () => {
                         document.body.removeChild(textArea);
                       }
                     }}
-                    className="inline-flex items-center justify-center p-1.5 rounded-lg bg-[#37373F] hover:bg-[#4A4B50] transition-colors relative"
+                    className="inline-flex items-center justify-center p-1 hover:opacity-80 transition-opacity"
                     title="URLをコピー"
                   >
                     <ShareIcon sx={{ fontSize: "1.25rem", color: "#8E93DA" }} />
