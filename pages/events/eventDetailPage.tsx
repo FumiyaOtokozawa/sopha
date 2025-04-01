@@ -1342,7 +1342,7 @@ const EventDetailPage: React.FC = () => {
                               </div>
                             )}
 
-                            {/* 参加URL */}
+                            {/* URL */}
                             {event.url && (
                               <div className="flex items-center gap-2">
                                 <div className="p-2 bg-[#37373F] rounded-lg flex-shrink-0">
@@ -1351,17 +1351,20 @@ const EventDetailPage: React.FC = () => {
                                     fontSize="small"
                                   />
                                 </div>
-                                <div>
+                                <div className="flex-1 min-w-0">
                                   <div className="text-[10px] text-gray-400 leading-tight">
-                                    参加URL
+                                    URL
                                   </div>
                                   <a
                                     href={event.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-[#8E93DA] hover:underline break-all text-sm"
+                                    className="text-[#8E93DA] hover:underline text-sm block truncate"
+                                    title={event.url}
                                   >
-                                    {event.url}
+                                    {event.url.length > 30
+                                      ? `${event.url.substring(0, 30)}...`
+                                      : event.url}
                                   </a>
                                 </div>
                               </div>
