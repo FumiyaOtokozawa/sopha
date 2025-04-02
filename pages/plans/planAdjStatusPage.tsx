@@ -669,7 +669,6 @@ const PlanAdjStatusPage: NextPage = () => {
           created_by: currentUserEmpNo,
           updated_at: closeDateTime,
           genre: null,
-          abbreviation: null,
           format: null,
           url: null,
           venue_id: null,
