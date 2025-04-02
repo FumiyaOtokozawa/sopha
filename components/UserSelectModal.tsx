@@ -22,16 +22,11 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [users, setUsers] = useState<User[]>([]);
-  const [loadingImages, setLoadingImages] = useState<{
-    [key: number]: boolean;
-  }>({});
+  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
 
   // 画像の読み込み状態を管理
   const handleImageLoad = (empNo: number) => {
-    setLoadingImages((prev) => ({
-      ...prev,
-      [empNo]: false,
-    }));
+    setLoadedImages((prev) => new Set([...prev, empNo]));
   };
 
   // 検索処理
@@ -59,15 +54,6 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
       if (error) {
         console.error("検索エラー:", error);
       } else {
-        // 画像の読み込み状態を初期化
-        const initialLoadingState = (data || []).reduce(
-          (acc, user) => ({
-            ...acc,
-            [user.emp_no]: true,
-          }),
-          {}
-        );
-        setLoadingImages(initialLoadingState);
         setUsers(data || []);
       }
     },
@@ -78,6 +64,8 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
   useEffect(() => {
     if (open) {
       handleSearch();
+      // モーダルを開くたびに画像の読み込み状態をリセット
+      setLoadedImages(new Set());
     }
   }, [open, handleSearch]);
 
@@ -170,6 +158,7 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
               {users.map((user) => {
                 if (!user?.emp_no) return null;
                 const { fullName, romanName } = getUserDisplayName(user);
+                const isImageLoaded = loadedImages.has(user.emp_no);
 
                 return (
                   <li
@@ -181,13 +170,13 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
                       onClick={() => handleUserSelect(user)}
                     >
                       {user?.icon_url ? (
-                        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-3 relative">
-                          {loadingImages[user.emp_no] && (
+                        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-3 relative bg-[#3D3D45]">
+                          {!isImageLoaded && (
                             <Skeleton
                               variant="circular"
                               width={32}
                               height={32}
-                              className="absolute inset-0 z-10"
+                              className="absolute inset-0"
                               sx={{
                                 backgroundColor: "#3D3D45",
                               }}
@@ -198,12 +187,13 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
                             alt={`${fullName}のアイコン`}
                             width={32}
                             height={32}
-                            className="object-cover"
+                            className={`object-cover transition-opacity duration-200 ${
+                              isImageLoaded ? "opacity-100" : "opacity-0"
+                            }`}
                             onLoadingComplete={() =>
                               handleImageLoad(user.emp_no)
                             }
                             loading="eager"
-                            priority={true}
                           />
                         </div>
                       ) : (

@@ -1,23 +1,38 @@
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/router';
-import { supabase } from '../../utils/supabaseClient';
-import Image from 'next/image';
-import { Box, CircularProgress, TextField, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel, Dialog, DialogContent, DialogActions, Button } from '@mui/material';
-import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { ja } from 'date-fns/locale';
-import BadgeIcon from '@mui/icons-material/Badge';
-import EmailIcon from '@mui/icons-material/Email';
-import EditIcon from '@mui/icons-material/Edit';
-import WcIcon from '@mui/icons-material/Wc';
-import SaveIcon from '@mui/icons-material/Save';
-import CloseIcon from '@mui/icons-material/Close';
-import CakeIcon from '@mui/icons-material/Cake';
-import AddAPhotoIcon from '@mui/icons-material/AddAPhoto';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { Cropper, CropperRef } from 'react-advanced-cropper';
-import 'react-advanced-cropper/dist/style.css';
-import imageCompression from 'browser-image-compression';
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/router";
+import { supabase } from "../../utils/supabaseClient";
+import Image from "next/image";
+import {
+  Box,
+  CircularProgress,
+  TextField,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
+  FormLabel,
+  Dialog,
+  DialogContent,
+  DialogActions,
+  Button,
+} from "@mui/material";
+import { ja } from "date-fns/locale";
+import { format } from "date-fns";
+import BadgeIcon from "@mui/icons-material/Badge";
+import EmailIcon from "@mui/icons-material/Email";
+import EditIcon from "@mui/icons-material/Edit";
+import WcIcon from "@mui/icons-material/Wc";
+import SaveIcon from "@mui/icons-material/Save";
+import CloseIcon from "@mui/icons-material/Close";
+import CakeIcon from "@mui/icons-material/Cake";
+import AddAPhotoIcon from "@mui/icons-material/AddAPhoto";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { Cropper, CropperRef } from "react-advanced-cropper";
+import "react-advanced-cropper/dist/style.css";
+import imageCompression from "browser-image-compression";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 
 // カスタムスタイルを追加
 const cropperStyle = `
@@ -89,45 +104,43 @@ interface UserProfile {
 const cleanupUnusedImages = async () => {
   try {
     // バケット内の全画像を取得
-    const { data: storageFiles, error: storageError } = await supabase
-      .storage
-      .from('profile-images')
+    const { data: storageFiles, error: storageError } = await supabase.storage
+      .from("profile-images")
       .list();
 
     if (storageError) throw storageError;
 
     // 全ユーザーのicon_urlを取得
     const { data: userProfiles, error: userError } = await supabase
-      .from('USER_INFO')
-      .select('icon_url')
-      .not('icon_url', 'is', null);
+      .from("USER_INFO")
+      .select("icon_url")
+      .not("icon_url", "is", null);
 
     if (userError) throw userError;
 
     // 使用中のファイル名のセットを作成
     const usedFileNames = new Set(
       userProfiles
-        .map(profile => profile.icon_url?.split('/').pop())
+        .map((profile) => profile.icon_url?.split("/").pop())
         .filter(Boolean)
     );
 
     // 未使用のファイルを特定
     const unusedFiles = storageFiles
-      .filter(file => !usedFileNames.has(file.name))
-      .map(file => file.name);
+      .filter((file) => !usedFileNames.has(file.name))
+      .map((file) => file.name);
 
     // 未使用ファイルを削除
     if (unusedFiles.length > 0) {
-      const { error: deleteError } = await supabase
-        .storage
-        .from('profile-images')
+      const { error: deleteError } = await supabase.storage
+        .from("profile-images")
         .remove(unusedFiles);
 
       if (deleteError) throw deleteError;
       console.log(`${unusedFiles.length}件の未使用画像を削除しました`);
     }
   } catch (error) {
-    console.error('クリーンアップエラー:', error);
+    console.error("クリーンアップエラー:", error);
   }
 };
 
@@ -138,7 +151,7 @@ const EmpProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editedProfile, setEditedProfile] = useState<UserProfile | null>(null);
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isCurrentUser, setIsCurrentUser] = useState(false); // 表示中のプロフィールが自分のものかどうか
@@ -153,17 +166,19 @@ const EmpProfilePage = () => {
     const fetchProfile = async () => {
       try {
         // ログインユーザーの情報を取得
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) {
-          router.push('/');
+          router.push("/");
           return;
         }
 
         // ログインユーザーの社員番号を取得
         const { data: currentUserData } = await supabase
-          .from('USER_INFO')
-          .select('emp_no')
-          .eq('email', user.email)
+          .from("USER_INFO")
+          .select("emp_no")
+          .eq("email", user.email)
           .single();
 
         // URLパラメータのemp_noが指定されていない場合は、ログインユーザーのプロフィールを表示
@@ -171,9 +186,9 @@ const EmpProfilePage = () => {
 
         // プロフィール情報を取得
         const { data: profileData, error } = await supabase
-          .from('USER_INFO')
-          .select('*')
-          .eq('emp_no', profileEmpNo)
+          .from("USER_INFO")
+          .select("*")
+          .eq("emp_no", profileEmpNo)
           .single();
 
         if (error) throw error;
@@ -182,10 +197,9 @@ const EmpProfilePage = () => {
         setEditedProfile(profileData);
         // 表示中のプロフィールが自分のものかどうかを設定
         setIsCurrentUser(currentUserData?.emp_no === profileData.emp_no);
-
       } catch (error) {
-        console.error('Error fetching profile:', error);
-        setErrors({ general: 'プロフィールの取得に失敗しました' });
+        console.error("Error fetching profile:", error);
+        setErrors({ general: "プロフィールの取得に失敗しました" });
       } finally {
         setLoading(false);
       }
@@ -209,25 +223,29 @@ const EmpProfilePage = () => {
 
   const handleSave = async () => {
     if (!editedProfile) return;
-    
+
     setIsSaving(true);
     setErrors({});
-    
+
     try {
-      const newErrors: {[key: string]: string} = {};
+      const newErrors: { [key: string]: string } = {};
 
       // 必須項目のバリデーション
       if (!editedProfile.myoji) newErrors.myoji = "名字を入力してください";
       if (!editedProfile.namae) newErrors.namae = "名前を入力してください";
       if (!editedProfile.last_nm) newErrors.last_nm = "MYOJIを入力してください";
-      if (!editedProfile.first_nm) newErrors.first_nm = "NAMAEを入力してください";
+      if (!editedProfile.first_nm)
+        newErrors.first_nm = "NAMAEを入力してください";
       if (!editedProfile.gender) newErrors.gender = "性別を選択してください";
 
       // 英語名のバリデーション
       if (editedProfile.last_nm && !/^[A-Za-z]+$/.test(editedProfile.last_nm)) {
         newErrors.last_nm = "MYOJIは半角英字のみ入力可能です";
       }
-      if (editedProfile.first_nm && !/^[A-Za-z]+$/.test(editedProfile.first_nm)) {
+      if (
+        editedProfile.first_nm &&
+        !/^[A-Za-z]+$/.test(editedProfile.first_nm)
+      ) {
         newErrors.first_nm = "NAMAEは半角英字のみ入力可能です";
       }
 
@@ -240,45 +258,50 @@ const EmpProfilePage = () => {
 
       // 新しい画像がアップロードされている場合の処理
       let iconUrl = editedProfile.icon_url;
-      if (editedProfile.icon_url && editedProfile.icon_url.startsWith('blob:')) {
+      if (
+        editedProfile.icon_url &&
+        editedProfile.icon_url.startsWith("blob:")
+      ) {
         // Blob URLからFileオブジェクトを取得
         const response = await fetch(editedProfile.icon_url);
         const blob = await response.blob();
-        const file = new File([blob], 'profile-image.jpg', { type: 'image/jpeg' });
+        const file = new File([blob], "profile-image.jpg", {
+          type: "image/jpeg",
+        });
 
         // 既存の画像を削除
         if (profile?.icon_url) {
           try {
-            const oldPath = profile.icon_url.split('/').pop();
+            const oldPath = profile.icon_url.split("/").pop();
             if (oldPath) {
               const { error: deleteError } = await supabase.storage
-                .from('profile-images')
+                .from("profile-images")
                 .remove([oldPath]);
-              
+
               if (deleteError) {
-                console.error('古い画像の削除に失敗しました:', deleteError);
+                console.error("古い画像の削除に失敗しました:", deleteError);
               }
             }
           } catch (deleteError) {
-            console.error('画像削除中にエラーが発生しました:', deleteError);
+            console.error("画像削除中にエラーが発生しました:", deleteError);
           }
         }
 
         // 新しい画像をアップロード
-        const fileExt = 'jpg';
+        const fileExt = "jpg";
         const fileName = `${editedProfile.emp_no}-${Date.now()}.${fileExt}`;
         const filePath = `${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('profile-images')
+          .from("profile-images")
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
         // アップロードした画像のURLを取得
-        const { data: { publicUrl } } = supabase.storage
-          .from('profile-images')
-          .getPublicUrl(filePath);
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("profile-images").getPublicUrl(filePath);
 
         iconUrl = publicUrl;
       }
@@ -304,23 +327,22 @@ const EmpProfilePage = () => {
         ...editedProfile,
         last_nm: editedProfile.last_nm.toUpperCase(),
         first_nm: editedProfile.first_nm.toUpperCase(),
-        icon_url: iconUrl
+        icon_url: iconUrl,
       });
       setIsEditing(false);
 
       // カスタムイベントを発行してヘッダーに通知
-      const userUpdateEvent = new CustomEvent('userProfileUpdate', {
+      const userUpdateEvent = new CustomEvent("userProfileUpdate", {
         detail: {
           myoji: editedProfile.myoji,
           namae: editedProfile.namae,
-          icon_url: iconUrl
-        }
+          icon_url: iconUrl,
+        },
       });
       window.dispatchEvent(userUpdateEvent);
 
       // 未使用画像のクリーンアップを実行
       await cleanupUnusedImages();
-
     } catch (error: unknown) {
       console.error("更新エラー:", error);
       if (error instanceof Error && !Object.keys(errors).length) {
@@ -337,7 +359,9 @@ const EmpProfilePage = () => {
     setErrors({});
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file || !editedProfile) return;
 
@@ -346,7 +370,7 @@ const EmpProfilePage = () => {
       setErrors({});
 
       // ファイルタイプのチェック
-      if (!file.type.startsWith('image/')) {
+      if (!file.type.startsWith("image/")) {
         throw new Error("画像ファイルのみアップロード可能です");
       }
 
@@ -358,19 +382,23 @@ const EmpProfilePage = () => {
       // 画像をURLに変換
       const imageUrl = URL.createObjectURL(file);
       setCropImage(imageUrl);
-      
+
       // クロッパーをリセット
-      setCropperKey(prev => prev + 1);
+      setCropperKey((prev) => prev + 1);
       setShowCropDialog(true);
 
       // input要素をリセット
       if (event.target) {
-        event.target.value = '';
+        event.target.value = "";
       }
-
     } catch (error) {
       console.error("画像アップロードエラー:", error);
-      setErrors({ general: error instanceof Error ? error.message : "画像のアップロードに失敗しました" });
+      setErrors({
+        general:
+          error instanceof Error
+            ? error.message
+            : "画像のアップロードに失敗しました",
+      });
     } finally {
       setIsUploading(false);
     }
@@ -386,24 +414,31 @@ const EmpProfilePage = () => {
       // クロップされた画像をcanvasとして取得
       const canvas = cropperRef.current.getCanvas();
       if (!canvas) {
-        throw new Error('トリミング領域が設定されていません');
+        throw new Error("トリミング領域が設定されていません");
       }
 
       // canvasをBlobに変換
       const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob((blob: Blob | null) => {
-          if (blob) resolve(blob);
-          else reject(new Error('画像の生成に失敗しました'));
-        }, 'image/jpeg', 0.95);
+        canvas.toBlob(
+          (blob: Blob | null) => {
+            if (blob) resolve(blob);
+            else reject(new Error("画像の生成に失敗しました"));
+          },
+          "image/jpeg",
+          0.95
+        );
       });
 
       // 画像を圧縮
       const options = {
         maxSizeMB: 1,
         maxWidthOrHeight: 400,
-        useWebWorker: true
+        useWebWorker: true,
       };
-      const compressedFile = await imageCompression(new File([blob], 'profile.jpg', { type: 'image/jpeg' }), options);
+      const compressedFile = await imageCompression(
+        new File([blob], "profile.jpg", { type: "image/jpeg" }),
+        options
+      );
 
       // プレビュー用のURLを生成
       const previewUrl = URL.createObjectURL(compressedFile);
@@ -411,7 +446,7 @@ const EmpProfilePage = () => {
       // プロフィールを更新（プレビュー表示のみ）
       setEditedProfile({
         ...editedProfile,
-        icon_url: previewUrl
+        icon_url: previewUrl,
       });
 
       // クリーンアップ
@@ -420,10 +455,12 @@ const EmpProfilePage = () => {
         URL.revokeObjectURL(cropImage);
         setCropImage(null);
       }
-
     } catch (error) {
       console.error("画像処理エラー:", error);
-      setErrors({ general: error instanceof Error ? error.message : "画像の処理に失敗しました" });
+      setErrors({
+        general:
+          error instanceof Error ? error.message : "画像の処理に失敗しました",
+      });
     } finally {
       setIsCropping(false);
       setIsUploading(false);
@@ -445,7 +482,7 @@ const EmpProfilePage = () => {
       URL.revokeObjectURL(cropImage);
       setCropImage(null);
     }
-    
+
     return () => {
       if (cropImage) {
         URL.revokeObjectURL(cropImage);
@@ -463,9 +500,8 @@ const EmpProfilePage = () => {
       // 編集中のプロフィールのアイコンURLのみを更新
       setEditedProfile({
         ...editedProfile,
-        icon_url: null
+        icon_url: null,
       });
-
     } catch (error) {
       console.error("画像削除エラー:", error);
       setErrors({ general: "画像の削除に失敗しました" });
@@ -478,7 +514,7 @@ const EmpProfilePage = () => {
     return (
       <div className="bg-gradient-to-b from-[#1D1D21] to-[#2D2D33]">
         <div className="flex justify-center items-center h-[80vh]">
-          <CircularProgress sx={{ color: '#8E93DA' }} />
+          <CircularProgress sx={{ color: "#8E93DA" }} />
           <span className="ml-3 text-[#FCFCFC] font-medium">読み込み中...</span>
         </div>
       </div>
@@ -487,12 +523,13 @@ const EmpProfilePage = () => {
 
   return (
     <Box>
-      <style jsx global>{cropperStyle}</style>
+      <style jsx global>
+        {cropperStyle}
+      </style>
       <div className="bg-gradient-to-b from-[#1D1D21] to-[#2D2D33]">
         <div className="p-4">
           <div className="max-w-md mx-auto">
-            <div className="flex justify-between items-center">
-            </div>
+            <div className="flex justify-between items-center"></div>
 
             {errors.general && (
               <div className="mb-4 p-3 rounded bg-red-500 bg-opacity-10 border border-red-500 text-red-500">
@@ -532,7 +569,9 @@ const EmpProfilePage = () => {
                     aria-label="保存"
                   >
                     <SaveIcon fontSize="small" />
-                    <span className="font-medium">{isSaving ? '保存中...' : '保存'}</span>
+                    <span className="font-medium">
+                      {isSaving ? "保存中..." : "保存"}
+                    </span>
                   </button>
                 </div>
               )}
@@ -553,7 +592,8 @@ const EmpProfilePage = () => {
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-[#FCFCFC] bg-gradient-to-br from-[#2D2D33] to-[#1D1D21]">
                         <span className="text-base font-medium">
-                          {editedProfile?.myoji?.charAt(0)}{editedProfile?.namae?.charAt(0)}
+                          {editedProfile?.myoji?.charAt(0)}
+                          {editedProfile?.namae?.charAt(0)}
                         </span>
                       </div>
                     )}
@@ -573,11 +613,11 @@ const EmpProfilePage = () => {
                         className="w-8 h-8 flex items-center justify-center rounded-full bg-[#5b63d3] text-white hover:bg-[#7A7FD0] transition-all duration-200 shadow-md relative"
                         aria-label="画像をアップロード"
                       >
-                        <AddAPhotoIcon 
-                          fontSize="small" 
+                        <AddAPhotoIcon
+                          fontSize="small"
                           className="absolute"
                           sx={{
-                            transform: 'translate(-1px, -1px)'
+                            transform: "translate(-1px, -1px)",
                           }}
                         />
                       </button>
@@ -594,7 +634,7 @@ const EmpProfilePage = () => {
                     </div>
                   )}
                 </div>
-                
+
                 {/* 名前と性別 */}
                 <div className="flex-1 min-w-0">
                   {isEditing && isCurrentUser ? (
@@ -602,62 +642,72 @@ const EmpProfilePage = () => {
                       <div className="grid grid-cols-2 gap-2">
                         <TextField
                           label="名字"
-                          value={editedProfile?.myoji || ''}
-                          onChange={(e) => setEditedProfile(prev => prev ? {...prev, myoji: e.target.value} : null)}
+                          value={editedProfile?.myoji || ""}
+                          onChange={(e) =>
+                            setEditedProfile((prev) =>
+                              prev ? { ...prev, myoji: e.target.value } : null
+                            )
+                          }
                           variant="outlined"
                           size="small"
                           error={!!errors.myoji}
                           helperText={errors.myoji}
                           InputProps={{
-                            style: { color: '#FCFCFC', fontSize: '0.875rem' }
+                            style: { color: "#FCFCFC", fontSize: "0.875rem" },
                           }}
                           InputLabelProps={{
-                            style: { color: '#AEAEB2', fontSize: '0.75rem' }
+                            style: { color: "#AEAEB2", fontSize: "0.75rem" },
                           }}
                           sx={{
-                            '& .MuiOutlinedInput-root': {
-                              '& fieldset': {
-                                borderColor: errors.myoji ? '#ef4444' : '#3D3D43',
+                            "& .MuiOutlinedInput-root": {
+                              "& fieldset": {
+                                borderColor: errors.myoji
+                                  ? "#ef4444"
+                                  : "#3D3D43",
                               },
-                              '&:hover fieldset': {
-                                borderColor: '#8E93DA',
+                              "&:hover fieldset": {
+                                borderColor: "#8E93DA",
                               },
-                              '&.Mui-focused fieldset': {
-                                borderColor: '#8E93DA',
+                              "&.Mui-focused fieldset": {
+                                borderColor: "#8E93DA",
                               },
-                              backgroundColor: '#23232A',
+                              backgroundColor: "#23232A",
                             },
-                            '& .MuiFormHelperText-root': {
-                              color: '#ef4444',
+                            "& .MuiFormHelperText-root": {
+                              color: "#ef4444",
                             },
                           }}
                         />
                         <TextField
                           label="名前"
-                          value={editedProfile?.namae || ''}
-                          onChange={(e) => setEditedProfile(prev => prev ? {...prev, namae: e.target.value} : null)}
+                          value={editedProfile?.namae || ""}
+                          onChange={(e) =>
+                            setEditedProfile((prev) =>
+                              prev ? { ...prev, namae: e.target.value } : null
+                            )
+                          }
                           variant="outlined"
                           size="small"
                           error={!!errors.namae}
                           helperText={errors.namae}
                           InputProps={{
-                            style: { color: '#FCFCFC', fontSize: '0.875rem' }
+                            style: { color: "#FCFCFC", fontSize: "0.875rem" },
                           }}
                           InputLabelProps={{
-                            style: { color: '#AEAEB2', fontSize: '0.75rem' }
+                            style: { color: "#AEAEB2", fontSize: "0.75rem" },
                           }}
                           sx={{
-                            '& .MuiOutlinedInput-root': {
-                              '& fieldset': {
-                                borderColor: '#3D3D43',
+                            "& .MuiOutlinedInput-root": {
+                              "& fieldset": {
+                                borderColor: "#3D3D43",
                               },
-                              '&:hover fieldset': {
-                                borderColor: '#8E93DA',
+                              "&:hover fieldset": {
+                                borderColor: "#8E93DA",
                               },
-                              '&.Mui-focused fieldset': {
-                                borderColor: '#8E93DA',
+                              "&.Mui-focused fieldset": {
+                                borderColor: "#8E93DA",
                               },
-                              backgroundColor: '#23232A',
+                              backgroundColor: "#23232A",
                             },
                           }}
                         />
@@ -665,90 +715,164 @@ const EmpProfilePage = () => {
                       <div className="grid grid-cols-2 gap-2">
                         <TextField
                           label="MYOJI"
-                          value={editedProfile?.last_nm || ''}
-                          onChange={(e) => setEditedProfile(prev => prev ? {...prev, last_nm: e.target.value} : null)}
+                          value={editedProfile?.last_nm || ""}
+                          onChange={(e) =>
+                            setEditedProfile((prev) =>
+                              prev ? { ...prev, last_nm: e.target.value } : null
+                            )
+                          }
                           variant="outlined"
                           size="small"
                           error={!!errors.last_nm}
                           helperText={errors.last_nm}
                           InputProps={{
-                            style: { color: '#FCFCFC', fontSize: '0.875rem' }
+                            style: { color: "#FCFCFC", fontSize: "0.875rem" },
                           }}
                           InputLabelProps={{
-                            style: { color: '#AEAEB2', fontSize: '0.75rem' }
+                            style: { color: "#AEAEB2", fontSize: "0.75rem" },
                           }}
                           sx={{
-                            '& .MuiOutlinedInput-root': {
-                              '& fieldset': {
-                                borderColor: errors.last_nm ? '#ef4444' : '#3D3D43',
+                            "& .MuiOutlinedInput-root": {
+                              "& fieldset": {
+                                borderColor: errors.last_nm
+                                  ? "#ef4444"
+                                  : "#3D3D43",
                               },
-                              '&:hover fieldset': {
-                                borderColor: '#8E93DA',
+                              "&:hover fieldset": {
+                                borderColor: "#8E93DA",
                               },
-                              '&.Mui-focused fieldset': {
-                                borderColor: '#8E93DA',
+                              "&.Mui-focused fieldset": {
+                                borderColor: "#8E93DA",
                               },
-                              backgroundColor: '#23232A',
+                              backgroundColor: "#23232A",
                             },
-                            '& .MuiFormHelperText-root': {
-                              color: '#ef4444',
+                            "& .MuiFormHelperText-root": {
+                              color: "#ef4444",
                             },
                           }}
                         />
                         <TextField
                           label="NAMAE"
-                          value={editedProfile?.first_nm || ''}
-                          onChange={(e) => setEditedProfile(prev => prev ? {...prev, first_nm: e.target.value} : null)}
+                          value={editedProfile?.first_nm || ""}
+                          onChange={(e) =>
+                            setEditedProfile((prev) =>
+                              prev
+                                ? { ...prev, first_nm: e.target.value }
+                                : null
+                            )
+                          }
                           variant="outlined"
                           size="small"
                           error={!!errors.first_nm}
                           helperText={errors.first_nm}
                           InputProps={{
-                            style: { color: '#FCFCFC', fontSize: '0.875rem' }
+                            style: { color: "#FCFCFC", fontSize: "0.875rem" },
                           }}
                           InputLabelProps={{
-                            style: { color: '#AEAEB2', fontSize: '0.75rem' }
+                            style: { color: "#AEAEB2", fontSize: "0.75rem" },
                           }}
                           sx={{
-                            '& .MuiOutlinedInput-root': {
-                              '& fieldset': {
-                                borderColor: errors.first_nm ? '#ef4444' : '#3D3D43',
+                            "& .MuiOutlinedInput-root": {
+                              "& fieldset": {
+                                borderColor: errors.first_nm
+                                  ? "#ef4444"
+                                  : "#3D3D43",
                               },
-                              '&:hover fieldset': {
-                                borderColor: '#8E93DA',
+                              "&:hover fieldset": {
+                                borderColor: "#8E93DA",
                               },
-                              '&.Mui-focused fieldset': {
-                                borderColor: '#8E93DA',
+                              "&.Mui-focused fieldset": {
+                                borderColor: "#8E93DA",
                               },
-                              backgroundColor: '#23232A',
+                              backgroundColor: "#23232A",
                             },
-                            '& .MuiFormHelperText-root': {
-                              color: '#ef4444',
+                            "& .MuiFormHelperText-root": {
+                              color: "#ef4444",
                             },
                           }}
                         />
                       </div>
                       <FormControl component="fieldset">
-                        <FormLabel component="legend" sx={{ color: '#AEAEB2', fontSize: '0.75rem' }}>性別</FormLabel>
+                        <FormLabel
+                          component="legend"
+                          sx={{ color: "#AEAEB2", fontSize: "0.75rem" }}
+                        >
+                          性別
+                        </FormLabel>
                         <RadioGroup
                           row
-                          value={editedProfile?.gender || ''}
-                          onChange={(e) => setEditedProfile(prev => prev ? {...prev, gender: e.target.value} : null)}
+                          value={editedProfile?.gender || ""}
+                          onChange={(e) =>
+                            setEditedProfile((prev) =>
+                              prev ? { ...prev, gender: e.target.value } : null
+                            )
+                          }
                         >
-                          <FormControlLabel 
-                            value="1" 
-                            control={<Radio size="small" sx={{ color: '#AEAEB2', '&.Mui-checked': { color: '#8E93DA' } }} />} 
-                            label={<span style={{ color: '#FCFCFC', fontSize: '0.75rem' }}>男性</span>} 
+                          <FormControlLabel
+                            value="1"
+                            control={
+                              <Radio
+                                size="small"
+                                sx={{
+                                  color: "#AEAEB2",
+                                  "&.Mui-checked": { color: "#8E93DA" },
+                                }}
+                              />
+                            }
+                            label={
+                              <span
+                                style={{
+                                  color: "#FCFCFC",
+                                  fontSize: "0.75rem",
+                                }}
+                              >
+                                男性
+                              </span>
+                            }
                           />
-                          <FormControlLabel 
-                            value="0" 
-                            control={<Radio size="small" sx={{ color: '#AEAEB2', '&.Mui-checked': { color: '#8E93DA' } }} />} 
-                            label={<span style={{ color: '#FCFCFC', fontSize: '0.75rem' }}>女性</span>} 
+                          <FormControlLabel
+                            value="0"
+                            control={
+                              <Radio
+                                size="small"
+                                sx={{
+                                  color: "#AEAEB2",
+                                  "&.Mui-checked": { color: "#8E93DA" },
+                                }}
+                              />
+                            }
+                            label={
+                              <span
+                                style={{
+                                  color: "#FCFCFC",
+                                  fontSize: "0.75rem",
+                                }}
+                              >
+                                女性
+                              </span>
+                            }
                           />
-                          <FormControlLabel 
-                            value="2" 
-                            control={<Radio size="small" sx={{ color: '#AEAEB2', '&.Mui-checked': { color: '#8E93DA' } }} />} 
-                            label={<span style={{ color: '#FCFCFC', fontSize: '0.75rem' }}>その他</span>} 
+                          <FormControlLabel
+                            value="2"
+                            control={
+                              <Radio
+                                size="small"
+                                sx={{
+                                  color: "#AEAEB2",
+                                  "&.Mui-checked": { color: "#8E93DA" },
+                                }}
+                              />
+                            }
+                            label={
+                              <span
+                                style={{
+                                  color: "#FCFCFC",
+                                  fontSize: "0.75rem",
+                                }}
+                              >
+                                その他
+                              </span>
+                            }
                           />
                         </RadioGroup>
                       </FormControl>
@@ -762,9 +886,13 @@ const EmpProfilePage = () => {
                         {profile?.last_nm} {profile?.first_nm}
                       </p>
                       <div className="mt-1 flex items-center">
-                        <WcIcon sx={{ color: '#8E93DA', fontSize: 16 }} />
+                        <WcIcon sx={{ color: "#8E93DA", fontSize: 16 }} />
                         <span className="ml-1 text-xs text-[#FCFCFC]">
-                          {profile?.gender === '1' ? '男性' : profile?.gender === '0' ? '女性' : 'その他'}
+                          {profile?.gender === "1"
+                            ? "男性"
+                            : profile?.gender === "0"
+                            ? "女性"
+                            : "その他"}
                         </span>
                       </div>
                     </>
@@ -774,190 +902,167 @@ const EmpProfilePage = () => {
 
               {/* 基本情報 */}
               <div className="p-4">
-                <h3 className="text-xs font-medium text-[#AEAEB2] mb-2 uppercase tracking-wider opacity-80">基本情報</h3>
-                
+                <h3 className="text-xs font-medium text-[#AEAEB2] mb-2 uppercase tracking-wider opacity-80">
+                  基本情報
+                </h3>
+
                 <div className="space-y-3">
                   {/* 社員番号 */}
                   <div className="flex items-center p-2 bg-[#23232A] rounded-lg">
-                    <BadgeIcon sx={{ color: '#8E93DA', fontSize: 20 }} />
+                    <BadgeIcon sx={{ color: "#8E93DA", fontSize: 20 }} />
                     <div className="ml-3 flex-1">
-                      <div className="text-[10px] text-[#AEAEB2] opacity-75">社員番号</div>
-                      <div className="text-[#FCFCFC] font-medium">{profile?.emp_no}</div>
+                      <div className="text-[10px] text-[#AEAEB2] opacity-75">
+                        社員番号
+                      </div>
+                      <div className="text-[#FCFCFC] font-medium">
+                        {profile?.emp_no}
+                      </div>
                     </div>
                   </div>
-                  
+
                   {/* メールアドレス */}
                   <div className="flex items-center p-2 bg-[#23232A] rounded-lg">
-                    <EmailIcon sx={{ color: '#8E93DA', fontSize: 20 }} />
+                    <EmailIcon sx={{ color: "#8E93DA", fontSize: 20 }} />
                     <div className="ml-3 flex-1 min-w-0">
-                      <div className="text-[10px] text-[#AEAEB2] opacity-75">メールアドレス</div>
-                      <div className="text-[#FCFCFC] truncate">{profile?.email}</div>
+                      <div className="text-[10px] text-[#AEAEB2] opacity-75">
+                        メールアドレス
+                      </div>
+                      <div className="text-[#FCFCFC] truncate">
+                        {profile?.email}
+                      </div>
                     </div>
                   </div>
 
                   {/* 生年月日 */}
                   <div className="flex items-center p-2 bg-[#23232A] rounded-lg">
-                    <CakeIcon sx={{ color: '#8E93DA', fontSize: 20 }} />
+                    <CakeIcon sx={{ color: "#8E93DA", fontSize: 20 }} />
                     <div className="ml-3 flex-1">
-                      <div className="text-[10px] text-[#AEAEB2] opacity-75">生年月日</div>
+                      <div className="text-[10px] text-[#AEAEB2] opacity-75">
+                        生年月日
+                      </div>
                       {isEditing ? (
-                        <LocalizationProvider 
+                        <LocalizationProvider
                           dateAdapter={AdapterDateFns}
                           adapterLocale={ja}
                         >
                           <DatePicker
-                            value={editedProfile?.birthday ? new Date(editedProfile.birthday) : null}
+                            value={
+                              editedProfile?.birthday
+                                ? new Date(editedProfile.birthday)
+                                : null
+                            }
                             onChange={(newValue) => {
-                              setEditedProfile(prev => 
-                                prev ? {
-                                  ...prev,
-                                  birthday: newValue ? newValue.toISOString().split('T')[0] : null
-                                } : null
+                              setEditedProfile((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      birthday: newValue
+                                        ? format(newValue, "yyyy-MM-dd")
+                                        : null,
+                                    }
+                                  : null
                               );
                             }}
                             format="yyyy年MM月dd日"
-                            localeText={{
-                              cancelButtonLabel: "キャンセル",
-                              okButtonLabel: "選択",
-                              toolbarTitle: "日付を選択",
-                            }}
-                            views={['year', 'month', 'day']}
                             slotProps={{
-                              toolbar: {
-                                toolbarFormat: "yyyy年MM月dd日",
-                                hidden: false,
-                              },
-                              actionBar: {
-                                actions: ['cancel', 'accept'],
-                              },
-                              field: {
-                                format: "yyyy年MM月dd日",
-                              },
                               textField: {
                                 variant: "standard",
                                 fullWidth: true,
                                 placeholder: "生年月日を選択",
-                                InputProps: {
-                                  endAdornment: null,
-                                },
                                 sx: {
-                                  '& .MuiInputBase-input': {
-                                    color: '#FCFCFC',
-                                    fontSize: '0.875rem',
-                                    padding: '4px 0',
-                                    cursor: 'pointer',
-                                    fontFamily: '"Noto Sans JP", sans-serif',
+                                  "& .MuiInputBase-root": {
+                                    color: "#FCFCFC",
+                                    "&:before": {
+                                      borderBottomColor: "#3D3D43",
+                                    },
+                                    "&:hover:not(.Mui-disabled):before": {
+                                      borderBottomColor: "#8E93DA",
+                                    },
+                                    "&.Mui-focused:after": {
+                                      borderBottomColor: "#8E93DA",
+                                    },
                                   },
-                                  '& .MuiInput-underline:before': {
-                                    borderBottomColor: '#3D3D43',
-                                  },
-                                  '& .MuiInput-underline:hover:not(.Mui-disabled):before': {
-                                    borderBottomColor: '#8E93DA',
-                                  },
-                                  '& .MuiInput-underline:after': {
-                                    borderBottomColor: '#8E93DA',
+                                  "& .MuiIconButton-root": {
+                                    color: "#AEAEB2",
+                                    marginRight: "8px",
                                   },
                                 },
                               },
                               dialog: {
                                 sx: {
-                                  '& .MuiDialog-paper': {
-                                    backgroundColor: '#2D2D33',
-                                    color: '#FCFCFC',
+                                  "& .MuiDialog-paper": {
+                                    backgroundColor: "#2D2D33",
                                   },
-                                  '& .MuiPickersLayout-root': {
-                                    backgroundColor: '#2D2D33',
-                                    color: '#FCFCFC',
-                                    fontFamily: '"Noto Sans JP", sans-serif',
+                                  "& .MuiPickersLayout-root": {
+                                    backgroundColor: "#2D2D33",
+                                    color: "#FCFCFC",
                                   },
-                                  '& .MuiPickersToolbar-root': {
-                                    backgroundColor: '#23232A',
-                                    color: '#FCFCFC',
-                                    '& .MuiTypography-root': {
-                                      color: '#FCFCFC',
-                                      fontFamily: '"Noto Sans JP", sans-serif',
+                                  "& .MuiPickersToolbar-root": {
+                                    color: "#FCFCFC",
+                                    "& .MuiTypography-root": {
+                                      color: "#FCFCFC",
                                     },
-                                    '& .MuiButton-root': {
-                                      color: '#8E93DA',
-                                      fontFamily: '"Noto Sans JP", sans-serif',
+                                    "& .MuiButton-root": {
+                                      color: "#8E93DA",
                                     },
                                   },
-                                  '& .MuiPickersDay-root': {
-                                    color: '#FCFCFC',
-                                    fontSize: '0.875rem',
-                                    fontFamily: '"Noto Sans JP", sans-serif',
-                                    '&:hover': {
-                                      backgroundColor: '#3D3D43',
+                                  "& .MuiPickersDay-root": {
+                                    color: "#FCFCFC",
+                                    "&:hover": {
+                                      backgroundColor: "#3D3D43",
                                     },
-                                    '&.Mui-selected': {
-                                      backgroundColor: '#5b63d3',
-                                      '&:hover': {
-                                        backgroundColor: '#7A7FD0',
+                                    "&.Mui-selected": {
+                                      backgroundColor: "#5b63d3",
+                                      "&:hover": {
+                                        backgroundColor: "#7A7FD0",
                                       },
                                     },
                                   },
-                                  '& .MuiDayCalendar-weekDayLabel': {
-                                    color: '#AEAEB2',
-                                    fontFamily: '"Noto Sans JP", sans-serif',
+                                  "& .MuiDayCalendar-weekDayLabel": {
+                                    color: "#AEAEB2",
                                   },
-                                  '& .MuiPickersCalendarHeader-root': {
-                                    '& .MuiPickersCalendarHeader-label': {
-                                      color: '#FCFCFC',
-                                      fontFamily: '"Noto Sans JP", sans-serif',
+                                  "& .MuiPickersCalendarHeader-root": {
+                                    "& .MuiPickersCalendarHeader-label": {
+                                      color: "#FCFCFC",
                                     },
-                                    '& .MuiIconButton-root': {
-                                      color: '#8E93DA',
+                                    "& .MuiIconButton-root": {
+                                      color: "#8E93DA",
                                     },
                                   },
-                                  '& .MuiDialogActions-root': {
-                                    backgroundColor: '#23232A',
-                                    borderTop: '1px solid #3D3D43',
-                                    '& .MuiButton-root': {
-                                      color: '#8E93DA',
-                                      fontFamily: '"Noto Sans JP", sans-serif',
-                                      '&:hover': {
-                                        backgroundColor: '#3D3D43',
-                                      },
+                                  "& .MuiDialogActions-root": {
+                                    backgroundColor: "#23232A",
+                                    borderTop: "1px solid #3D3D43",
+                                    "& .MuiButton-root": {
+                                      color: "#8E93DA",
                                     },
                                   },
-                                  '& .MuiYearCalendar-root': {
-                                    '& .MuiPickersYear-yearButton': {
-                                      color: '#FCFCFC',
-                                      fontFamily: '"Noto Sans JP", sans-serif',
-                                      '&:hover': {
-                                        backgroundColor: '#3D3D43',
+                                  "& .MuiYearCalendar-root": {
+                                    "& .MuiPickersYear-yearButton": {
+                                      color: "#FCFCFC",
+                                      "&:hover": {
+                                        backgroundColor: "#3D3D43",
                                       },
-                                      '&.Mui-selected': {
-                                        backgroundColor: '#5b63d3',
-                                      },
-                                    },
-                                  },
-                                  '& .MuiMonthCalendar-root': {
-                                    '& .MuiPickersMonth-monthButton': {
-                                      color: '#FCFCFC',
-                                      fontSize: '0.875rem',
-                                      fontFamily: '"Noto Sans JP", sans-serif',
-                                      '&:hover': {
-                                        backgroundColor: '#3D3D43',
-                                      },
-                                      '&.Mui-selected': {
-                                        backgroundColor: '#5b63d3',
+                                      "&.Mui-selected": {
+                                        backgroundColor: "#5b63d3",
                                       },
                                     },
                                   },
                                 },
                               },
                             }}
-                            formatDensity="spacious"
                           />
                         </LocalizationProvider>
                       ) : (
                         <div className="text-[#FCFCFC]">
-                          {profile?.birthday ? new Date(profile.birthday).toLocaleDateString('ja-JP', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          }) : '未設定'}
+                          {profile?.birthday
+                            ? format(
+                                new Date(profile.birthday),
+                                "yyyy年MM月dd日",
+                                {
+                                  locale: ja,
+                                }
+                              )
+                            : "未設定"}
                         </div>
                       )}
                     </div>
@@ -978,24 +1083,24 @@ const EmpProfilePage = () => {
           fullWidth
           PaperProps={{
             sx: {
-              height: { xs: 'calc(100dvh - 200px)', sm: 'auto' },
-              maxHeight: { xs: 'calc(100dvh - 200px)', sm: '90vh' },
+              height: { xs: "calc(100dvh - 200px)", sm: "auto" },
+              maxHeight: { xs: "calc(100dvh - 200px)", sm: "90vh" },
               margin: { xs: 0, sm: 2 },
-              position: 'relative',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-              backgroundColor: '#2D2D33',
-            }
+              position: "relative",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              backgroundColor: "#2D2D33",
+            },
           }}
         >
-          <DialogContent 
+          <DialogContent
             sx={{
               flex: 1,
-              overflow: 'hidden',
-              position: 'relative',
-              padding: '0 !important',
-              backgroundColor: '#2D2D33',
+              overflow: "hidden",
+              position: "relative",
+              padding: "0 !important",
+              backgroundColor: "#2D2D33",
             }}
           >
             {cropImage && (
@@ -1021,12 +1126,12 @@ const EmpProfilePage = () => {
                     resizable: true,
                     lines: {
                       cols: 2,
-                      rows: 2
-                    }
+                      rows: 2,
+                    },
                   }}
                   defaultSize={{
                     width: 250,
-                    height: 250
+                    height: 250,
                   }}
                   minWidth={250}
                   minHeight={250}
@@ -1035,15 +1140,15 @@ const EmpProfilePage = () => {
               </div>
             )}
           </DialogContent>
-          <DialogActions 
+          <DialogActions
             sx={{
-              position: 'sticky',
+              position: "sticky",
               bottom: 0,
-              backgroundColor: '#2D2D33',
-              borderTop: '1px solid #3D3D43',
+              backgroundColor: "#2D2D33",
+              borderTop: "1px solid #3D3D43",
               zIndex: 1,
-              padding: '1rem',
-              marginTop: 'auto'
+              padding: "1rem",
+              marginTop: "auto",
             }}
           >
             <Button
@@ -1051,12 +1156,12 @@ const EmpProfilePage = () => {
               className="flex-1"
               variant="contained"
               sx={{
-                backgroundColor: '#4A4B50',
-                '&:hover': {
-                  backgroundColor: '#3A3B40',
+                backgroundColor: "#4A4B50",
+                "&:hover": {
+                  backgroundColor: "#3A3B40",
                 },
-                boxShadow: 'none',
-                color: '#FCFCFC',
+                boxShadow: "none",
+                color: "#FCFCFC",
               }}
             >
               キャンセル
@@ -1067,15 +1172,15 @@ const EmpProfilePage = () => {
               className="flex-1"
               variant="contained"
               sx={{
-                backgroundColor: '#5b63d3',
-                '&:hover': {
-                  backgroundColor: '#7A7FD0',
+                backgroundColor: "#5b63d3",
+                "&:hover": {
+                  backgroundColor: "#7A7FD0",
                 },
-                boxShadow: 'none',
-                color: '#FCFCFC',
+                boxShadow: "none",
+                color: "#FCFCFC",
               }}
             >
-              {isCropping ? '処理中...' : '保存'}
+              {isCropping ? "処理中..." : "保存"}
             </Button>
           </DialogActions>
         </Dialog>
@@ -1084,4 +1189,4 @@ const EmpProfilePage = () => {
   );
 };
 
-export default EmpProfilePage; 
+export default EmpProfilePage;
