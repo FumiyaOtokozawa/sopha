@@ -75,9 +75,10 @@ export const handleAttendanceConfirmation = async (
     // オンライン出席または管理者による確定の場合は位置情報チェックをスキップ
     const skipLocationCheck =
       event.format === "online" ||
-      (event.format === "hybrid" && attendanceFormat === "online");
+      (event.format === "hybrid" && attendanceFormat === "online") ||
+      isAdminConfirmation;
 
-    if (!skipLocationCheck && !isAdminConfirmation) {
+    if (!skipLocationCheck) {
       // 既存の位置情報チェックロジック
       if (!currentPosition) {
         return {
@@ -160,86 +161,90 @@ export const handleAttendanceConfirmation = async (
       console.log("位置情報チェックをスキップします");
     }
 
-    // イベント開催期間チェック
-    const now = new Date();
-    const jstOffset = 9 * 60;
-    const nowJST = new Date(now.getTime() + jstOffset * 60 * 1000);
+    // イベント開催期間チェック（管理者による一括確定の場合はスキップ）
+    if (!isAdminConfirmation) {
+      const now = new Date();
+      const jstOffset = 9 * 60;
+      const nowJST = new Date(now.getTime() + jstOffset * 60 * 1000);
 
-    console.log("イベント開催時間の詳細:", {
-      開始時刻_生データ: event?.start_date,
-      終了時刻_生データ: event?.end_date,
-      現在時刻_UTC: now.toISOString(),
-      現在時刻_JST: nowJST.toISOString(),
-    });
-
-    // 文字列から日付を作成する際にタイムゾーンを考慮
-    const parseJSTDate = (dateString: string | undefined) => {
-      if (!dateString) {
-        throw new Error("日時が設定されていません");
-      }
-
-      try {
-        let date: Date;
-        if (dateString.includes("T")) {
-          // ISO形式の場合、UTCとして解釈されるのでJSTに変換
-          const utcDate = new Date(dateString);
-          date = new Date(utcDate.getTime() + jstOffset * 60 * 1000);
-        } else {
-          // スラッシュ形式の場合、既にJSTとして解釈
-          const [datePart, timePart] = dateString.split(" ");
-          const [year, month, day] = datePart.split("/").map(Number);
-          const [hours, minutes, seconds] = timePart.split(":").map(Number);
-          date = new Date(year, month - 1, day, hours, minutes, seconds);
-        }
-
-        if (isNaN(date.getTime())) {
-          throw new Error("不正な日時形式です");
-        }
-
-        console.log("日時パース結果:", {
-          入力: dateString,
-          パース後_ISO: date.toISOString(),
-          パース後_JST: date.toLocaleString("ja-JP", {
-            timeZone: "Asia/Tokyo",
-          }),
-        });
-
-        return date;
-      } catch (error) {
-        throw new Error(`日時のパースに失敗しました: ${dateString} (${error})`);
-      }
-    };
-
-    try {
-      const eventStartJST = parseJSTDate(event?.start_date);
-      const eventEndJST = parseJSTDate(event?.end_date);
-
-      console.log("時間チェック:", {
-        現在時刻: nowJST.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }),
-        開始時刻: eventStartJST.toLocaleString("ja-JP", {
-          timeZone: "Asia/Tokyo",
-        }),
-        終了時刻: eventEndJST.toLocaleString("ja-JP", {
-          timeZone: "Asia/Tokyo",
-        }),
-        開始時刻より後か: nowJST >= eventStartJST,
-        終了時刻より前か: nowJST <= eventEndJST,
+      console.log("イベント開催時間の詳細:", {
+        開始時刻_生データ: event?.start_date,
+        終了時刻_生データ: event?.end_date,
+        現在時刻_UTC: now.toISOString(),
+        現在時刻_JST: nowJST.toISOString(),
       });
 
-      if (nowJST < eventStartJST || nowJST > eventEndJST) {
+      // 文字列から日付を作成する際にタイムゾーンを考慮
+      const parseJSTDate = (dateString: string | undefined) => {
+        if (!dateString) {
+          throw new Error("日時が設定されていません");
+        }
+
+        try {
+          let date: Date;
+          if (dateString.includes("T")) {
+            // ISO形式の場合、UTCとして解釈されるのでJSTに変換
+            const utcDate = new Date(dateString);
+            date = new Date(utcDate.getTime() + jstOffset * 60 * 1000);
+          } else {
+            // スラッシュ形式の場合、既にJSTとして解釈
+            const [datePart, timePart] = dateString.split(" ");
+            const [year, month, day] = datePart.split("/").map(Number);
+            const [hours, minutes, seconds] = timePart.split(":").map(Number);
+            date = new Date(year, month - 1, day, hours, minutes, seconds);
+          }
+
+          if (isNaN(date.getTime())) {
+            throw new Error("不正な日時形式です");
+          }
+
+          console.log("日時パース結果:", {
+            入力: dateString,
+            パース後_ISO: date.toISOString(),
+            パース後_JST: date.toLocaleString("ja-JP", {
+              timeZone: "Asia/Tokyo",
+            }),
+          });
+
+          return date;
+        } catch (error) {
+          throw new Error(
+            `日時のパースに失敗しました: ${dateString} (${error})`
+          );
+        }
+      };
+
+      try {
+        const eventStartJST = parseJSTDate(event?.start_date);
+        const eventEndJST = parseJSTDate(event?.end_date);
+
+        console.log("時間チェック:", {
+          現在時刻: nowJST.toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }),
+          開始時刻: eventStartJST.toLocaleString("ja-JP", {
+            timeZone: "Asia/Tokyo",
+          }),
+          終了時刻: eventEndJST.toLocaleString("ja-JP", {
+            timeZone: "Asia/Tokyo",
+          }),
+          開始時刻より後か: nowJST >= eventStartJST,
+          終了時刻より前か: nowJST <= eventEndJST,
+        });
+
+        if (nowJST < eventStartJST || nowJST > eventEndJST) {
+          return {
+            success: false,
+            message: "イベントの開催時間外です",
+          };
+        }
+      } catch (error) {
         return {
           success: false,
-          message: "イベントの開催時間外です",
+          message:
+            error instanceof Error
+              ? error.message
+              : "イベントの日時情報が不正です",
         };
       }
-    } catch (error) {
-      return {
-        success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : "イベントの日時情報が不正です",
-      };
     }
 
     // 出席者（status=1）のみを取得

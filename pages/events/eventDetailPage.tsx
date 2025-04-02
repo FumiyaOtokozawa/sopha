@@ -948,7 +948,9 @@ const EventDetailPage: React.FC = () => {
       });
     } catch (error) {
       console.error("一括本出席処理に失敗:", error);
-      alert("本出席の確定に失敗しました");
+      alert(
+        error instanceof Error ? error.message : "本出席の確定に失敗しました"
+      );
     }
   };
 
