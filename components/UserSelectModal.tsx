@@ -1,11 +1,11 @@
-import { Dialog, DialogContent } from '@mui/material';
+import { Dialog, DialogContent } from "@mui/material";
 import { useState, useCallback, useEffect } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import { supabase } from "../utils/supabaseClient";
-import type { User } from '../types/user';
-import Image from 'next/image';
-import { Skeleton } from '@mui/material';
+import type { User } from "../types/user";
+import Image from "next/image";
+import { Skeleton } from "@mui/material";
 
 interface UserSelectModalProps {
   open: boolean;
@@ -14,57 +14,65 @@ interface UserSelectModalProps {
   excludeEmpNo?: number;
 }
 
-const UserSelectModal: React.FC<UserSelectModalProps> = ({ 
-  open, 
-  onClose, 
-  onSelect, 
-  excludeEmpNo 
+const UserSelectModal: React.FC<UserSelectModalProps> = ({
+  open,
+  onClose,
+  onSelect,
+  excludeEmpNo,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [users, setUsers] = useState<User[]>([]);
-  const [loadingImages, setLoadingImages] = useState<{[key: number]: boolean}>({});
+  const [loadingImages, setLoadingImages] = useState<{
+    [key: number]: boolean;
+  }>({});
 
   // 画像の読み込み状態を管理
   const handleImageLoad = (empNo: number) => {
-    setLoadingImages(prev => ({
+    setLoadingImages((prev) => ({
       ...prev,
-      [empNo]: false
+      [empNo]: false,
     }));
   };
 
   // 検索処理
-  const handleSearch = useCallback(async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    
-    let query = supabase
-      .from("USER_INFO")
-      .select("emp_no, myoji, namae, last_nm, first_nm, icon_url")
-      .eq("act_kbn", true);
+  const handleSearch = useCallback(
+    async (e?: React.FormEvent) => {
+      if (e) e.preventDefault();
 
-    if (excludeEmpNo) {
-      query = query.neq("emp_no", excludeEmpNo);
-    }
+      let query = supabase
+        .from("USER_INFO")
+        .select("emp_no, myoji, namae, last_nm, first_nm, icon_url")
+        .eq("act_kbn", true);
 
-    if (searchTerm) {
-      query = query.or(
-        `myoji.ilike.%${searchTerm}%,namae.ilike.%${searchTerm}%,last_nm.ilike.%${searchTerm}%,first_nm.ilike.%${searchTerm}%`
-      );
-    }
+      if (excludeEmpNo) {
+        query = query.neq("emp_no", excludeEmpNo);
+      }
 
-    const { data, error } = await query.order("emp_no");
+      if (searchTerm) {
+        query = query.or(
+          `myoji.ilike.%${searchTerm}%,namae.ilike.%${searchTerm}%,last_nm.ilike.%${searchTerm}%,first_nm.ilike.%${searchTerm}%`
+        );
+      }
 
-    if (error) {
-      console.error("検索エラー:", error);
-    } else {
-      // 画像の読み込み状態を初期化
-      const initialLoadingState = (data || []).reduce((acc, user) => ({
-        ...acc,
-        [user.emp_no]: true
-      }), {});
-      setLoadingImages(initialLoadingState);
-      setUsers(data || []);
-    }
-  }, [searchTerm, excludeEmpNo]);
+      const { data, error } = await query.order("emp_no");
+
+      if (error) {
+        console.error("検索エラー:", error);
+      } else {
+        // 画像の読み込み状態を初期化
+        const initialLoadingState = (data || []).reduce(
+          (acc, user) => ({
+            ...acc,
+            [user.emp_no]: true,
+          }),
+          {}
+        );
+        setLoadingImages(initialLoadingState);
+        setUsers(data || []);
+      }
+    },
+    [searchTerm, excludeEmpNo]
+  );
 
   // 初期表示
   useEffect(() => {
@@ -79,34 +87,49 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
     onClose();
   };
 
+  // ユーザー情報の安全な表示のためのヘルパー関数
+  const getUserDisplayName = (user: User) => {
+    const myoji = user?.myoji || "未設定";
+    const namae = user?.namae || "";
+    const lastName = user?.last_nm || "";
+    const firstName = user?.first_nm || "";
+
+    return {
+      fullName: `${myoji} ${namae}`.trim(),
+      romanName: `${lastName} ${firstName}`.trim() || "未設定",
+    };
+  };
+
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={onClose}
       maxWidth="sm"
       fullWidth
       aria-label="ユーザー選択"
       PaperProps={{
         style: {
-          backgroundColor: '#2D2D33',
-          color: '#FCFCFC',
-          height: '60vh',
-          margin: '16px',
-          borderRadius: '8px',
-          overflow: 'hidden'
-        }
+          backgroundColor: "#2D2D33",
+          color: "#FCFCFC",
+          height: "60vh",
+          margin: "16px",
+          borderRadius: "8px",
+          overflow: "hidden",
+        },
       }}
     >
-      <DialogContent sx={{ 
-        padding: '16px',
-        '&::-webkit-scrollbar': {
-          width: '8px',
-        },
-        '&::-webkit-scrollbar-thumb': {
-          backgroundColor: '#3D3D45',
-          borderRadius: '4px',
-        }
-      }}>
+      <DialogContent
+        sx={{
+          padding: "16px",
+          "&::-webkit-scrollbar": {
+            width: "8px",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "#3D3D45",
+            borderRadius: "4px",
+          },
+        }}
+      >
         {/* 検索ボックス */}
         <div className="mb-4">
           <div className="flex items-center gap-2">
@@ -126,7 +149,7 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
                 <SearchIcon fontSize="small" />
               </button>
             </form>
-            <button 
+            <button
               onClick={onClose}
               className="text-[#ACACAC] hover:text-[#FCFCFC] p-1 rounded-full hover:bg-[#3D3D45] flex-shrink-0"
               aria-label="閉じる"
@@ -144,51 +167,58 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
             </div>
           ) : (
             <ul className="divide-y divide-[#3D3D45] -mx-2">
-              {users.map((user) => (
-                <li
-                  key={user.emp_no}
-                  className="hover:bg-[#3a3b3e] transition-colors"
-                >
-                  <button
-                    className="px-3 py-2 flex items-center w-full text-left"
-                    onClick={() => handleUserSelect(user)}
+              {users.map((user) => {
+                if (!user?.emp_no) return null;
+                const { fullName, romanName } = getUserDisplayName(user);
+
+                return (
+                  <li
+                    key={user.emp_no}
+                    className="hover:bg-[#3a3b3e] transition-colors"
                   >
-                    {user.icon_url ? (
-                      <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-3 relative">
-                        {loadingImages[user.emp_no] && (
-                          <Skeleton
-                            variant="circular"
+                    <button
+                      className="px-3 py-2 flex items-center w-full text-left"
+                      onClick={() => handleUserSelect(user)}
+                    >
+                      {user?.icon_url ? (
+                        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 mr-3 relative">
+                          {loadingImages[user.emp_no] && (
+                            <Skeleton
+                              variant="circular"
+                              width={32}
+                              height={32}
+                              className="absolute inset-0 z-10"
+                              sx={{
+                                backgroundColor: "#3D3D45",
+                              }}
+                            />
+                          )}
+                          <Image
+                            src={user.icon_url}
+                            alt={`${fullName}のアイコン`}
                             width={32}
                             height={32}
-                            className="absolute inset-0 z-10"
-                            sx={{
-                              backgroundColor: '#3D3D45',
-                            }}
+                            className="object-cover"
+                            onLoadingComplete={() =>
+                              handleImageLoad(user.emp_no)
+                            }
+                            loading="eager"
+                            priority={true}
                           />
-                        )}
-                        <Image
-                          src={user.icon_url}
-                          alt={`${user.myoji} ${user.namae}のアイコン`}
-                          width={32}
-                          height={32}
-                          className="object-cover"
-                          onLoadingComplete={() => handleImageLoad(user.emp_no)}
-                          loading="eager"
-                          priority={true}
-                        />
+                        </div>
+                      ) : (
+                        <div className="w-8 h-8 bg-[#8E93DA] rounded-full flex items-center justify-center text-black font-medium flex-shrink-0 mr-3">
+                          {(user?.myoji || "未").charAt(0)}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-medium">{fullName}</p>
+                        <p className="text-xs text-[#ACACAC]">{romanName}</p>
                       </div>
-                    ) : (
-                      <div className="w-8 h-8 bg-[#8E93DA] rounded-full flex items-center justify-center text-black font-medium flex-shrink-0 mr-3">
-                        {user.myoji.charAt(0)}
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-sm font-medium">{`${user.myoji} ${user.namae}`}</p>
-                      <p className="text-xs text-[#ACACAC]">{`${user.last_nm} ${user.first_nm}`}</p>
-                    </div>
-                  </button>
-                </li>
-              ))}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
@@ -197,4 +227,4 @@ const UserSelectModal: React.FC<UserSelectModalProps> = ({
   );
 };
 
-export default UserSelectModal; 
+export default UserSelectModal;
