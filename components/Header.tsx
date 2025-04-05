@@ -6,7 +6,8 @@ import MenuIcon from "@mui/icons-material/Menu";
 import LogoutIcon from "@mui/icons-material/Logout";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import HomeIcon from "@mui/icons-material/Home";
-import { Menu, MenuItem, IconButton } from "@mui/material";
+import UpdateIcon from "@mui/icons-material/Update";
+import { Menu, MenuItem, IconButton, Badge } from "@mui/material";
 import { useRouter } from "next/router";
 import Image from "next/image";
 
@@ -23,6 +24,7 @@ export default function Header() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const router = useRouter();
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // safe-area-inset-topの検出と設定
   useEffect(() => {
@@ -86,6 +88,25 @@ export default function Header() {
     };
   }, [userInfo]); // userInfoが変更されたときにリスナーを再設定
 
+  // 未読数を取得する関数
+  const fetchUnreadCount = () => {
+    const readNotes = JSON.parse(localStorage.getItem("readNotes") || "[]");
+    const allNotes = JSON.parse(localStorage.getItem("allUpdateNotes") || "[]");
+    const unreadCount = allNotes.filter(
+      (noteId: number) => !readNotes.includes(noteId)
+    ).length;
+    setUnreadCount(unreadCount);
+  };
+
+  // 未読数を更新するイベントリスナーを設定
+  useEffect(() => {
+    fetchUnreadCount();
+    window.addEventListener("updateNotesChanged", fetchUnreadCount);
+    return () => {
+      window.removeEventListener("updateNotesChanged", fetchUnreadCount);
+    };
+  }, []);
+
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
@@ -116,6 +137,11 @@ export default function Header() {
 
   const handleHomeClick = () => {
     router.push("/adminPages/admMainPage");
+  };
+
+  const handleUpdateNotes = () => {
+    router.push("/common/updateNotesPage");
+    handleMenuClose();
   };
 
   useEffect(() => {
@@ -220,7 +246,17 @@ export default function Header() {
                   className="p-2 hover:bg-[#4A4B50] rounded-full transition-colors"
                   sx={{ color: "#FCFCFC" }}
                 >
-                  <MenuIcon />
+                  <Badge
+                    badgeContent={unreadCount}
+                    color="error"
+                    sx={{
+                      "& .MuiBadge-badge": {
+                        backgroundColor: "#5b63d3",
+                      },
+                    }}
+                  >
+                    <MenuIcon />
+                  </Badge>
                 </IconButton>
                 <Menu
                   anchorEl={anchorEl}
@@ -246,6 +282,23 @@ export default function Header() {
                       sx={{ color: "#FCFCFC" }}
                     />
                     <span>お問い合わせ/不具合報告</span>
+                  </MenuItem>
+                  <MenuItem
+                    onClick={handleUpdateNotes}
+                    className="flex items-center gap-2"
+                  >
+                    <Badge
+                      badgeContent={unreadCount}
+                      color="error"
+                      sx={{
+                        "& .MuiBadge-badge": {
+                          backgroundColor: "#5b63d3",
+                        },
+                      }}
+                    >
+                      <UpdateIcon fontSize="small" sx={{ color: "#FCFCFC" }} />
+                    </Badge>
+                    <span>アップデートノート</span>
                   </MenuItem>
                   <MenuItem
                     onClick={handleLogout}
