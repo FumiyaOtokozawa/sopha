@@ -154,11 +154,6 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
       { field: editedEvent.end_date, name: "終了日時" },
     ];
 
-    // オンライン形式の場合はURLも必須
-    if (editedEvent.format === "online" || editedEvent.format === "hybrid") {
-      requiredFields.push({ field: editedEvent.url || "", name: "URL" });
-    }
-
     const missingFields = requiredFields
       .filter((field) => !field.field)
       .map((field) => field.name);
@@ -337,9 +332,6 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
       <div>
         <label className="block text-xs font-medium mb-1 text-[#ACACAC]">
           URL
-          {editedEvent?.format === "online" && (
-            <span className="text-red-500">*</span>
-          )}
         </label>
         <input
           type="url"
@@ -348,7 +340,6 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
             setEditedEvent({ ...editedEvent, url: e.target.value })
           }
           className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px] placeholder-[#6B7280]"
-          required={editedEvent?.format === "online"}
           placeholder="https://..."
         />
       </div>
