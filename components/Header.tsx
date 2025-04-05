@@ -1,6 +1,6 @@
 // components/Header.tsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../utils/supabaseClient";
 import MenuIcon from "@mui/icons-material/Menu";
 import LogoutIcon from "@mui/icons-material/Logout";
@@ -89,23 +89,44 @@ export default function Header() {
   }, [userInfo]); // userInfoが変更されたときにリスナーを再設定
 
   // 未読数を取得する関数
-  const fetchUnreadCount = () => {
-    const readNotes = JSON.parse(localStorage.getItem("readNotes") || "[]");
-    const allNotes = JSON.parse(localStorage.getItem("allUpdateNotes") || "[]");
-    const unreadCount = allNotes.filter(
-      (noteId: number) => !readNotes.includes(noteId)
-    ).length;
-    setUnreadCount(unreadCount);
-  };
+  const fetchUnreadCount = useCallback(() => {
+    try {
+      const readNotes = JSON.parse(localStorage.getItem("readNotes") || "[]");
+      const allNotes = JSON.parse(
+        localStorage.getItem("allUpdateNotes") || "[]"
+      );
+      const unreadCount = allNotes.filter(
+        (noteId: number) => !readNotes.includes(noteId)
+      ).length;
+      setUnreadCount(unreadCount);
+    } catch (error) {
+      console.error("未読数の取得に失敗しました:", error);
+      setUnreadCount(0);
+    }
+  }, []);
 
   // 未読数を更新するイベントリスナーを設定
   useEffect(() => {
+    // 初回読み込み時に未読数を取得
     fetchUnreadCount();
+
+    // ローカルストレージの変更を監視
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "readNotes" || e.key === "allUpdateNotes") {
+        fetchUnreadCount();
+      }
+    };
+
+    // イベントリスナーを設定
     window.addEventListener("updateNotesChanged", fetchUnreadCount);
+    window.addEventListener("storage", handleStorageChange);
+
+    // コンポーネントのアンマウント時にイベントリスナーを削除
     return () => {
       window.removeEventListener("updateNotesChanged", fetchUnreadCount);
+      window.removeEventListener("storage", handleStorageChange);
     };
-  }, []);
+  }, [fetchUnreadCount]);
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);

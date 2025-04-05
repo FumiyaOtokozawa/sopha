@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../../utils/supabaseClient";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   Card,
   CardContent,
@@ -43,13 +45,17 @@ const UPDATE_TYPE_MAP: { [key: string]: { label: string; color: string } } = {
     label: "新機能",
     color: "bg-[rgb(0,50,0)] text-[rgb(200,255,200)]",
   },
-  bug_fix: {
+  update: {
+    label: "更新",
+    color: "bg-[rgb(0,0,50)] text-[rgb(200,200,255)]",
+  },
+  bugfix: {
     label: "バグ修正",
     color: "bg-[rgb(50,0,0)] text-[rgb(255,200,200)]",
   },
   announcement: {
     label: "お知らせ",
-    color: "bg-[rgb(0,0,50)] text-[rgb(200,200,255)]",
+    color: "bg-[rgb(50,50,50)] text-[rgb(220,220,220)]",
   },
 };
 
@@ -81,16 +87,41 @@ export default function UpdateNotesPage() {
 
   useEffect(() => {
     fetchUpdateNotes();
-    // ローカルストレージからいいね状態を復元
+
+    // ローカルストレージの変更を監視
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "readNotes" || e.key === "allUpdateNotes") {
+        const storedLikes = localStorage.getItem("likedNotes");
+        const storedReadNotes = localStorage.getItem("readNotes");
+        if (storedLikes) {
+          setLikedNotes(JSON.parse(storedLikes));
+        }
+        if (storedReadNotes) {
+          setReadNotes(JSON.parse(storedReadNotes));
+        }
+      }
+    };
+
+    // ローカルストレージの監視を開始
+    window.addEventListener("storage", handleStorageChange);
+
+    // 初期化処理
     const storedLikes = localStorage.getItem("likedNotes");
+    const storedReadNotes = localStorage.getItem("readNotes");
     if (storedLikes) {
       setLikedNotes(JSON.parse(storedLikes));
     }
-    // ローカルストレージから既読状態を復元
-    const storedReadNotes = localStorage.getItem("readNotes");
     if (storedReadNotes) {
       setReadNotes(JSON.parse(storedReadNotes));
+    } else {
+      // 初回アクセス時は空の配列で初期化
+      localStorage.setItem("readNotes", JSON.stringify([]));
+      setReadNotes([]);
     }
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
 
   const fetchUpdateNotes = async () => {
@@ -118,8 +149,10 @@ export default function UpdateNotesPage() {
     const noteIds = processedData.map((note) => note.upd_id);
     localStorage.setItem("allUpdateNotes", JSON.stringify(noteIds));
 
-    // 未読数の更新を通知
-    window.dispatchEvent(new Event("updateNotesChanged"));
+    // 未読数の更新を通知（遅延を入れて確実に状態が更新されてから通知）
+    setTimeout(() => {
+      window.dispatchEvent(new Event("updateNotesChanged"));
+    }, 100);
   };
 
   const handleExpandClick = (noteId: number) => {
@@ -200,9 +233,12 @@ export default function UpdateNotesPage() {
     return updateNotes.filter((note) => {
       switch (type) {
         case "feature":
-          return note.update_type?.toLowerCase() === "feature";
-        case "bug_fix":
-          return note.update_type?.toLowerCase() === "bug_fix";
+          return (
+            note.update_type?.toLowerCase() === "feature" ||
+            note.update_type?.toLowerCase() === "update"
+          );
+        case "bugfix":
+          return note.update_type?.toLowerCase() === "bugfix";
         case "announcement":
           return note.update_type?.toLowerCase() === "announcement";
         default:
@@ -260,16 +296,17 @@ export default function UpdateNotesPage() {
           <div className="flex-grow min-w-0">
             <Typography
               component="h2"
-              className="text-base font-medium leading-tight truncate text-gray-100"
+              className="text-base font-medium leading-tight text-gray-100 whitespace-pre-wrap break-words"
             >
               {note.title}
             </Typography>
           </div>
           <IconButton
             size="small"
-            className="text-gray-400 !p-1"
+            className="text-gray-400 !p-1 !mt-0"
             sx={{
               color: "rgb(252,252,252)",
+              flexShrink: 0,
             }}
           >
             {expandedId === note.upd_id ? (
@@ -280,17 +317,74 @@ export default function UpdateNotesPage() {
           </IconButton>
         </div>
         <Collapse in={expandedId === note.upd_id}>
-          <Typography
-            variant="body2"
-            className="mb-3 text-sm text-gray-300 whitespace-pre-wrap border-t border-gray-700 pt-2"
-            style={{
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              overflowWrap: "break-word",
-            }}
-          >
-            {note.description}
-          </Typography>
+          <div className="prose prose-invert max-w-none mt-3 text-sm text-gray-300 border-t border-gray-700 pt-2">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                // インライン要素のスタイル
+                p: ({ children }) => (
+                  <p className="my-2 text-gray-300">{children}</p>
+                ),
+                a: ({ href, children }) => (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[rgb(142,147,218)] hover:underline"
+                  >
+                    {children}
+                  </a>
+                ),
+                ul: ({ children }) => (
+                  <ul className="list-disc pl-4 my-2">{children}</ul>
+                ),
+                ol: ({ children }) => (
+                  <ol className="list-decimal pl-4 my-2">{children}</ol>
+                ),
+                li: ({ children }) => <li className="my-1">{children}</li>,
+                strong: ({ children }) => (
+                  <strong className="font-bold text-gray-200">
+                    {children}
+                  </strong>
+                ),
+                em: ({ children }) => (
+                  <em className="italic text-gray-200">{children}</em>
+                ),
+                code: ({ children }) => (
+                  <code className="bg-[rgba(0,0,0,0.2)] px-1 py-0.5 rounded text-gray-200">
+                    {children}
+                  </code>
+                ),
+                pre: ({ children }) => (
+                  <pre className="bg-[rgba(0,0,0,0.2)] p-3 rounded-md overflow-x-auto my-3">
+                    {children}
+                  </pre>
+                ),
+                blockquote: ({ children }) => (
+                  <blockquote className="border-l-4 border-gray-500 pl-4 my-3 italic">
+                    {children}
+                  </blockquote>
+                ),
+                h1: ({ children }) => (
+                  <h1 className="text-xl font-bold my-4 text-gray-200">
+                    {children}
+                  </h1>
+                ),
+                h2: ({ children }) => (
+                  <h2 className="text-lg font-bold my-3 text-gray-200">
+                    {children}
+                  </h2>
+                ),
+                h3: ({ children }) => (
+                  <h3 className="text-base font-bold my-2 text-gray-200">
+                    {children}
+                  </h3>
+                ),
+              }}
+            >
+              {note.description || ""}
+            </ReactMarkdown>
+          </div>
         </Collapse>
         <div className="flex justify-between items-center mt-1">
           <div className="flex items-center gap-2">
@@ -325,13 +419,6 @@ export default function UpdateNotesPage() {
                       "&::before": {
                         border: "1px solid rgb(142,147,218)",
                       },
-                    },
-                  },
-                },
-                popper: {
-                  sx: {
-                    '&[data-popper-placement*="top"] .MuiTooltip-tooltip': {
-                      marginBottom: "4px !important",
                     },
                   },
                 },
@@ -473,8 +560,8 @@ export default function UpdateNotesPage() {
           },
         }}
       >
-        <Tab label={<TabWithBadge label="新機能" type="feature" />} />
-        <Tab label={<TabWithBadge label="バグ修正" type="bug_fix" />} />
+        <Tab label={<TabWithBadge label="追加/更新" type="feature" />} />
+        <Tab label={<TabWithBadge label="バグ修正" type="bugfix" />} />
         <Tab label={<TabWithBadge label="お知らせ" type="announcement" />} />
       </Tabs>
 
@@ -485,7 +572,7 @@ export default function UpdateNotesPage() {
       </TabPanel>
       <TabPanel value={currentTab} index={1}>
         <div className="space-y-3">
-          {getFilteredNotes("bug_fix").map(renderNoteCard)}
+          {getFilteredNotes("bugfix").map(renderNoteCard)}
         </div>
       </TabPanel>
       <TabPanel value={currentTab} index={2}>
