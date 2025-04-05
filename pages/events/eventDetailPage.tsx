@@ -55,12 +55,14 @@ interface EventParticipant {
   namae: string | null;
   status: "1" | "2" | "11";
   icon_url: string | null;
+  updated_at: string;
 }
 
 interface SupabaseEntry {
   entry_id: number;
   emp_no: number;
   status: "1" | "2" | "11";
+  updated_at: string;
   USER_INFO: {
     myoji: string | null;
     namae: string | null;
@@ -292,6 +294,7 @@ const EventDetailPage: React.FC = () => {
                 entry_id,
                 emp_no,
                 status,
+                updated_at,
                 USER_INFO!inner(myoji, namae, icon_url)
               `
                 )
@@ -309,6 +312,7 @@ const EventDetailPage: React.FC = () => {
                   namae: entry.USER_INFO?.namae || null,
                   status: entry.status,
                   icon_url: entry.USER_INFO?.icon_url || null,
+                  updated_at: entry.updated_at,
                 })
               ) || [];
 
@@ -515,14 +519,23 @@ const EventDetailPage: React.FC = () => {
           .single();
 
         if (userData) {
+          // 新規エントリーを作成
+          await supabase.from("EVENT_TEMP_ENTRY").insert({
+            event_id: event.event_id,
+            emp_no: currentUserEmpNo,
+            status: status,
+            updated_at: jstDateString,
+          });
+
           // 新しい参加者として追加（仮のentry_idを設定）
           updatedParticipants.push({
-            entry_id: -1, // 仮のID（バックエンドで実際のIDが生成される）
+            entry_id: -1,
             emp_no: currentUserEmpNo,
             myoji: userData.myoji || null,
             namae: userData.namae || null,
             status: status,
             icon_url: null,
+            updated_at: jstDateString,
           });
         }
       }
@@ -558,6 +571,7 @@ const EventDetailPage: React.FC = () => {
           entry_id,
           emp_no,
           status,
+          updated_at,
           USER_INFO!inner(myoji, namae, icon_url)
         `
         )
@@ -573,6 +587,7 @@ const EventDetailPage: React.FC = () => {
                 namae: entry.USER_INFO?.namae || null,
                 status: entry.status,
                 icon_url: entry.USER_INFO?.icon_url || null,
+                updated_at: entry.updated_at,
               })) || [];
 
             setParticipants(formattedParticipants);
@@ -614,6 +629,7 @@ const EventDetailPage: React.FC = () => {
             entry_id,
             emp_no,
             status,
+            updated_at,
             USER_INFO!inner(myoji, namae, icon_url)
           `
             )
@@ -632,6 +648,7 @@ const EventDetailPage: React.FC = () => {
             namae: entry.USER_INFO?.namae || null,
             status: entry.status,
             icon_url: entry.USER_INFO?.icon_url || null,
+            updated_at: entry.updated_at,
           })) || [];
 
         setParticipants(formattedParticipants);
@@ -749,6 +766,7 @@ const EventDetailPage: React.FC = () => {
               entry_id,
               emp_no,
               status,
+              updated_at,
               USER_INFO!inner(myoji, namae, icon_url)
             `
               )
@@ -768,6 +786,7 @@ const EventDetailPage: React.FC = () => {
                 namae: entry.USER_INFO?.namae || null,
                 status: entry.status,
                 icon_url: entry.USER_INFO?.icon_url || null,
+                updated_at: entry.updated_at,
               })
             ) || [];
 
@@ -881,6 +900,7 @@ const EventDetailPage: React.FC = () => {
           entry_id,
           emp_no,
           status,
+          updated_at,
           USER_INFO!inner(myoji, namae, icon_url)
         `
           )
@@ -897,6 +917,7 @@ const EventDetailPage: React.FC = () => {
           namae: entry.USER_INFO?.namae || null,
           status: entry.status,
           icon_url: entry.USER_INFO?.icon_url || null,
+          updated_at: entry.updated_at,
         })) || [];
 
       setParticipants(formattedParticipants);
@@ -1462,17 +1483,26 @@ const EventDetailPage: React.FC = () => {
                                 />
                               </button>
                             </div>
-                            <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
+                            <div className="flex flex-wrap gap-1.5 pr-1">
                               {participants
                                 .filter(
                                   (p) => p.status === "1" || p.status === "11"
                                 )
                                 .sort((a, b) => {
+                                  // まず本出席（status="11"）を優先
                                   if (a.status === "11" && b.status !== "11")
                                     return -1;
                                   if (a.status !== "11" && b.status === "11")
                                     return 1;
-                                  return a.emp_no - b.emp_no;
+
+                                  // 同じステータスの場合は更新日時（ミリ秒単位）で降順ソート
+                                  const aTime = new Date(
+                                    a.updated_at
+                                  ).getTime();
+                                  const bTime = new Date(
+                                    b.updated_at
+                                  ).getTime();
+                                  return bTime - aTime; // 新しい順
                                 })
                                 .map((participant) => (
                                   <div
@@ -1517,8 +1547,8 @@ const EventDetailPage: React.FC = () => {
                                     <span
                                       className={`ml-1 text-[10px] ${
                                         participant.status === "11"
-                                          ? "text-white"
-                                          : "text-green-500"
+                                          ? "text-green-500"
+                                          : "text-white"
                                       }`}
                                     >
                                       {participant.myoji && participant.namae
@@ -1545,9 +1575,19 @@ const EventDetailPage: React.FC = () => {
                                 }
                               </span>
                             </h3>
-                            <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
+                            <div className="flex flex-wrap gap-1.5 pr-1">
                               {participants
                                 .filter((p) => p.status === "2")
+                                .sort((a, b) => {
+                                  // 欠席者は更新日時（ミリ秒単位）のみで降順ソート
+                                  const aTime = new Date(
+                                    a.updated_at
+                                  ).getTime();
+                                  const bTime = new Date(
+                                    b.updated_at
+                                  ).getTime();
+                                  return bTime - aTime; // 新しい順
+                                })
                                 .map((participant) => (
                                   <div
                                     key={participant.entry_id}
