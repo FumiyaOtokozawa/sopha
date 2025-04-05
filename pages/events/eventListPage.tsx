@@ -201,9 +201,16 @@ export default function EventListPage() {
         let endDate: Date;
 
         if (viewType === "calendar") {
-          // カレンダー表示の場合：当月の1日から末日まで
+          // カレンダー表示の場合：当月の1日から末日23:59:59まで
           startDate = new Date(date.getFullYear(), date.getMonth(), 1);
-          endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+          endDate = new Date(
+            date.getFullYear(),
+            date.getMonth() + 1,
+            0,
+            23,
+            59,
+            59
+          );
         } else {
           // 予定リスト表示の場合：システム日付のJST 0時から3ヶ月先まで
           const today = new Date();
