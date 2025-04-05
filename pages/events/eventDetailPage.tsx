@@ -496,54 +496,12 @@ const EventDetailPage: React.FC = () => {
       // 先にUIを更新して体感速度を向上
       setEntryStatus(status);
 
-      // 参加者リストを先に更新（楽観的更新）
-      const updatedParticipants = [...participants];
-
       // JSTの現在時刻を取得
       const now = new Date();
       const jstDate = new Date(now.getTime() + 9 * 60 * 60 * 1000);
       const jstDateString = jstDate.toISOString();
 
-      if (existingParticipant) {
-        // 既存の参加者情報を更新
-        updatedParticipants[existingParticipantIndex] = {
-          ...existingParticipant,
-          status: status,
-        };
-      } else if (currentUserEmpNo) {
-        // 現在のユーザー情報を取得
-        const { data: userData } = await supabase
-          .from("USER_INFO")
-          .select("myoji, namae")
-          .eq("emp_no", currentUserEmpNo)
-          .single();
-
-        if (userData) {
-          // 新規エントリーを作成
-          await supabase.from("EVENT_TEMP_ENTRY").insert({
-            event_id: event.event_id,
-            emp_no: currentUserEmpNo,
-            status: status,
-            updated_at: jstDateString,
-          });
-
-          // 新しい参加者として追加（仮のentry_idを設定）
-          updatedParticipants.push({
-            entry_id: -1,
-            emp_no: currentUserEmpNo,
-            myoji: userData.myoji || null,
-            namae: userData.namae || null,
-            status: status,
-            icon_url: null,
-            updated_at: jstDateString,
-          });
-        }
-      }
-
-      // UIを先に更新
-      setParticipants(updatedParticipants);
-
-      // バックグラウンドでデータベース更新を実行
+      // データベース更新処理
       if (existingParticipant) {
         // 既存のエントリーを更新
         await supabase
@@ -553,46 +511,54 @@ const EventDetailPage: React.FC = () => {
             updated_at: jstDateString,
           })
           .eq("entry_id", existingParticipant.entry_id);
-      } else {
-        // 新規エントリーを作成
-        await supabase.from("EVENT_TEMP_ENTRY").insert({
-          event_id: event.event_id,
-          emp_no: currentUserEmpNo,
+
+        // UIの参加者リストを更新
+        const updatedParticipants = [...participants];
+        updatedParticipants[existingParticipantIndex] = {
+          ...existingParticipant,
           status: status,
           updated_at: jstDateString,
-        });
+        };
+        setParticipants(updatedParticipants);
+      } else {
+        // 新規エントリーの場合
+        const { data: userData } = await supabase
+          .from("USER_INFO")
+          .select("myoji, namae, icon_url")
+          .eq("emp_no", currentUserEmpNo)
+          .single();
+
+        // 新規エントリーをデータベースに追加
+        const { data: newEntry } = await supabase
+          .from("EVENT_TEMP_ENTRY")
+          .insert({
+            event_id: event.event_id,
+            emp_no: currentUserEmpNo,
+            status: status,
+            updated_at: jstDateString,
+          })
+          .select()
+          .single();
+
+        if (newEntry && userData) {
+          // UIの参加者リストに新規エントリーを追加
+          setParticipants([
+            ...participants,
+            {
+              entry_id: newEntry.entry_id,
+              emp_no: currentUserEmpNo,
+              myoji: userData.myoji,
+              namae: userData.namae,
+              status: status,
+              icon_url: userData.icon_url,
+              updated_at: jstDateString,
+            },
+          ]);
+        }
       }
 
-      // エラーが発生しなければ、最新の参加者リストを非同期で取得（UIブロックなし）
-      supabase
-        .from("EVENT_TEMP_ENTRY")
-        .select(
-          `
-          entry_id,
-          emp_no,
-          status,
-          updated_at,
-          USER_INFO!inner(myoji, namae, icon_url)
-        `
-        )
-        .eq("event_id", event.event_id)
-        .order("entry_id", { ascending: true })
-        .then(({ data, error }) => {
-          if (!error && data) {
-            const formattedParticipants =
-              (data as unknown as SupabaseEntry[])?.map((entry) => ({
-                entry_id: entry.entry_id,
-                emp_no: entry.emp_no,
-                myoji: entry.USER_INFO?.myoji || null,
-                namae: entry.USER_INFO?.namae || null,
-                status: entry.status,
-                icon_url: entry.USER_INFO?.icon_url || null,
-                updated_at: entry.updated_at,
-              })) || [];
-
-            setParticipants(formattedParticipants);
-          }
-        });
+      // 最新の参加者リストを非同期で取得（UIブロックなし）
+      refreshParticipants();
     } catch (error) {
       console.error("エントリーの更新に失敗:", error);
       // エラーが発生した場合は元の状態に戻す
