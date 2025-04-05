@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Dialog, Checkbox, Avatar, CircularProgress } from '@mui/material';
-import DoneIcon from '@mui/icons-material/Done';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from "react";
+import { Dialog, Checkbox, Avatar, CircularProgress } from "@mui/material";
+import DoneIcon from "@mui/icons-material/Done";
+import { motion } from "framer-motion";
 
 interface BulkAttendanceConfirmModalProps {
   open: boolean;
@@ -20,7 +20,7 @@ const BulkAttendanceConfirmModal: React.FC<BulkAttendanceConfirmModalProps> = ({
   open,
   onClose,
   temporaryAttendees,
-  onConfirm
+  onConfirm,
 }) => {
   const [selectedEmpNos, setSelectedEmpNos] = useState<number[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -32,9 +32,9 @@ const BulkAttendanceConfirmModal: React.FC<BulkAttendanceConfirmModalProps> = ({
   }, [open]);
 
   const handleToggleSelect = (empNo: number) => {
-    setSelectedEmpNos(prev => 
-      prev.includes(empNo) 
-        ? prev.filter(no => no !== empNo)
+    setSelectedEmpNos((prev) =>
+      prev.includes(empNo)
+        ? prev.filter((no) => no !== empNo)
         : [...prev, empNo]
     );
   };
@@ -43,7 +43,7 @@ const BulkAttendanceConfirmModal: React.FC<BulkAttendanceConfirmModalProps> = ({
     if (selectedEmpNos.length === temporaryAttendees.length) {
       setSelectedEmpNos([]);
     } else {
-      setSelectedEmpNos(temporaryAttendees.map(a => a.emp_no));
+      setSelectedEmpNos(temporaryAttendees.map((a) => a.emp_no));
     }
   };
 
@@ -54,7 +54,7 @@ const BulkAttendanceConfirmModal: React.FC<BulkAttendanceConfirmModalProps> = ({
       await onConfirm(selectedEmpNos);
       onClose();
     } catch (error) {
-      console.error('本出席処理に失敗:', error);
+      console.error("本出席処理に失敗:", error);
     } finally {
       setIsProcessing(false);
     }
@@ -66,47 +66,51 @@ const BulkAttendanceConfirmModal: React.FC<BulkAttendanceConfirmModalProps> = ({
       onClose={onClose}
       PaperProps={{
         style: {
-          backgroundColor: '#2D2D33',
-          borderRadius: '0.75rem',
-          maxWidth: '24rem',
-          width: '90%',
-          maxHeight: '80vh',
-          overflow: 'hidden'
+          backgroundColor: "#2D2D33",
+          borderRadius: "0.75rem",
+          maxWidth: "24rem",
+          width: "90%",
+          height: "min(80vh, 600px)",
+          margin: "auto",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
         },
       }}
     >
-      <motion.div 
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.2 }}
-        className="flex flex-col h-full"
-      >
-        <div className="p-4 border-b border-gray-700/50">
+      <div className="h-full flex flex-col">
+        {/* ヘッダー部分 - 固定 */}
+        <div className="flex-shrink-0 p-4 border-b border-gray-700/50">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-medium text-white">本出席にする社員を選択</h2>
+            <h2 className="text-base font-medium text-white">
+              本出席にする社員を選択
+            </h2>
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-400">
                 {selectedEmpNos.length} / {temporaryAttendees.length}
               </span>
               <Checkbox
                 checked={selectedEmpNos.length === temporaryAttendees.length}
-                indeterminate={selectedEmpNos.length > 0 && selectedEmpNos.length < temporaryAttendees.length}
+                indeterminate={
+                  selectedEmpNos.length > 0 &&
+                  selectedEmpNos.length < temporaryAttendees.length
+                }
                 onChange={handleSelectAll}
                 size="small"
                 sx={{
                   padding: 0.5,
-                  color: '#8E93DA',
-                  '&.Mui-checked': { color: '#5b63d3' },
-                  '&.MuiCheckbox-indeterminate': { color: '#5b63d3' },
+                  color: "#8E93DA",
+                  "&.Mui-checked": { color: "#5b63d3" },
+                  "&.MuiCheckbox-indeterminate": { color: "#5b63d3" },
                 }}
               />
             </div>
           </div>
         </div>
 
-        {/* 社員リスト */}
-        <div className="overflow-y-auto flex-1 p-2">
-          <div className="space-y-0">
+        {/* スクロール可能な社員リスト */}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="p-4 space-y-1">
             {temporaryAttendees.map((attendee) => (
               <motion.div
                 key={attendee.emp_no}
@@ -115,9 +119,11 @@ const BulkAttendanceConfirmModal: React.FC<BulkAttendanceConfirmModalProps> = ({
                 transition={{ duration: 0.2 }}
                 className={`
                   flex items-center p-2 rounded-lg cursor-pointer
-                  ${selectedEmpNos.includes(attendee.emp_no) 
-                    ? 'bg-[#5b63d3]/10 hover:bg-[#5b63d3]/20' 
-                    : 'hover:bg-[#37373F]'} 
+                  ${
+                    selectedEmpNos.includes(attendee.emp_no)
+                      ? "bg-[#5b63d3]/10 hover:bg-[#5b63d3]/20"
+                      : "hover:bg-[#37373F]"
+                  } 
                   transition-colors
                 `}
                 onClick={() => handleToggleSelect(attendee.emp_no)}
@@ -127,8 +133,8 @@ const BulkAttendanceConfirmModal: React.FC<BulkAttendanceConfirmModalProps> = ({
                   size="small"
                   sx={{
                     padding: 0.5,
-                    color: '#8E93DA',
-                    '&.Mui-checked': { color: '#5b63d3' },
+                    color: "#8E93DA",
+                    "&.Mui-checked": { color: "#5b63d3" },
                   }}
                 />
                 <Avatar
@@ -137,14 +143,14 @@ const BulkAttendanceConfirmModal: React.FC<BulkAttendanceConfirmModalProps> = ({
                     width: 24,
                     height: 24,
                     ml: 1,
-                    fontSize: '0.75rem',
-                    bgcolor: 'rgba(142, 147, 218, 0.2)',
+                    fontSize: "0.75rem",
+                    bgcolor: "rgba(142, 147, 218, 0.2)",
                   }}
                 >
-                  {attendee.myoji ? attendee.myoji[0] : '?'}
+                  {attendee.myoji ? attendee.myoji[0] : "?"}
                 </Avatar>
                 <span className="ml-2 text-sm text-gray-300">
-                  {attendee.myoji && attendee.namae 
+                  {attendee.myoji && attendee.namae
                     ? `${attendee.myoji} ${attendee.namae}`
                     : `未設定(${attendee.emp_no})`}
                 </span>
@@ -153,17 +159,19 @@ const BulkAttendanceConfirmModal: React.FC<BulkAttendanceConfirmModalProps> = ({
           </div>
         </div>
 
-        {/* ボタン */}
-        <div className="p-3 border-t border-gray-700/50">
+        {/* フッター部分 - 固定 */}
+        <div className="flex-shrink-0 p-4 border-t border-gray-700/50 bg-[#2D2D33] sticky bottom-0">
           <button
             onClick={handleConfirm}
             disabled={selectedEmpNos.length === 0 || isProcessing}
             className={`
-              w-full py-2 rounded-lg
+              w-full py-3 rounded-lg
               flex items-center justify-center gap-2
-              ${selectedEmpNos.length === 0 || isProcessing
-                ? 'bg-[#5b63d3]/50 cursor-not-allowed'
-                : 'bg-[#5b63d3] hover:bg-[#5b63d3]/90'}
+              ${
+                selectedEmpNos.length === 0 || isProcessing
+                  ? "bg-[#5b63d3]/50 cursor-not-allowed"
+                  : "bg-[#5b63d3] hover:bg-[#5b63d3]/90"
+              }
               text-white text-sm font-medium transition-colors
             `}
           >
@@ -177,9 +185,9 @@ const BulkAttendanceConfirmModal: React.FC<BulkAttendanceConfirmModalProps> = ({
             )}
           </button>
         </div>
-      </motion.div>
+      </div>
     </Dialog>
   );
 };
 
-export default BulkAttendanceConfirmModal; 
+export default BulkAttendanceConfirmModal;
