@@ -90,8 +90,15 @@ const CustomEvent = React.memo(function CustomEvent({
 }: CustomEventProps) {
   return (
     <div
-      className="text-sm truncate"
-      style={{ fontSize: "0.7rem", lineHeight: "1.1" }}
+      className="text-sm line-clamp-2 overflow-hidden"
+      style={{
+        fontSize: "0.7rem",
+        lineHeight: "1.1",
+        maxHeight: "2.2em",
+        display: "-webkit-box",
+        WebkitLineClamp: "2",
+        WebkitBoxOrient: "vertical",
+      }}
     >
       {event.title}
     </div>
