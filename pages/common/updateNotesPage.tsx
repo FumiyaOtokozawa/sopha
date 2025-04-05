@@ -422,6 +422,16 @@ export default function UpdateNotesPage() {
                     },
                   },
                 },
+                popper: {
+                  sx: {
+                    '&[data-popper-placement*="top"] .MuiTooltip-tooltip': {
+                      marginBottom: "8px !important",
+                    },
+                    '&[data-popper-placement*="bottom"] .MuiTooltip-tooltip': {
+                      marginTop: "8px !important",
+                    },
+                  },
+                },
               }}
             >
               <IconButton
