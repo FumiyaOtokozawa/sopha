@@ -22,6 +22,13 @@ interface ResultRow {
   errorMessage?: string;
 }
 
+// 日付をJSTに変換するユーティリティ関数
+const convertToJST = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  const jstDate = new Date(date.getTime() + 9 * 60 * 60 * 1000); // UTC+9に調整
+  return jstDate.toISOString();
+};
+
 const AdmAddEmpMPage = () => {
   const [file, setFile] = useState<File | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -141,7 +148,7 @@ const AdmAddEmpMPage = () => {
                     email: row["メンバ属性 - メールアドレス"],
                     myoji,
                     namae,
-                    joinDate: joinDate.toISOString(),
+                    joinDate: convertToJST(joinDate.toISOString()),
                     act_kbn: true,
                   };
 
