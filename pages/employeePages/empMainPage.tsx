@@ -74,6 +74,11 @@ type QueryResult<T> = {
   nextPage: number | null;
 };
 
+type UpdateNote = {
+  upd_id: number;
+  is_published: boolean;
+};
+
 const ITEMS_PER_PAGE = 10;
 
 const QUERY_KEYS = {
@@ -99,6 +104,14 @@ const EmpMainPage = () => {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [isEventDetailModalOpen, setIsEventDetailModalOpen] = useState(false);
   const [now, setNow] = useState(new Date());
+  const [updateNotes, setUpdateNotes] = useState<UpdateNote[]>([]);
+  const [readNotes, setReadNotes] = useState<number[]>([]);
+
+  // 未読数を計算する関数を追加
+  const getUnreadCount = () => {
+    return updateNotes.filter((note) => !readNotes.includes(note.upd_id))
+      .length;
+  };
 
   // CIZ履歴の取得
   const {
@@ -552,6 +565,58 @@ const EmpMainPage = () => {
     }, 1000);
 
     return () => clearInterval(timer);
+  }, []);
+
+  // アップデートノートの未読数を取得する処理を追加
+  useEffect(() => {
+    const fetchUpdateNotes = async () => {
+      const { data, error } = await supabase
+        .from("UPDATE_NOTE")
+        .select("upd_id, is_published")
+        .eq("is_published", true);
+
+      if (error) {
+        console.error("Error fetching update notes:", error);
+        return;
+      }
+
+      setUpdateNotes(data || []);
+
+      // 全ノートIDをローカルストレージに保存
+      const noteIds = (data || []).map((note) => note.upd_id);
+      localStorage.setItem("allUpdateNotes", JSON.stringify(noteIds));
+
+      // 既読情報を取得
+      const storedReadNotes = localStorage.getItem("readNotes");
+      if (storedReadNotes) {
+        setReadNotes(JSON.parse(storedReadNotes));
+      }
+
+      // 未読数の更新を通知
+      setTimeout(() => {
+        const unreadCount = getUnreadCount();
+        window.dispatchEvent(
+          new CustomEvent("updateNotesChanged", { detail: { unreadCount } })
+        );
+      }, 100);
+    };
+
+    fetchUpdateNotes();
+
+    // ローカルストレージの変更を監視
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "readNotes" || e.key === "allUpdateNotes") {
+        const storedReadNotes = localStorage.getItem("readNotes");
+        if (storedReadNotes) {
+          setReadNotes(JSON.parse(storedReadNotes));
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
 
   return (
