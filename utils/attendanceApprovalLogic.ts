@@ -1,14 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { isConfirmationAllowed } from "../pages/events/eventDetailPage";
-
-interface Event {
-  title: string;
-  genre: string;
-  start_date: string;
-  end_date?: string;
-  venue_id?: number;
-  format: "hybrid" | "online" | "offline";
-}
+import type { Event } from "../types/event";
 
 // 2点間の距離を計算する関数（ヘイバーサイン公式）
 const calculateDistance = (

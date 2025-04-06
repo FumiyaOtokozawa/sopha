@@ -1,4 +1,4 @@
-type EventFormat = 'offline' | 'online' | 'hybrid';
+export type EventFormat = "offline" | "online" | "hybrid" | "";
 
 export interface Event {
   event_id: number;
@@ -7,6 +7,7 @@ export interface Event {
   end_date: string;
   venue_id: number;
   venue_nm?: string;
+  venue_address?: string;
   place?: string;
   description?: string;
   owner: string;
@@ -17,4 +18,4 @@ export interface Event {
   url?: string;
   abbreviation?: string;
   manage_member?: string;
-} 
+}

@@ -5,7 +5,6 @@ import { Box, Avatar, Dialog, CircularProgress } from "@mui/material";
 import { ja } from "date-fns/locale";
 import { handleAttendanceConfirmation } from "../../utils/attendanceApprovalLogic";
 import { format } from "date-fns";
-import EventEditForm from "../../components/EventEditForm";
 import EventDetailModal from "../../components/EventDetailModal";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -28,25 +27,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import ProfileModal from "../../components/ProfileModal";
 import AttendanceButtons from "../../components/AttendanceButtons";
 import BulkAttendanceConfirmModal from "../../components/BulkAttendanceConfirmModal";
-
-interface Event {
-  event_id: number;
-  title: string;
-  start_date: string;
-  end_date: string;
-  venue_id: number;
-  venue_nm?: string;
-  venue_address?: string;
-  description?: string;
-  owner: string;
-  ownerName?: string;
-  genre: string;
-  repeat_id?: number | null;
-  format: "offline" | "online" | "hybrid";
-  url?: string;
-  abbreviation?: string;
-  manage_member?: string;
-}
+import EventForm from "../../components/EventForm";
+import type { Event } from "../../types/event";
 
 interface EventParticipant {
   entry_id: number;
@@ -202,10 +184,21 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
 
 const EventDetailPage: React.FC = () => {
   const router = useRouter();
-  const [event, setEvent] = useState<Event | null>(null);
+  const defaultEvent: Event = {
+    event_id: 0,
+    title: "",
+    start_date: new Date().toISOString(),
+    end_date: new Date().toISOString(),
+    venue_id: 0,
+    owner: "",
+    genre: "",
+    format: "",
+  };
+
+  const [event, setEvent] = useState<Event>(defaultEvent);
   const [isEditing, setIsEditing] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
-  const [editedEvent, setEditedEvent] = useState<Event | null>(null);
+  const [editedEvent, setEditedEvent] = useState<Event>(defaultEvent);
   const [currentUserEmpNo, setCurrentUserEmpNo] = useState<number | null>(null);
   const [entryStatus, setEntryStatus] = useState<"1" | "2" | "11" | null>(null);
   const [participants, setParticipants] = useState<EventParticipant[]>([]);
@@ -375,7 +368,9 @@ const EventDetailPage: React.FC = () => {
 
   // 編集ボタンを追加
   const handleEdit = () => {
+    if (!event) return;
     setIsEditing(true);
+    setEditedEvent(event);
   };
 
   // 編集キャンセルボタンのハンドラー
@@ -1020,11 +1015,12 @@ const EventDetailPage: React.FC = () => {
                     exit={{ opacity: 0, x: 20 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <EventEditForm
+                    <EventForm
+                      event={editedEvent}
+                      setEvent={setEditedEvent}
                       onSave={handleSave}
                       onCancel={handleCancel}
-                      editedEvent={editedEvent!}
-                      setEditedEvent={setEditedEvent}
+                      mode="edit"
                     />
                   </motion.div>
                 ) : (

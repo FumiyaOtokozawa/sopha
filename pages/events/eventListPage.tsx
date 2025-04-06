@@ -7,11 +7,11 @@ import getDay from "date-fns/getDay";
 import { ja } from "date-fns/locale";
 import { supabase } from "../../utils/supabaseClient";
 import React from "react";
-import { useRouter } from "next/router";
 import { Box } from "@mui/material";
 import AddBoxIcon from "@mui/icons-material/AddBox";
 import RepeatIcon from "@mui/icons-material/Repeat";
 import EventDetailModal from "../../components/EventDetailModal";
+import EventForm from "../../components/EventForm";
 import { Event } from "../../types/event";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -112,10 +112,29 @@ export default function EventListPage() {
   const [showAllEvents, setShowAllEvents] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const router = useRouter();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isFetchingEvents, setIsFetchingEvents] = useState(false); // イベント取得中フラグ
   const [isFilteringEvents, setIsFilteringEvents] = useState(false); // フィルタリング中フラグ
+  const [isAddMode, setIsAddMode] = useState(false);
+  const [newEvent, setNewEvent] = useState<Event>({
+    event_id: 0,
+    title: "",
+    description: "",
+    start_date: format(
+      new Date().setHours(0, 0, 0, 0),
+      "yyyy-MM-dd'T'HH:mm:ss'+09:00'"
+    ),
+    end_date: format(
+      new Date().setHours(23, 59, 59, 999),
+      "yyyy-MM-dd'T'HH:mm:ss'+09:00'"
+    ),
+    venue_id: 0,
+    url: "",
+    genre: "",
+    format: "",
+    manage_member: "",
+    owner: "0",
+  });
 
   const eventStyleGetter = React.useCallback(
     (event: Event) => ({
@@ -696,117 +715,225 @@ export default function EventListPage() {
     },
   };
 
+  // イベント追加モードを開始
+  const handleAddEventClick = () => {
+    setIsAddMode(true);
+  };
+
+  // イベント追加をキャンセル
+  const handleAddCancel = () => {
+    setIsAddMode(false);
+    setNewEvent({
+      event_id: 0,
+      title: "",
+      description: "",
+      start_date: format(
+        new Date().setHours(0, 0, 0, 0),
+        "yyyy-MM-dd'T'HH:mm:ss'+09:00'"
+      ),
+      end_date: format(
+        new Date().setHours(23, 59, 59, 999),
+        "yyyy-MM-dd'T'HH:mm:ss'+09:00'"
+      ),
+      venue_id: 0,
+      url: "",
+      genre: "",
+      format: "",
+      manage_member: "",
+      owner: "0",
+    });
+  };
+
+  // イベントを保存
+  const handleSaveEvent = async () => {
+    try {
+      // 現在のユーザー情報を取得
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("ユーザー情報が取得できません");
+
+      // ユーザーの社員番号を取得
+      const { data: userData } = await supabase
+        .from("USER_INFO")
+        .select("emp_no")
+        .eq("email", user.email)
+        .single();
+
+      if (!userData) throw new Error("ユーザー情報が取得できません");
+
+      // イベントIDの最大値を取得
+      const { data: maxEventId } = await supabase
+        .from("EVENT_LIST")
+        .select("event_id")
+        .order("event_id", { ascending: false })
+        .limit(1)
+        .single();
+
+      const newEventId = ((maxEventId?.event_id || 0) + 1).toString();
+
+      // データベースに保存するデータを準備
+      // venue_nm を除外して保存用データを作成
+      const { venue_nm: _unused, ...eventDataWithoutVenueNm } = newEvent; // eslint-disable-line @typescript-eslint/no-unused-vars
+      const eventData = {
+        ...eventDataWithoutVenueNm,
+        event_id: newEventId,
+        owner: userData.emp_no.toString(),
+        act_kbn: true,
+      };
+
+      // イベントを保存
+      const { error: insertError } = await supabase
+        .from("EVENT_LIST")
+        .insert(eventData);
+
+      if (insertError) throw insertError;
+
+      // キャッシュをクリアして強制的に再取得
+      clearEventCache();
+
+      // イベントリストを更新
+      await fetchEvents(currentMonth, view);
+
+      // フォームを閉じる
+      handleAddCancel();
+    } catch (error) {
+      console.error("イベントの保存に失敗しました:", error);
+      alert("イベントの保存に失敗しました");
+    }
+  };
+
   return (
-    <Box
-      sx={{
-        position: "relative",
-        width: "100%",
-        overflow: "hidden",
-      }}
-    >
+    <Box sx={{ position: "relative", width: "100%", overflow: "hidden" }}>
       <div>
         <div className="p-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-            className="mb-4"
-          >
-            <div className="flex justify-center items-center">
-              <div className="w-full border-b border-gray-600">
-                <div className="flex">
-                  <button
-                    className={`flex-1 py-2 px-4 text-sm font-medium transition-colors ${
-                      view === "calendar"
-                        ? "text-[#8E93DA]"
-                        : "text-[#FCFCFC] hover:text-gray-300"
-                    } relative`}
-                    onClick={() => handleViewChange("calendar")}
-                  >
-                    カレンダー
-                    {view === "calendar" && (
-                      <motion.span
-                        className="absolute bottom-0 left-0 w-full h-0.5 bg-[#8E93DA]"
-                        layoutId="activeTab"
-                        transition={{ duration: 0.3 }}
-                      ></motion.span>
-                    )}
-                  </button>
-                  <button
-                    className={`flex-1 py-2 px-4 text-sm font-medium transition-colors ${
-                      view === "list"
-                        ? "text-[#8E93DA]"
-                        : "text-[#FCFCFC] hover:text-gray-300"
-                    } relative`}
-                    onClick={() => handleViewChange("list")}
-                  >
-                    予定リスト
-                    {view === "list" && (
-                      <motion.span
-                        className="absolute bottom-0 left-0 w-full h-0.5 bg-[#8E93DA]"
-                        layoutId="activeTab"
-                        transition={{ duration: 0.3 }}
-                      ></motion.span>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.2 }}
-            style={{
-              height: "calc(100vh - 22rem)",
-              minHeight: "50vh",
-              display: "flex",
-              flexDirection: "column",
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            <AnimatePresence mode="wait">
-              {view === "calendar" ? (
-                <motion.div
-                  key="calendar"
-                  initial="initialCalendar"
-                  animate="calendar"
-                  exit="exitCalendar"
-                  variants={viewVariants}
-                  style={{ width: "100%", height: "100%" }}
-                >
-                  <CalendarView />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="list"
-                  initial="initialList"
-                  animate="list"
-                  exit="exitList"
-                  variants={viewVariants}
-                  style={{ width: "100%", height: "100%" }}
-                >
-                  <EventList />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="mt-4"
-          >
-            <button
-              onClick={() => router.push("/events/eventAddPage")}
-              className="w-full py-2 rounded-lg bg-[#5b63d3] text-white font-bold hover:bg-opacity-80 flex items-center justify-center gap-2"
+          {isAddMode ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
             >
-              <AddBoxIcon />
-              イベント追加
-            </button>
-          </motion.div>
+              <div className="bg-[#2D2D33] rounded-lg p-4">
+                <div className="mb-4">
+                  <h2 className="text-xl font-bold text-[#FCFCFC]">
+                    イベント追加
+                  </h2>
+                </div>
+                <EventForm
+                  event={newEvent}
+                  setEvent={setNewEvent}
+                  onSave={handleSaveEvent}
+                  onCancel={handleAddCancel}
+                  mode="create"
+                />
+              </div>
+            </motion.div>
+          ) : (
+            <>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+                className="mb-4"
+              >
+                <div className="flex justify-center items-center">
+                  <div className="w-full border-b border-gray-600">
+                    <div className="flex">
+                      <button
+                        className={`flex-1 py-2 px-4 text-sm font-medium transition-colors ${
+                          view === "calendar"
+                            ? "text-[#8E93DA]"
+                            : "text-[#FCFCFC] hover:text-gray-300"
+                        } relative`}
+                        onClick={() => handleViewChange("calendar")}
+                      >
+                        カレンダー
+                        {view === "calendar" && (
+                          <motion.span
+                            className="absolute bottom-0 left-0 w-full h-0.5 bg-[#8E93DA]"
+                            layoutId="activeTab"
+                            transition={{ duration: 0.3 }}
+                          ></motion.span>
+                        )}
+                      </button>
+                      <button
+                        className={`flex-1 py-2 px-4 text-sm font-medium transition-colors ${
+                          view === "list"
+                            ? "text-[#8E93DA]"
+                            : "text-[#FCFCFC] hover:text-gray-300"
+                        } relative`}
+                        onClick={() => handleViewChange("list")}
+                      >
+                        予定リスト
+                        {view === "list" && (
+                          <motion.span
+                            className="absolute bottom-0 left-0 w-full h-0.5 bg-[#8E93DA]"
+                            layoutId="activeTab"
+                            transition={{ duration: 0.3 }}
+                          ></motion.span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                style={{
+                  height: "calc(100vh - 22rem)",
+                  minHeight: "50vh",
+                  display: "flex",
+                  flexDirection: "column",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+              >
+                <AnimatePresence mode="wait">
+                  {view === "calendar" ? (
+                    <motion.div
+                      key="calendar"
+                      initial="initialCalendar"
+                      animate="calendar"
+                      exit="exitCalendar"
+                      variants={viewVariants}
+                      style={{ width: "100%", height: "100%" }}
+                    >
+                      <CalendarView />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="list"
+                      initial="initialList"
+                      animate="list"
+                      exit="exitList"
+                      variants={viewVariants}
+                      style={{ width: "100%", height: "100%" }}
+                    >
+                      <EventList />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="mt-4"
+              >
+                <button
+                  onClick={handleAddEventClick}
+                  className="w-full py-2 rounded-lg bg-[#5b63d3] text-white font-bold hover:bg-opacity-80 flex items-center justify-center gap-2"
+                >
+                  <AddBoxIcon />
+                  イベント追加
+                </button>
+              </motion.div>
+            </>
+          )}
         </div>
       </div>
 

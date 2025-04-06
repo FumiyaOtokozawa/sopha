@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import PlaceSelectModal from "./PlaceSelectModal";
 import UserSelectModal from "./UserSelectModal";
-import { Event } from "../types/event";
+import type { Event, EventFormat } from "../types/event";
 import { User } from "../types/user";
 import { LocalizationProvider, DateTimePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
@@ -9,18 +9,20 @@ import { ja } from "date-fns/locale";
 import { supabase } from "../utils/supabaseClient";
 import { parseISO, format } from "date-fns";
 
-interface EventEditFormProps {
+interface EventFormProps {
   onSave: () => Promise<void>;
   onCancel: () => void;
-  editedEvent: Event;
-  setEditedEvent: (event: Event) => void;
+  event: Event;
+  setEvent: React.Dispatch<React.SetStateAction<Event>>;
+  mode: "create" | "edit";
 }
 
-const EventEditForm: React.FC<EventEditFormProps> = ({
+const EventForm: React.FC<EventFormProps> = ({
   onSave,
   onCancel,
-  editedEvent,
-  setEditedEvent,
+  event,
+  setEvent,
+  mode,
 }) => {
   const [isPlaceModalOpen, setIsPlaceModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -53,9 +55,9 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
   // 運営メンバーの情報を取得
   useEffect(() => {
     const fetchParticipants = async () => {
-      if (editedEvent && editedEvent.manage_member) {
+      if (event && event.manage_member) {
         // カンマ区切りの社員番号を配列に変換
-        const empNos = editedEvent.manage_member
+        const empNos = event.manage_member
           .split(",")
           .filter((no: string) => no.trim() !== "")
           .map((no: string) => parseInt(no.trim(), 10));
@@ -74,11 +76,11 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
     };
 
     fetchParticipants();
-  }, [editedEvent]);
+  }, [event]);
 
   const handlePlaceSelect = (venue: { id: number; name: string }) => {
-    setEditedEvent({
-      ...editedEvent,
+    setEvent({
+      ...event,
       venue_id: venue.id,
       venue_nm: venue.name,
     });
@@ -94,8 +96,8 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
       // 社員番号をカンマ区切りのテキストに変換
       const memberString = newParticipants.map((p) => p.emp_no).join(",") + ",";
 
-      setEditedEvent({
-        ...editedEvent,
+      setEvent({
+        ...event,
         manage_member: memberString,
       });
     }
@@ -112,8 +114,8 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
         ? newParticipants.map((p) => p.emp_no).join(",") + ","
         : "";
 
-    setEditedEvent({
-      ...editedEvent,
+    setEvent({
+      ...event,
       manage_member: memberString,
     });
   };
@@ -132,8 +134,8 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
   const handleDateChange = (date: Date | null, isStartDate: boolean) => {
     if (date) {
       const jstDate = formatToJST(date);
-      setEditedEvent({
-        ...editedEvent,
+      setEvent({
+        ...event,
         ...(isStartDate ? { start_date: jstDate } : { end_date: jstDate }),
       });
     }
@@ -146,12 +148,12 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
 
     // 必須項目のチェック
     const requiredFields = [
-      { field: editedEvent.title, name: "タイトル" },
-      { field: editedEvent.genre, name: "イベント種別" },
-      { field: editedEvent.format, name: "開催形式" },
-      { field: editedEvent.venue_id, name: "場所" },
-      { field: editedEvent.start_date, name: "開始日時" },
-      { field: editedEvent.end_date, name: "終了日時" },
+      { field: event.title, name: "タイトル" },
+      { field: event.genre, name: "イベント種別" },
+      { field: event.format, name: "開催形式" },
+      { field: event.venue_id, name: "場所" },
+      { field: event.start_date, name: "開始日時" },
+      { field: event.end_date, name: "終了日時" },
     ];
 
     const missingFields = requiredFields
@@ -168,8 +170,8 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
     }
 
     // 開始日時と終了日時の前後関係をチェック
-    const startDate = toDate(editedEvent.start_date);
-    const endDate = toDate(editedEvent.end_date);
+    const startDate = toDate(event.start_date);
+    const endDate = toDate(event.end_date);
 
     if (startDate >= endDate) {
       setError("終了日時は開始日時より後に設定してください");
@@ -194,10 +196,8 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
             イベント種別<span className="text-red-500">*</span>
           </label>
           <select
-            value={editedEvent?.genre || ""}
-            onChange={(e) =>
-              setEditedEvent({ ...editedEvent, genre: e.target.value })
-            }
+            value={event?.genre || ""}
+            onChange={(e) => setEvent({ ...event, genre: e.target.value })}
             className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
             required
           >
@@ -212,11 +212,11 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
             開催形式<span className="text-red-500">*</span>
           </label>
           <select
-            value={editedEvent?.format || ""}
+            value={event?.format}
             onChange={(e) =>
-              setEditedEvent({
-                ...editedEvent,
-                format: e.target.value as "offline" | "online" | "hybrid",
+              setEvent({
+                ...event,
+                format: e.target.value as EventFormat,
               })
             }
             className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
@@ -236,10 +236,8 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
         </label>
         <input
           type="text"
-          value={editedEvent?.title}
-          onChange={(e) =>
-            setEditedEvent({ ...editedEvent, title: e.target.value })
-          }
+          value={event?.title}
+          onChange={(e) => setEvent({ ...event, title: e.target.value })}
           className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px]"
           required
         />
@@ -252,7 +250,7 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
           </label>
           <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>
             <DateTimePicker
-              value={toDate(editedEvent?.start_date)}
+              value={toDate(event?.start_date)}
               onChange={(date) => handleDateChange(date, true)}
               sx={{
                 width: "100%",
@@ -285,7 +283,7 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
           </label>
           <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={ja}>
             <DateTimePicker
-              value={toDate(editedEvent?.end_date)}
+              value={toDate(event?.end_date)}
               onChange={(date) => handleDateChange(date, false)}
               sx={{
                 width: "100%",
@@ -320,7 +318,7 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
         </label>
         <input
           type="text"
-          value={editedEvent?.venue_nm}
+          value={event?.venue_nm}
           onClick={() => setIsPlaceModalOpen(true)}
           readOnly
           className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px] cursor-pointer placeholder-[#6B7280]"
@@ -335,10 +333,8 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
         </label>
         <input
           type="url"
-          value={editedEvent?.url || ""}
-          onChange={(e) =>
-            setEditedEvent({ ...editedEvent, url: e.target.value })
-          }
+          value={event?.url || ""}
+          onChange={(e) => setEvent({ ...event, url: e.target.value })}
           className="w-full bg-[#1D1D21] rounded p-2 text-[#FCFCFC] h-[40px] placeholder-[#6B7280]"
           placeholder="https://..."
         />
@@ -349,10 +345,8 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
           説明
         </label>
         <textarea
-          value={editedEvent?.description || ""}
-          onChange={(e) =>
-            setEditedEvent({ ...editedEvent, description: e.target.value })
-          }
+          value={event?.description || ""}
+          onChange={(e) => setEvent({ ...event, description: e.target.value })}
           className="w-full bg-[#1D1D21] rounded p-2 h-32 text-[#FCFCFC]"
         />
       </div>
@@ -408,7 +402,7 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
           onClick={handleSave}
           className="px-4 py-2 rounded bg-[#5b63d3] text-white font-bold hover:bg-opacity-80"
         >
-          保存
+          {mode === "create" ? "登録" : "保存"}
         </button>
       </div>
 
@@ -428,4 +422,4 @@ const EventEditForm: React.FC<EventEditFormProps> = ({
   );
 };
 
-export default EventEditForm;
+export default EventForm;
